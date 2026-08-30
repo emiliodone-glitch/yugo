@@ -1,0 +1,16 @@
+import { Module } from '@nestjs/common';
+import { ChatController } from './chat.controller';
+import { ChatService } from './chat.service';
+import { ChatGateway } from './chat.gateway';
+import { IcebreakersService } from './icebreakers.service';
+import { ModerationModule } from '../moderation/moderation.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+
+@Module({
+  imports: [ModerationModule, NotificationsModule, SubscriptionsModule],
+  controllers: [ChatController],
+  providers: [ChatService, ChatGateway, IcebreakersService],
+  exports: [ChatService],
+})
+export class ChatModule {}

@@ -1,0 +1,1064 @@
+// Yugo data model — section 9 of the requirements document.
+// PostGIS note: locations are stored as lat/lng doubles and geo queries use
+// PostGIS functions (ST_MakePoint(...)::geography) in raw SQL, so the Prisma
+// schema stays portable while Discover still runs distance in the database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  MEMBER
+  MODERATOR
+  COMMUNITY_MANAGER
+  SUPPORT
+  FINANCE
+  SUPERADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PAUSED
+  SUSPENDED
+  BANNED
+  DELETION_PENDING
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Intention {
+  MARRIAGE
+  FRIENDSHIP
+  BOTH
+}
+
+enum Openness {
+  SAME
+  AFFINE
+  ALL
+}
+
+enum Attendance {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  OCCASIONAL
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+}
+
+enum VerificationMethod {
+  OTP
+  SELFIE
+  CHURCH_CODE
+  LEADER_CONFIRMATION
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  HELD
+  REJECTED
+}
+
+enum MatchStatus {
+  ACTIVE
+  ENDED
+}
+
+enum GroupType {
+  OPEN
+  APPROVAL
+  OFFICIAL
+}
+
+enum GroupStatus {
+  PENDING
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
+enum GroupRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum ReactionType {
+  AMEN
+  PRAYING
+  LIKE
+}
+
+enum EventType {
+  CULTO_ESPECIAL
+  VIGILIA
+  RETIRO
+  CONCIERTO
+  CONGRESO
+  ACTIVIDAD_SOCIAL
+  SERVICIO_COMUNITARIO
+}
+
+enum EventStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  FINISHED
+  REJECTED
+}
+
+enum EventAttendanceStatus {
+  GOING
+  INTERESTED
+}
+
+enum ReportTargetType {
+  PROFILE
+  MESSAGE
+  POST
+  EVENT
+  GROUP
+}
+
+enum ReportCategory {
+  INAPPROPRIATE
+  SCAM
+  FAKE_IDENTITY
+  HARASSMENT
+  MISLEADING
+  UNDERAGE
+}
+
+enum ModerationPriority {
+  CRITICAL
+  HIGH
+  NORMAL
+}
+
+enum ModerationCaseStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  ESCALATED
+}
+
+enum ModerationCaseKind {
+  REPORT
+  AI_HELD
+  APPEAL
+}
+
+enum SanctionType {
+  WARNING
+  SUSPENSION
+  BAN
+  CONTENT_REMOVAL
+}
+
+enum AppealStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+}
+
+enum SubscriptionTier {
+  PLUS
+  ORO
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum SubscriptionChannel {
+  STRIPE
+  AZUL
+  APP_STORE
+  GOOGLE_PLAY
+  PROMO
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUND_REQUESTED
+  REFUNDED
+}
+
+enum ChurchStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum ChurchUserRole {
+  ADMIN
+  EVENT_EDITOR
+}
+
+enum EndorsementRequestStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+  EXPIRED
+}
+
+enum NotificationCategory {
+  CONNECTION
+  MESSAGE
+  INTEREST
+  EVENT
+  GROUP
+  VERIFICATION
+  MODERATION
+  SUBSCRIPTION
+}
+
+// ---------------------------------------------------------------------------
+// Identity & profile
+// ---------------------------------------------------------------------------
+
+model User {
+  id                 String     @id @default(cuid())
+  email              String?    @unique
+  phone              String?    @unique
+  passwordHash       String?
+  googleId           String?    @unique
+  appleId            String?    @unique
+  role               UserRole   @default(MEMBER)
+  status             UserStatus @default(ACTIVE)
+  birthDate          DateTime
+  gender             Gender
+  emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime?
+  covenantAcceptedAt DateTime?
+  covenantVersion    String?
+  twoFactorEnabled   Boolean    @default(false)
+  twoFactorSecret    String?
+  lastActiveAt       DateTime   @default(now())
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  pausedAt           DateTime?
+  deletionRequestedAt DateTime?
+  deletedAt          DateTime?
+
+  profile              Profile?
+  photos               Photo[]
+  verifications        Verification[]
+  sentInterests        Interest[]           @relation("InterestFrom")
+  receivedInterests    Interest[]           @relation("InterestTo")
+  passes               Pass[]               @relation("PassFrom")
+  passedBy             Pass[]               @relation("PassTo")
+  savedProfiles        SavedProfile[]       @relation("SavedFrom")
+  savedBy              SavedProfile[]       @relation("SavedTo")
+  matchesA             Match[]              @relation("MatchA")
+  matchesB             Match[]              @relation("MatchB")
+  messages             Message[]
+  groupMemberships     GroupMember[]
+  posts                Post[]
+  comments             Comment[]
+  reactions            Reaction[]
+  eventAttendances     EventAttendance[]
+  reportsMade          Report[]             @relation("Reporter")
+  reportsReceived      Report[]             @relation("ReportedUser")
+  sanctions            Sanction[]
+  appeals              Appeal[]
+  subscriptions        Subscription[]
+  payments             Payment[]
+  notifications        Notification[]
+  notificationPrefs    NotificationPreference[]
+  profileViewsMade     ProfileView[]        @relation("Viewer")
+  profileViewsReceived ProfileView[]        @relation("Viewed")
+  travelLocations      TravelLocation[]
+  churchMemberships    ChurchUser[]
+  refreshTokens        RefreshToken[]
+  blocksMade           Block[]              @relation("Blocker")
+  blocksReceived       Block[]              @relation("Blocked")
+  endorsementRequests  EndorsementRequest[]
+  moderationCasesAssigned ModerationCase[]  @relation("Assignee")
+
+  @@index([status, lastActiveAt])
+}
+
+model Profile {
+  userId          String     @id
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String
+  city            String?
+  province        String?
+  occupation      String?
+  education       String?
+  bio             String?
+  testimony       String?
+  verse           String?
+  denominationId  String?
+  denomination    Denomination? @relation(fields: [denominationId], references: [id])
+  churchId        String?
+  church          Church?    @relation(fields: [churchId], references: [id])
+  churchFreeText  String?
+  yearsInFaith    Int?
+  attendance      Attendance?
+  intention       Intention  @default(BOTH)
+  openness        Openness   @default(AFFINE)
+  hasChildren     Boolean?
+  lat             Float?
+  lng             Float?
+  completeness    Int        @default(0)
+  // Mandatory mutual age range (RF-DES-11): span >= 3, ageMin >= 18.
+  ageMin          Int
+  ageMax          Int
+  maxDistanceKm   Int        @default(100)
+  prefIntention   Intention?
+  prefWithChildren String?   // ANY | WITH | WITHOUT
+  prefMinVerification Int    @default(1)
+  hideExactDistance Boolean  @default(true)
+  invisibleMode   Boolean    @default(false)
+  showOroBadge    Boolean    @default(false)
+  allowEventPresenceVisible Boolean @default(true)
+  featuredUntil   DateTime?
+  updatedAt       DateTime   @updatedAt
+
+  serviceAreas ProfileServiceArea[]
+  answers      ProfileAnswer[]
+
+  @@index([denominationId])
+  @@index([churchId])
+  @@index([intention])
+  @@index([ageMin, ageMax])
+}
+
+model ProfileAnswer {
+  id        String  @id @default(cuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [userId], onDelete: Cascade)
+  question  String
+  answer    String
+
+  @@unique([profileId, question])
+}
+
+model Photo {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storageKey       String
+  position         Int              @default(0)
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationRisk   Float?
+  createdAt        DateTime         @default(now())
+
+  @@index([userId, position])
+}
+
+model ServiceArea {
+  id     String @id @default(cuid())
+  slug   String @unique
+  name   String
+  active Boolean @default(true)
+
+  profiles ProfileServiceArea[]
+}
+
+model ProfileServiceArea {
+  profileId     String
+  serviceAreaId String
+  profile       Profile     @relation(fields: [profileId], references: [userId], onDelete: Cascade)
+  serviceArea   ServiceArea @relation(fields: [serviceAreaId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, serviceAreaId])
+}
+
+// Oro: who viewed my profile (RF-DES-15)
+model ProfileView {
+  id       String   @id @default(cuid())
+  viewerId String
+  viewedId String
+  viewer   User     @relation("Viewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  viewed   User     @relation("Viewed", fields: [viewedId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+
+  @@index([viewedId, viewedAt])
+}
+
+// Oro: travel mode (RF-DES-14)
+model TravelLocation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city        String
+  country     String?
+  lat         Float
+  lng         Float
+  activeUntil DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([userId, activeUntil])
+}
+
+// ---------------------------------------------------------------------------
+// Catalogs: denominations & affinity matrix
+// ---------------------------------------------------------------------------
+
+model Denomination {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  name   String
+  family String
+  active Boolean @default(true)
+
+  profiles   Profile[]
+  churches   Church[]
+  affinitiesA DenominationAffinity[] @relation("AffinityA")
+  affinitiesB DenominationAffinity[] @relation("AffinityB")
+}
+
+// Symmetric matrix, value 0–100, administrable (RF-ADM-07). Stored once per
+// unordered pair (aId < bId enforced in service layer).
+model DenominationAffinity {
+  aId    String
+  bId    String
+  value  Int
+  a      Denomination @relation("AffinityA", fields: [aId], references: [id], onDelete: Cascade)
+  b      Denomination @relation("AffinityB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@id([aId, bId])
+}
+
+// ---------------------------------------------------------------------------
+// Churches, endorsement (level 3) & verification
+// ---------------------------------------------------------------------------
+
+model Church {
+  id             String       @id @default(cuid())
+  name           String
+  denominationId String?
+  denomination   Denomination? @relation(fields: [denominationId], references: [id])
+  address        String?
+  city           String?
+  province       String?
+  lat            Float?
+  lng            Float?
+  status         ChurchStatus @default(PENDING)
+  contactName    String?
+  contactEmail   String?
+  socialLinks    Json?
+  docsKeys       Json?
+  directPublish  Boolean      @default(false) // trusted churches skip event review (RF-EVE-02)
+  createdAt      DateTime     @default(now())
+  approvedAt     DateTime?
+
+  users             ChurchUser[]
+  events            Event[]
+  officialGroup     Group?
+  endorsementCodes  EndorsementCode[]
+  endorsementRequests EndorsementRequest[]
+  verifications     Verification[]
+  profiles          Profile[]
+}
+
+model ChurchUser {
+  id       String         @id @default(cuid())
+  churchId String
+  userId   String
+  role     ChurchUserRole @default(EVENT_EDITOR)
+  church   Church         @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([churchId, userId])
+}
+
+// Single-use codes, 30-day expiry (RF-VER-02)
+model EndorsementCode {
+  id        String    @id @default(cuid())
+  churchId  String
+  church    Church    @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  code      String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedById  String?
+  revokedAt DateTime?
+
+  @@index([churchId, usedAt])
+}
+
+// Member asks a leader to endorse them (RF-VER-03)
+model EndorsementRequest {
+  id          String                   @id @default(cuid())
+  userId      String
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  churchId    String
+  church      Church                   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  leaderEmail String?
+  leaderName  String?
+  attendsSince Int?
+  status      EndorsementRequestStatus @default(PENDING)
+  createdAt   DateTime                 @default(now())
+  resolvedAt  DateTime?
+
+  @@index([churchId, status])
+}
+
+model Verification {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level        Int // 1 contact · 2 identity · 3 church
+  method       VerificationMethod
+  status       VerificationStatus @default(PENDING)
+  evidenceKey  String? // selfie storage key
+  similarity   Float?
+  livenessPassed Boolean?
+  churchId     String?
+  church       Church?            @relation(fields: [churchId], references: [id])
+  reviewedById String?
+  reviewNote   String?
+  revokeReason String?
+  priority     Boolean            @default(false) // Oro <4h SLA (6.9)
+  createdAt    DateTime           @default(now())
+  resolvedAt   DateTime?
+  expiresAt    DateTime?
+
+  @@index([status, priority, createdAt])
+  @@index([userId, level, status])
+}
+
+// ---------------------------------------------------------------------------
+// Discover: interests, passes, saved, matches, chat
+// ---------------------------------------------------------------------------
+
+model Interest {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  from       User     @relation("InterestFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  to         User     @relation("InterestTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  message    String? // Plus 140 / Oro 300 (RF-DES-07)
+  seenAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, createdAt])
+}
+
+model Pass {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  from       User     @relation("PassFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  to         User     @relation("PassTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime // hidden for 30 days (7.2)
+  undoneAt   DateTime?
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId, expiresAt])
+}
+
+model SavedProfile {
+  fromUserId String
+  toUserId   String
+  from       User     @relation("SavedFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  to         User     @relation("SavedTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([fromUserId, toUserId])
+}
+
+model Block {
+  blockerId String
+  blockedId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+}
+
+// Ordered pair: userAId < userBId (enforced in service layer)
+model Match {
+  id        String      @id @default(cuid())
+  userAId   String
+  userBId   String
+  userA     User        @relation("MatchA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User        @relation("MatchB", fields: [userBId], references: [id], onDelete: Cascade)
+  status    MatchStatus @default(ACTIVE)
+  createdAt DateTime    @default(now())
+  endedAt   DateTime?
+  endedById String?
+
+  conversation Conversation?
+
+  @@unique([userAId, userBId])
+  @@index([userAId, status])
+  @@index([userBId, status])
+}
+
+model Conversation {
+  id         String    @id @default(cuid())
+  matchId    String    @unique
+  match      Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  archivedByA Boolean  @default(false)
+  archivedByB Boolean  @default(false)
+
+  messages Message[]
+}
+
+model Message {
+  id               String           @id @default(cuid())
+  conversationId   String
+  conversation     Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId         String
+  sender           User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body             String
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationRisk   Float?
+  moderationCategories Json?
+  sentAt           DateTime         @default(now())
+  deliveredAt      DateTime?
+  readAt           DateTime?
+
+  @@index([conversationId, sentAt])
+  @@index([moderationStatus, sentAt])
+}
+
+// ---------------------------------------------------------------------------
+// Community: groups, posts, prayer, activities
+// ---------------------------------------------------------------------------
+
+model GroupCategory {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  name   String
+  active Boolean @default(true)
+
+  groups Group[]
+}
+
+model Group {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  coverKey    String?
+  categoryId  String?
+  category    GroupCategory? @relation(fields: [categoryId], references: [id])
+  city        String?
+  type        GroupType   @default(OPEN)
+  status      GroupStatus @default(PENDING)
+  ownerId     String?
+  churchId    String?     @unique
+  church      Church?     @relation(fields: [churchId], references: [id])
+  createdAt   DateTime    @default(now())
+  lastPostAt  DateTime?
+  archivedAt  DateTime?
+
+  members    GroupMember[]
+  posts      Post[]
+  activities GroupActivity[]
+
+  @@index([status, type])
+}
+
+model GroupMember {
+  groupId  String
+  userId   String
+  role     GroupRole @default(MEMBER)
+  mutedUntil DateTime?
+  joinedAt DateTime  @default(now())
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+}
+
+model Post {
+  id               String           @id @default(cuid())
+  groupId          String
+  group            Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body             String
+  imageKey         String?
+  isPrayerRequest  Boolean          @default(false)
+  answeredAt       DateTime? // prayer marked as answered (RF-COM-05)
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationRisk   Float?
+  createdAt        DateTime         @default(now())
+
+  comments  Comment[]
+  reactions Reaction[]
+
+  @@index([groupId, createdAt])
+}
+
+model Comment {
+  id               String           @id @default(cuid())
+  postId           String
+  post             Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body             String
+  moderationStatus ModerationStatus @default(PENDING)
+  createdAt        DateTime         @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model Reaction {
+  postId    String
+  userId    String
+  type      ReactionType
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@id([postId, userId, type])
+}
+
+model GroupActivity {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  title     String
+  startsAt  DateTime
+  place     String?
+  createdAt DateTime @default(now())
+
+  attendances ActivityAttendance[]
+
+  @@index([groupId, startsAt])
+}
+
+model ActivityAttendance {
+  activityId String
+  userId     String
+  activity   GroupActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+
+  @@id([activityId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+model Event {
+  id          String      @id @default(cuid())
+  churchId    String
+  church      Church      @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        EventType
+  startsAt    DateTime
+  endsAt      DateTime?
+  address     String?
+  city        String?
+  lat         Float?
+  lng         Float?
+  capacity    Int?
+  costAmount  Decimal?    @db.Decimal(10, 2)
+  costCurrency String?
+  externalUrl String?
+  imageKey    String?
+  status      EventStatus @default(DRAFT)
+  featured    Boolean     @default(false)
+  qrToken     String?     @unique
+  reviewNote  String?
+  createdAt   DateTime    @default(now())
+  publishedAt DateTime?
+
+  attendances EventAttendance[]
+
+  @@index([status, startsAt])
+  @@index([churchId, status])
+}
+
+model EventAttendance {
+  eventId     String
+  userId      String
+  status      EventAttendanceStatus
+  event       Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminderSentAt DateTime?
+  checkedInAt DateTime?
+  createdAt   DateTime              @default(now())
+
+  @@id([eventId, userId])
+  @@index([userId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Safety: reports, moderation cases, sanctions, appeals
+// ---------------------------------------------------------------------------
+
+model Report {
+  id         String           @id @default(cuid())
+  reporterId String
+  reporter   User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTargetType
+  targetId   String
+  targetUserId String?
+  targetUser User?            @relation("ReportedUser", fields: [targetUserId], references: [id])
+  category   ReportCategory
+  details    String?
+  evidence   Json? // e.g. captured message history (RF-SEG-03)
+  createdAt  DateTime         @default(now())
+
+  case ModerationCase?
+
+  @@index([targetUserId, createdAt])
+}
+
+model ModerationCase {
+  id          String               @id @default(cuid())
+  kind        ModerationCaseKind
+  priority    ModerationPriority   @default(NORMAL)
+  status      ModerationCaseStatus @default(OPEN)
+  reportId    String?              @unique
+  report      Report?              @relation(fields: [reportId], references: [id])
+  messageId   String?
+  postId      String?
+  photoId     String?
+  subjectUserId String?
+  assigneeId  String?
+  assignee    User?                @relation("Assignee", fields: [assigneeId], references: [id])
+  internalNotes Json?
+  decision    String?
+  decisionReason String?
+  slaDueAt    DateTime?
+  createdAt   DateTime             @default(now())
+  resolvedAt  DateTime?
+
+  sanctions Sanction[]
+  appeals   Appeal[]
+
+  @@index([status, priority, createdAt])
+}
+
+model Sanction {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caseId    String?
+  case      ModerationCase? @relation(fields: [caseId], references: [id])
+  type      SanctionType
+  days      Int?
+  reason    String
+  createdById String?
+  createdAt DateTime     @default(now())
+  until     DateTime?
+  liftedAt  DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model Appeal {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caseId    String
+  case      ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  body      String
+  status    AppealStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+  resolvedAt DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// Monetization
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id         String              @id @default(cuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier       SubscriptionTier
+  plan       SubscriptionPlan
+  channel    SubscriptionChannel
+  status     SubscriptionStatus  @default(ACTIVE)
+  startsAt   DateTime
+  endsAt     DateTime
+  canceledAt DateTime?
+  // Downgrade scheduled for period end (RF-PLU-07)
+  downgradeToTier SubscriptionTier?
+  externalId String?
+  promoCodeId String?
+  promoCode  PromoCode?          @relation(fields: [promoCodeId], references: [id])
+  createdAt  DateTime            @default(now())
+
+  payments Payment[]
+
+  @@index([userId, status, endsAt])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String
+  provider       SubscriptionChannel
+  providerRef    String?
+  status         PaymentStatus @default(PENDING)
+  refundReason   String?
+  refundApprovedById String? // first approval
+  refundSecondApprovedById String? // double approval (RF-ADM-09)
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model PromoCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  tier        SubscriptionTier
+  trialDays   Int
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  subscriptions Subscription[]
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  NotificationCategory
+  title     String
+  body      String
+  data      Json?
+  createdAt DateTime             @default(now())
+  readAt    DateTime?
+  pushedAt  DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  userId   String
+  category NotificationCategory
+  push     Boolean @default(true)
+  email    Boolean @default(false)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, category])
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Auth infrastructure
+// ---------------------------------------------------------------------------
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  identifier String // email or phone
+  codeHash   String
+  purpose    String // REGISTER | LOGIN | RESET | LEADER_CONFIRM
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  @@index([identifier, purpose, createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  deviceInfo String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// System: settings, legal content, audit
+// ---------------------------------------------------------------------------
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+model LegalDocument {
+  id        String   @id @default(cuid())
+  kind      String // COVENANT | TERMS | PRIVACY | SAFETY_TIPS
+  version   String
+  body      Json
+  createdAt DateTime @default(now())
+  activeFrom DateTime @default(now())
+
+  @@unique([kind, version])
+}
+
+// Append-only: no API route updates or deletes rows (RF-ADM-11).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
