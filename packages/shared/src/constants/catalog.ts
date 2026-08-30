@@ -138,6 +138,94 @@ export const COVENANT_V1 = {
   ],
 };
 
+/**
+ * Safety tips shown when a first connection is created and before a first
+ * meeting (RF-SEG-06). Administrable from the panel as versioned content.
+ */
+export const SAFETY_TIPS_V1 = {
+  version: '1.0',
+  firstConnection: {
+    title: 'Antes de un primer encuentro',
+    points: [
+      'Reúnanse en un lugar público y concurrido la primera vez.',
+      'Avisa a alguien de confianza dónde estarás y con quién.',
+      'Llega y regresa por tus propios medios.',
+      'No compartas datos financieros, contraseñas ni copias de tu cédula.',
+      'Si alguien te pide dinero o te presiona, repórtalo desde el chat.',
+    ],
+  },
+  scamWarning: {
+    title: 'Cuidado con las estafas',
+    points: [
+      'Desconfía de quien pide dinero, inversiones o "ayuda urgente".',
+      'Sospecha si insisten en moverse a otra aplicación en los primeros mensajes.',
+      'Yugo nunca te pedirá tu contraseña ni datos bancarios.',
+    ],
+  },
+};
+
+/** Legal documents seeded at v1.0 (RF-SEG-08, RF-ADM-10). */
+export const TERMS_V1 = {
+  version: '1.0',
+  sections: [
+    {
+      title: 'Quién puede usar Yugo',
+      body: 'Yugo es exclusivamente para personas mayores de 18 años. Al registrarte declaras que la fecha de nacimiento que proporcionas es verdadera. Detectar una cuenta de una persona menor de edad implica su eliminación inmediata.',
+    },
+    {
+      title: 'Tu cuenta',
+      body: 'Eres responsable de la veracidad de tu perfil y de mantener segura tu contraseña. Una cuenta por persona; no se permite suplantar a nadie.',
+    },
+    {
+      title: 'Conducta',
+      body: 'El Pacto de conducta forma parte de estos términos. Incumplirlo puede resultar en advertencia, suspensión temporal o expulsión permanente.',
+    },
+    {
+      title: 'Suscripciones',
+      body: 'Yugo Plus y Yugo Oro se renuevan automáticamente hasta que canceles. Puedes cancelar en cualquier momento y conservas el acceso hasta el fin del período pagado. Las compras hechas en App Store o Google Play se gestionan según las políticas de esas tiendas.',
+    },
+    {
+      title: 'Contenido',
+      body: 'Conservas los derechos sobre tus fotos y textos; nos otorgas licencia para mostrarlos dentro de la plataforma. Todo contenido pasa por moderación antes de publicarse o entregarse.',
+    },
+    {
+      title: 'Eliminación',
+      body: 'Puedes eliminar tu cuenta desde la aplicación en cualquier momento. Tienes 14 días de gracia para arrepentirte; luego los datos se borran definitivamente.',
+    },
+  ],
+};
+
+export const PRIVACY_V1 = {
+  version: '1.0',
+  law: 'Ley 172-13 de Protección de Datos Personales de República Dominicana',
+  sections: [
+    {
+      title: 'Qué datos recogemos',
+      body: 'Datos de contacto (correo o teléfono), fecha de nacimiento, datos del perfil que decides completar (incluida tu denominación e iglesia), fotos, ubicación aproximada, mensajes y datos de uso y pago.',
+    },
+    {
+      title: 'Para qué los usamos',
+      body: 'Para crear tu perfil, calcular tu afinidad de fe, mostrarte personas y eventos cercanos, moderar contenido, prevenir fraude y procesar tu suscripción.',
+    },
+    {
+      title: 'Con quién los compartimos',
+      body: 'Con proveedores que nos prestan servicio (almacenamiento, moderación asistida por IA, notificaciones, pagos) bajo acuerdos de confidencialidad. Tu iglesia solo ve que estás respaldado por ella: nunca tu actividad de citas.',
+    },
+    {
+      title: 'Tus derechos',
+      body: 'Puedes acceder a tus datos, rectificarlos, eliminarlos y oponerte a su tratamiento. La descarga de tus datos está disponible desde Privacidad y seguridad en la aplicación.',
+    },
+    {
+      title: 'Conservación',
+      body: 'Conservamos tus datos mientras tu cuenta esté activa. Tras eliminarla, se borran a los 14 días, salvo los registros de seguridad y sanciones que la ley permite retener de forma anonimizada.',
+    },
+    {
+      title: 'Contacto',
+      body: 'Para ejercer tus derechos escribe a privacidad@yugo.do.',
+    },
+  ],
+};
+
 /** Attendance frequency options (RF-PER-03). */
 export const ATTENDANCE_OPTIONS = [
   { value: 'WEEKLY', label: 'Cada semana' },

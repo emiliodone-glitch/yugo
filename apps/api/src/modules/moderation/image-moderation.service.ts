@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { SettingsService } from '../../common/settings.service';
+import { QueueService } from '../queues/queue.service';
 
 export interface ImageClassifier {
   classify(storageKey: string): Promise<{ risk: number; categories: string[] }>;
@@ -31,7 +32,7 @@ class ExternalImageClassifier implements ImageClassifier {
  * REJECTED photos land in the moderation queue for human review.
  */
 @Injectable()
-export class ImageModerationService {
+export class ImageModerationService implements OnModuleInit {
   private readonly logger = new Logger(ImageModerationService.name);
   private readonly classifier: ImageClassifier =
     process.env.IMAGE_MODERATION_PROVIDER === 'external' && process.env.IMAGE_MODERATION_URL
@@ -41,7 +42,20 @@ export class ImageModerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly queues: QueueService,
   ) {}
+
+  onModuleInit() {
+    this.queues.register('image-moderation', async (payload) => {
+      await this.classifyPhoto(payload.photoId as string);
+    });
+  }
+
+  /** Queues classification so photo upload stays fast; photos stay PENDING
+   * (and therefore hidden) until the job resolves. */
+  async enqueuePhoto(photoId: string): Promise<void> {
+    await this.queues.add('image-moderation', { photoId });
+  }
 
   async classifyPhoto(photoId: string): Promise<void> {
     const photo = await this.prisma.photo.findUnique({ where: { id: photoId } });

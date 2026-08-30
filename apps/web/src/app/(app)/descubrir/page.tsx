@@ -106,7 +106,7 @@ export default function DiscoverPage() {
                       {profile.displayName}, {profile.age}
                     </div>
                     <div className="text-xs opacity-90">
-                      {profile.city} · {profile.distanceKm} km
+                      {profile.city} · {profile.distanceLabel}
                       {profile.occupation ? ` · ${profile.occupation}` : ''}
                     </div>
                   </div>

@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { NotificationCategory } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
+import { QueueService } from '../queues/queue.service';
 
 /**
  * In-app notification center + push fan-out (RF-NOT-01/02). Push goes through
@@ -8,10 +9,24 @@ import { PrismaService } from '../../common/prisma.service';
  * the quiet-hours window.
  */
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queues: QueueService,
+  ) {}
+
+  onModuleInit() {
+    this.queues.register('push', async (payload) => {
+      await this.sendPush(
+        payload.userId as string,
+        payload.title as string,
+        payload.body as string,
+        payload.data,
+      );
+    });
+  }
 
   async notify(
     userId: string,
@@ -29,9 +44,9 @@ export class NotificationsService {
     });
 
     if (preference?.push !== false) {
-      void this.sendPush(userId, title, body, data).catch((error) =>
-        this.logger.warn(`push failed for ${userId}: ${String(error)}`),
-      );
+      // Fan-out runs on the queue so a slow push provider never delays the
+      // request that triggered the notification.
+      await this.queues.add('push', { userId, title, body, data });
     }
     return notification;
   }

@@ -112,6 +112,8 @@ export interface ProfileCard {
   gender: Gender;
   city: string;
   distanceKm: number;
+  /** Bucketed distance shown when the member hides the exact value (RF-SEG-07). */
+  distanceLabel: string;
   occupation?: string;
   denomination: string;
   churchName?: string;

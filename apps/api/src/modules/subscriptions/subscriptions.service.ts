@@ -4,6 +4,7 @@ import { LIMITS } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { SettingsService } from '../../common/settings.service';
 import { AuditService } from '../../common/audit.service';
+import { MailerService } from '../queues/mailer.service';
 import {
   AzulProvider,
   PaymentProvider,
@@ -24,6 +25,7 @@ export class SubscriptionsService {
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    private readonly mailer: MailerService,
   ) {}
 
   private provider(channel: string): PaymentProvider {
@@ -159,6 +161,21 @@ export class SubscriptionsService {
       targetId: subscription.id,
       after: { tier, plan, channel, amount, currency },
     });
+
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, profile: { select: { displayName: true } } },
+    });
+    if (buyer?.email) {
+      await this.mailer.send(buyer.email, 'PAYMENT_RECEIPT', {
+        displayName: buyer.profile?.displayName,
+        tier,
+        plan,
+        amount: amount.toLocaleString('es-DO'),
+        currency,
+        renewsAt: endsAt.toLocaleDateString('es-DO'),
+      });
+    }
     return subscription;
   }
 

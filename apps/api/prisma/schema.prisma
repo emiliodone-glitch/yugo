@@ -343,7 +343,9 @@ model Profile {
   prefIntention   Intention?
   prefWithChildren String?   // ANY | WITH | WITHOUT
   prefMinVerification Int    @default(1)
-  hideExactDistance Boolean  @default(true)
+  // Opt-in privacy control (RF-SEG-07): when on, viewers read a range
+  // ("5–10 km") instead of the exact distance.
+  hideExactDistance Boolean  @default(false)
   invisibleMode   Boolean    @default(false)
   showOroBadge    Boolean    @default(false)
   allowEventPresenceVisible Boolean @default(true)

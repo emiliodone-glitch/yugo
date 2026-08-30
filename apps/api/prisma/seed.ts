@@ -17,8 +17,11 @@ import {
   EVENT_TYPES,
   GROUP_CATEGORIES,
   LIMITS,
+  PRIVACY_V1,
+  SAFETY_TIPS_V1,
   SERVICE_AREAS,
   SETTING_KEYS,
+  TERMS_V1,
 } from '@yugo/shared';
 
 const prisma = new PrismaClient();
@@ -116,16 +119,31 @@ async function main() {
     categoryBySlug.set(c.slug, row.id);
   }
 
-  // --- Legal: covenant v1.0 (RF-AUT-04, RF-SEG-01) ---------------------------
-  await prisma.legalDocument.upsert({
-    where: { kind_version: { kind: 'COVENANT', version: COVENANT_V1.version } },
-    update: {},
-    create: {
-      kind: 'COVENANT',
-      version: COVENANT_V1.version,
-      body: { points: COVENANT_V1.points } as Prisma.InputJsonValue,
+  // --- Legal: covenant, terms, privacy, safety tips (RF-SEG-01/08, RF-ADM-10) --
+  const legalDocuments: Array<{ kind: string; version: string; body: Prisma.InputJsonValue }> = [
+    { kind: 'COVENANT', version: COVENANT_V1.version, body: { points: COVENANT_V1.points } },
+    { kind: 'TERMS', version: TERMS_V1.version, body: { sections: TERMS_V1.sections } },
+    {
+      kind: 'PRIVACY',
+      version: PRIVACY_V1.version,
+      body: { law: PRIVACY_V1.law, sections: PRIVACY_V1.sections },
     },
-  });
+    {
+      kind: 'SAFETY_TIPS',
+      version: SAFETY_TIPS_V1.version,
+      body: {
+        firstConnection: SAFETY_TIPS_V1.firstConnection,
+        scamWarning: SAFETY_TIPS_V1.scamWarning,
+      },
+    },
+  ];
+  for (const document of legalDocuments) {
+    await prisma.legalDocument.upsert({
+      where: { kind_version: { kind: document.kind, version: document.version } },
+      update: { body: document.body },
+      create: document,
+    });
+  }
 
   // --- Default settings (RF-ADM-08) ------------------------------------------
   const settings: Array<[string, Prisma.InputJsonValue]> = [

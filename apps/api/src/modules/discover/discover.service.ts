@@ -9,6 +9,7 @@ import { DailyLimitsService } from './daily-limits.service';
 import { rankCandidates } from './rank';
 import { StorageService } from '../media/storage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { PrivacyService } from '../privacy/privacy.service';
 import { createHash } from 'crypto';
 
 interface CandidateRow {
@@ -244,6 +245,11 @@ export class DiscoverService {
           gender: candidate.gender,
           city: candidate.profile.city ?? '',
           distanceKm,
+          // The candidate's own privacy setting decides what viewers read.
+          distanceLabel: PrivacyService.distanceLabel(
+            distanceKm,
+            candidate.profile.hideExactDistance,
+          ),
           occupation: candidate.profile.occupation ?? undefined,
           denomination: candidate.profile.denomination?.name ?? '',
           churchName: candidate.profile.church?.name ?? candidate.profile.churchFreeText ?? undefined,

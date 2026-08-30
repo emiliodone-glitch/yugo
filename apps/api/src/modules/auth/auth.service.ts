@@ -12,6 +12,7 @@ import { AuditService } from '../../common/audit.service';
 import { SettingsService } from '../../common/settings.service';
 import { OtpService } from './otp.service';
 import { TokenService } from './token.service';
+import { MailerService } from '../queues/mailer.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly settings: SettingsService,
     private readonly otp: OtpService,
     private readonly tokens: TokenService,
+    private readonly mailer: MailerService,
   ) {}
 
   /**
@@ -81,6 +83,7 @@ export class AuthService {
     await this.prisma.verification.create({
       data: { userId: user.id, level: 1, method: 'OTP', status: 'APPROVED', resolvedAt: new Date() },
     });
+    if (user.email) await this.mailer.send(user.email, 'WELCOME');
     return this.tokens.issuePair(user);
   }
 

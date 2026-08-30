@@ -38,8 +38,9 @@ export class PhotosController {
     const photo = await this.prisma.photo.create({
       data: { userId: user.id, storageKey: body.key, position: body.position },
     });
-    // Classification runs out-of-band; dev stub approves instantly.
-    void this.imageModeration.classifyPhoto(photo.id);
+    // Classification runs out-of-band on the queue; the photo stays PENDING
+    // (hidden) until it resolves.
+    await this.imageModeration.enqueuePhoto(photo.id);
     return photo;
   }
 
