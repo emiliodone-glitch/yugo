@@ -135,6 +135,12 @@ importers:
       '@expo-google-fonts/fraunces':
         specifier: ^0.2.3
         version: 0.2.3
+      '@tanstack/react-query':
+        specifier: ^5.102.8
+        version: 5.102.8(react@18.2.0)
+      '@yugo/app-core':
+        specifier: workspace:*
+        version: link:../../packages/app-core
       '@yugo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -156,6 +162,9 @@ importers:
       expo-router:
         specifier: ~3.5.23
         version: 3.5.24(618fef84747f6c4a2d17a84b4765fb92)
+      expo-secure-store:
+        specifier: ~13.0.2
+        version: 13.0.2(expo@51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0))
       expo-status-bar:
         specifier: ~1.12.1
         version: 1.12.1
@@ -174,6 +183,9 @@ importers:
       react-native-svg:
         specifier: 15.2.0
         version: 15.2.0(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
+      zustand:
+        specifier: ^4.5.7
+        version: 4.5.7(@types/react@18.2.79)(react@18.2.0)
     devDependencies:
       '@babel/core':
         specifier: ^7.25.2
@@ -190,6 +202,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.102.8(react@18.3.1)
+      '@yugo/app-core':
+        specifier: workspace:*
+        version: link:../../packages/app-core
       '@yugo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -239,6 +254,28 @@ importers:
       typescript:
         specifier: ^5.5.4
         version: 5.9.3
+
+  packages/app-core:
+    dependencies:
+      '@yugo/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@tanstack/react-query':
+        specifier: ^5.51.1
+        version: 5.102.8(react@18.3.1)
+      '@types/react':
+        specifier: ^18.3.5
+        version: 18.3.31
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      zustand:
+        specifier: ^4.5.5
+        version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
 
   packages/shared:
     dependencies:
@@ -4217,6 +4254,11 @@ packages:
         optional: true
       react-native-reanimated:
         optional: true
+
+  expo-secure-store@13.0.2:
+    resolution: {integrity: sha512-3QYgoneo8p8yeeBPBiAfokNNc2xq6+n8+Ob4fAlErEcf4H7Y72LH+K/dx0nQyWau2ZKZUXBxyyfuHFyVKrEVLg==}
+    peerDependencies:
+      expo: '*'
 
   expo-splash-screen@0.27.7:
     resolution: {integrity: sha512-s+eGcG185878nixlrjhhLD6UDYrvoqBUaBkIEozBVWFg3pkdsKpONPiUAco4XR3h7I/9ODq4quN28RJLFO+s0Q==}
@@ -10388,6 +10430,11 @@ snapshots:
 
   '@tanstack/query-core@5.102.8': {}
 
+  '@tanstack/react-query@5.102.8(react@18.2.0)':
+    dependencies:
+      '@tanstack/query-core': 5.102.8
+      react: 18.2.0
+
   '@tanstack/react-query@5.102.8(react@18.3.1)':
     dependencies:
       '@tanstack/query-core': 5.102.8
@@ -12577,6 +12624,10 @@ snapshots:
       - react-native
       - supports-color
       - typescript
+
+  expo-secure-store@13.0.2(expo@51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)):
+    dependencies:
+      expo: 51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)
 
   expo-splash-screen@0.27.7(expo-modules-autolinking@1.11.3)(expo@51.0.39(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.2.79)(react@18.2.0))(react@18.2.0)):
     dependencies:
@@ -16153,6 +16204,10 @@ snapshots:
     dependencies:
       react: 18.2.0
 
+  use-sync-external-store@1.6.0(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+
   use-sync-external-store@1.6.0(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -16507,6 +16562,13 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zustand@4.5.7(@types/react@18.2.79)(react@18.2.0):
+    dependencies:
+      use-sync-external-store: 1.6.0(react@18.2.0)
+    optionalDependencies:
+      '@types/react': 18.2.79
+      react: 18.2.0
 
   zustand@4.5.7(@types/react@18.3.31)(react@18.3.1):
     dependencies:

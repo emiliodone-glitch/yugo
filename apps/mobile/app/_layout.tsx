@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import { View } from 'react-native';
 import { theme } from '../lib/theme';
+import { Providers } from '../lib/providers';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -27,7 +28,7 @@ export default function RootLayout() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: theme.colors.ink }} />;
 
   return (
-    <>
+    <Providers>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -35,6 +36,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: theme.colors.linen },
         }}
       />
-    </>
+    </Providers>
   );
 }

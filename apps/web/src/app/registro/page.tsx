@@ -11,11 +11,20 @@ import {
   isAdult,
   LIMITS,
   SERVICE_AREAS,
+  type ProfileUpdateInput,
 } from '@yugo/shared';
 import { CheckIcon, ChevronLeft, PersonSilhouette, YugoMark } from '@/components/icons';
 import { Toggle } from '@/components/ui';
+import { DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
 
 const TOTAL_STEPS = 8;
+
+/**
+ * The account is created once the birth date is known, because the API refuses
+ * to register anyone under 18 (RF-AUT-03) — so the code is sent after step 2
+ * against the live API, and after step 1 in demo mode, where nothing is sent.
+ */
+const OTP_AFTER_STEP = DEMO_MODE ? 1 : 2;
 
 interface FormState {
   email: string;
@@ -68,6 +77,7 @@ export default function OnboardingPage() {
   const [done, setDone] = useState(false);
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const patch = (partial: Partial<FormState>) => {
     setError(null);
@@ -82,9 +92,7 @@ export default function OnboardingPage() {
   const canContinue = useMemo(() => {
     switch (step) {
       case 1:
-        return otpStage
-          ? form.otp.length === 6
-          : form.email.includes('@') && form.password.length >= 8;
+        return form.email.includes('@') && form.password.length >= 8;
       case 2:
         return !!form.birthDate && !underage && !!form.gender;
       case 3:
@@ -102,22 +110,78 @@ export default function OnboardingPage() {
       default:
         return false;
     }
-  }, [step, form, otpStage, underage]);
+  }, [step, form, underage]);
 
-  const next = () => {
-    if (step === 1 && !otpStage) {
-      setOtpStage(true);
-      return;
+  const next = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      if (otpStage) {
+        if (!DEMO_MODE) await getApiClient().auth.verifyOtp(form.email, form.otp);
+        setOtpStage(false);
+        setStep(OTP_AFTER_STEP + 1);
+        return;
+      }
+
+      if (step === OTP_AFTER_STEP) {
+        if (!DEMO_MODE) {
+          await getApiClient().auth.register({
+            email: form.email,
+            password: form.password,
+            birthDate: form.birthDate,
+            gender: form.gender as 'MALE' | 'FEMALE',
+          });
+        }
+        setOtpStage(true);
+        return;
+      }
+
+      // RF-AUT-04: the covenant is recorded with its version before anything else.
+      if (step === 3 && !DEMO_MODE) {
+        await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+      }
+
+      if (step === TOTAL_STEPS) {
+        if (!DEMO_MODE) await saveProfile();
+        setDone(true);
+        return;
+      }
+
+      setStep((current) => current + 1);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
     }
-    if (step === TOTAL_STEPS) {
-      setDone(true);
-      return;
-    }
-    setStep((s) => s + 1);
+  };
+
+  /** Sends everything the wizard collected once the member finishes it. */
+  const saveProfile = async () => {
+    const client = getApiClient();
+    const denominations = await client.catalog.denominations().catch(() => []);
+    const denominationId =
+      denominations.find((item) => item.slug === form.denomination)?.id ?? undefined;
+
+    await client.profiles.update({
+      denominationId,
+      churchFreeText: form.church || undefined,
+      yearsInFaith: form.yearsInFaith ? Number(form.yearsInFaith) : undefined,
+      attendance: (form.attendance ?? undefined) as ProfileUpdateInput['attendance'],
+      intention: form.intention ?? undefined,
+      openness: form.openness ?? undefined,
+      testimony: form.testimony || undefined,
+      verse: form.verse || undefined,
+      practiceSlugs: form.practices,
+    });
+    await client.profiles.updatePreferences({
+      ageMin: form.ageMin,
+      ageMax: form.ageMax,
+      maxDistanceKm: form.distance,
+    });
   };
 
   const back = () => {
-    if (step === 1 && otpStage) {
+    if (otpStage) {
       setOtpStage(false);
       return;
     }
@@ -179,7 +243,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 1 && otpStage ? (
+        {otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.otpTitle}</h1>
             <p className="mb-3 text-xs text-muted">{es.onboarding.otpSub(form.email)}</p>
@@ -194,7 +258,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 2 ? (
+        {step === 2 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.birthTitle}</h1>
             <p className="mb-3 text-xs text-muted">{es.onboarding.birthSub}</p>
@@ -230,7 +294,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 3 ? (
+        {step === 3 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.covenant.title}</h1>
             <p className="mb-3 text-xs text-muted">{es.covenant.intro}</p>
@@ -253,7 +317,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 4 ? (
+        {step === 4 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.faithTitle}</h1>
             <p className="mb-3 text-xs text-muted">{es.onboarding.faithSub}</p>
@@ -300,7 +364,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 5 ? (
+        {step === 5 && !otpStage ? (
           <>
             <h1 className="h-display mb-3 mt-1.5 text-[26px]">{es.onboarding.intentionTitle}</h1>
             {(
@@ -339,7 +403,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 6 ? (
+        {step === 6 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.photosTitle}</h1>
             <p className="mb-3 text-xs text-muted">{es.onboarding.photosSub}</p>
@@ -372,7 +436,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 7 ? (
+        {step === 7 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.testimonyTitle}</h1>
             <p className="mb-3 text-xs text-muted">{es.onboarding.testimonySub}</p>
@@ -417,7 +481,7 @@ export default function OnboardingPage() {
           </>
         ) : null}
 
-        {step === 8 ? (
+        {step === 8 && !otpStage ? (
           <>
             <h1 className="h-display mb-2 mt-1.5 text-[26px]">{es.onboarding.preferencesTitle}</h1>
             <div className="mb-1 mt-2 flex items-center justify-between">
@@ -488,11 +552,19 @@ export default function OnboardingPage() {
       {error ? <div className="mb-2 text-center text-[12px] text-wine">{error}</div> : null}
       <button
         type="button"
-        disabled={!canContinue}
+        disabled={busy || !(otpStage ? form.otp.length === 6 : canContinue)}
         onClick={next}
-        className={`btn ${step === 3 ? 'btn-olive' : ''}`}
+        className={`btn ${step === 3 && !otpStage ? 'btn-olive' : ''}`}
       >
-        {step === 3 ? es.covenant.commit : step === TOTAL_STEPS ? 'Crear mi perfil' : es.common.continue}
+        {busy
+          ? es.common.loading
+          : otpStage
+            ? es.common.continue
+            : step === 3
+              ? es.covenant.commit
+              : step === TOTAL_STEPS
+                ? 'Crear mi perfil'
+                : es.common.continue}
       </button>
     </div>
   );

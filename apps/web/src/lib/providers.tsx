@@ -1,29 +1,18 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ApiError } from '@yugo/shared';
+import { configureAppRuntime, createQueryClient, QueryClientProvider } from '@yugo/app-core';
+import { DEMO_MODE, getApiClient } from './api';
+
+// Tells the shared hooks which client to use. Runs at module scope so it is
+// in place before any screen renders.
+configureAppRuntime({ demoMode: DEMO_MODE, client: getApiClient });
 
 /** React Query + global reaction to session loss. */
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            refetchOnWindowFocus: false,
-            retry: (failureCount, error) => {
-              // Domain errors are answers, not failures: never retry them.
-              if (error instanceof ApiError) return false;
-              return failureCount < 2;
-            },
-          },
-        },
-      }),
-  );
+  const [queryClient] = useState(createQueryClient);
 
   useEffect(() => {
     const onSignedOut = () => {

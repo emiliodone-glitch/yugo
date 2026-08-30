@@ -1,0 +1,54 @@
+# Maestro — pantallas secundarias del perfil: verificación en tres niveles,
+# perfil destacado, código promocional, privacidad y documentos legales.
+# Ejecutar con: maestro test apps/mobile/.maestro/perfil-y-verificacion.yaml
+appId: do.yugo.app
+---
+- launchApp
+
+- tapOn: "Ya tengo cuenta"
+- tapOn: "Correo o teléfono"
+- inputText: "demo1@yugo.do"
+- tapOn: "Contraseña"
+- inputText: "Yugo.demo1"
+- tapOn: "Continuar"
+- assertVisible: "Inicio"
+
+- tapOn: "Mi perfil"
+- assertVisible: "Verificación"
+
+# Verificación en tres niveles (RF-VER-01/02/03)
+- tapOn: "Obtener"
+- assertVisible: "Nivel 1 · Contacto"
+- assertVisible: "Nivel 2 · Identidad"
+- assertVisible: "Nivel 3 · Respaldo de iglesia"
+- tapOn: "SION-XXXX"
+- inputText: "SION-1000-ABCD"
+- tapOn: "Validar código"
+- assertVisible:
+    text: ".*Respaldado por.*"
+- back
+
+# Perfil destacado (RF-DES-10)
+- tapOn: "Perfil destacado"
+- assertVisible: "Destaques disponibles esta semana"
+- tapOn: "Destacar mi perfil ahora"
+- assertVisible: "Tu perfil está destacado ahora"
+- back
+
+# Código promocional (RF-PLU-04)
+- tapOn: "Código promocional"
+- tapOn: "CÓDIGO"
+- inputText: "IGLESIA30"
+- tapOn: "Canjear código"
+- assertVisible:
+    text: ".*Yugo PLUS por 30 días.*"
+- back
+
+# Privacidad, seguridad y Ley 172-13 (RF-SEG-06/07/08)
+- tapOn: "Privacidad y seguridad"
+- assertVisible: "Ocultar mi distancia exacta"
+- assertVisible: "Tus datos personales"
+- tapOn: "Descargar mis datos"
+- tapOn: "Pacto de conducta"
+- assertVisible:
+    text: "Versión.*República Dominicana"

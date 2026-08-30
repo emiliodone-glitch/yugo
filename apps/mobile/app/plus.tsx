@@ -1,20 +1,45 @@
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEFAULT_PRICES, es, LIMITS } from '@yugo/shared';
-import { Button, CheckMark, Chip } from '../components/ui';
+import { usePrices, usePurchaseSubscription } from '@yugo/app-core';
+import { Button, CheckMark, Chip, Notice } from '../components/ui';
+import { errorMessage } from '../lib/api';
 import { theme } from '../lib/theme';
 
 const { colors, fonts } = theme;
 
 export default function PaywallScreen() {
+  const { data: prices = DEFAULT_PRICES } = usePrices();
+  const purchase = usePurchaseSubscription();
   const [cycle, setCycle] = useState<'MONTHLY' | 'ANNUAL'>('ANNUAL');
   const [selected, setSelected] = useState<'PLUS' | 'ORO'>('ORO');
+  const [error, setError] = useState<string | null>(null);
 
   const price = (tier: 'PLUS' | 'ORO') => {
-    const value = DEFAULT_PRICES[tier][cycle].DOP;
+    const value = prices[tier][cycle].DOP;
     return `RD$ ${value.toLocaleString('es-DO')} / ${cycle === 'ANNUAL' ? 'año' : 'mes'}`;
+  };
+
+  /**
+   * Store billing is mandatory for in-app purchases on iOS and Android, so the
+   * receipt provider is the store; the API validates it (RF-PLU-02).
+   */
+  const buy = async () => {
+    setError(null);
+    try {
+      await purchase.mutateAsync({
+        tier: selected,
+        plan: cycle,
+        channel: Platform.OS === 'ios' ? 'APP_STORE' : 'GOOGLE_PLAY',
+        currency: 'DOP',
+      });
+      router.back();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
   };
 
   return (
@@ -95,10 +120,20 @@ export default function PaywallScreen() {
           ))}
         </Pressable>
 
+        {error ? <Notice tone="wine" text={error} /> : null}
+
         <Button
-          label={selected === 'ORO' ? es.paywall.continueOro : es.paywall.continuePlus}
+          label={
+            purchase.isPending
+              ? es.common.loading
+              : selected === 'ORO'
+                ? es.paywall.continueOro
+                : es.paywall.continuePlus
+          }
           tone="wheat"
+          disabled={purchase.isPending}
           style={{ marginTop: 18 }}
+          onPress={buy}
         />
         <Text style={styles.footer}>{es.paywall.cancelAnytime}</Text>
       </ScrollView>

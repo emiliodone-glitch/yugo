@@ -5,6 +5,12 @@ appId: do.yugo.app
 
 # Entrar con una cuenta existente
 - tapOn: "Ya tengo cuenta"
+- assertVisible: "Entra a Yugo"
+- tapOn: "Correo o teléfono"
+- inputText: "demo1@yugo.do"
+- tapOn: "Contraseña"
+- inputText: "Yugo.demo1"
+- tapOn: "Continuar"
 - assertVisible: "Inicio"
 
 # Descubrir: lista curada con afinidad visible antes de decidir
@@ -26,6 +32,9 @@ appId: do.yugo.app
 # Marcar interés consume el contador diario (RF-DES-05)
 - tapOn: "Me interesa"
 - assertVisible: "Interés enviado ✓"
+
+# Guardar para después y quién te marcó interés (RF-DES-04 / RF-DES-09)
+- assertVisible: "Guardar para después"
 
 # Conexiones y chat con rompehielos (RF-CON-04)
 - tapOn: "Conexiones"

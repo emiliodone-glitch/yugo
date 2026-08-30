@@ -20,6 +20,12 @@ appId: do.yugo.app
 - inputText: "Yugo.demo1"
 - tapOn: "Continuar"
 
+# Paso 1b — código de verificación (RF-AUT-01)
+- assertVisible: "Ingresa el código"
+- tapOn: "······"
+- inputText: "123456"
+- tapOn: "Continuar"
+
 # Paso 2 — fecha de nacimiento y género
 - assertVisible: "¿Cuándo naciste?"
 - tapOn: "AAAA-MM-DD"

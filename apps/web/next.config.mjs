@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@yugo/shared', '@yugo/ui-tokens'],
+  transpilePackages: ['@yugo/app-core', '@yugo/shared', '@yugo/ui-tokens'],
   reactStrictMode: true,
 };
 

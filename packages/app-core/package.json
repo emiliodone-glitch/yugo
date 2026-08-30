@@ -1,0 +1,30 @@
+{
+  "name": "@yugo/app-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Yugo client core shared by web and mobile: demo state and one data hook per screen, resolving from the live API or the shared fixtures.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@yugo/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5",
+    "react": ">=18",
+    "zustand": ">=4"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.51.1",
+    "@types/react": "^18.3.5",
+    "react": "^18.3.1",
+    "typescript": "^5.5.4",
+    "zustand": "^4.5.5"
+  }
+}

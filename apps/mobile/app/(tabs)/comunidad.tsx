@@ -1,19 +1,43 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { demoActivities, demoGroups, demoPosts, es } from '@yugo/shared';
-import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
+import { es, type GroupSummary } from '@yugo/shared';
+import { useGroups, useJoinGroup } from '@yugo/app-core';
+import { AvatarCircle, Button, Card, Chip, H, Notice, Segment, Sub } from '../../components/ui';
+import { errorMessage } from '../../lib/api';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
+type Tab = 'mine' | 'suggested';
+
 export default function CommunityScreen() {
-  const [praying, setPraying] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const post = demoPosts[0];
-  const activity = demoActivities[0];
-  const myGroups = demoGroups.filter((g) => g.joined);
-  const suggested = demoGroups.filter((g) => !g.joined);
+  const { data, isLoading } = useGroups();
+  const joinGroup = useJoinGroup();
+  const [tab, setTab] = useState<Tab>('mine');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const groups = (tab === 'mine' ? data?.mine : data?.suggested) ?? [];
+
+  const join = async (group: GroupSummary) => {
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await joinGroup.mutateAsync({ groupId: group.id });
+      setNotice(
+        result.pending
+          ? `Enviamos tu solicitud a los administradores de ${group.name}.`
+          : `Te uniste a ${group.name}.`,
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
+
+  const openGroup = (groupId: string) =>
+    router.push({ pathname: '/comunidad/[id]', params: { id: groupId } });
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -23,88 +47,68 @@ export default function CommunityScreen() {
           <Button label={es.community.createGroup} tone="ghost" small />
         </View>
 
-        <Card style={{ padding: 12 }}>
-          <View style={styles.rowBetween}>
-            <View style={styles.row}>
-              <AvatarCircle name={myGroups[0].name} size={34} />
-              <View>
-                <Text style={styles.groupName}>{myGroups[0].name}</Text>
-                <Sub style={{ fontSize: 11 }}>
-                  {es.community.membersCount(myGroups[0].memberCount)} ·{' '}
-                  {es.community.postsToday(myGroups[0].postsToday ?? 0)}
-                </Sub>
-              </View>
-            </View>
-            <View style={styles.officialBadge}>
-              <Text style={styles.officialText}>{es.common.official}</Text>
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <AvatarCircle name={post.author.displayName} size={34} />
-            <View>
-              <Text style={styles.groupName}>{post.author.displayName}</Text>
-              <Sub style={{ fontSize: 11 }}>hace 2 h</Sub>
-            </View>
-          </View>
-          <Text style={styles.postBody}>{post.body}</Text>
-          <View style={[styles.row, { marginTop: 8 }]}>
-            <Button
-              label={`🙏 ${es.community.praying} · ${post.prayingCount + (praying ? 1 : 0)}`}
-              tone={praying ? 'olive' : 'ghost'}
-              small
-              onPress={() => setPraying((v) => !v)}
-            />
-            <Chip label={`${es.community.amen} · ${post.amenCount}`} />
-          </View>
-        </Card>
+        <Segment
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'mine', label: es.community.myGroups },
+            { value: 'suggested', label: es.community.suggested },
+          ]}
+        />
 
-        <Card style={{ padding: 12 }}>
-          <View style={styles.row}>
-            <AvatarCircle name={myGroups[1].name} size={34} />
-            <View>
-              <Text style={styles.groupName}>{myGroups[1].name}</Text>
-              <Sub style={{ fontSize: 11 }}>{es.community.membersCount(myGroups[1].memberCount)}</Sub>
-            </View>
-          </View>
-          <View style={styles.activityBox}>
-            <View style={styles.rowBetween}>
-              <Chip label={es.community.activityChip} tone="wheat" />
-              <Sub style={{ fontSize: 11 }}>Sáb 12 sep · 8:00 am</Sub>
-            </View>
-            <Text style={[styles.groupName, { marginTop: 4 }]}>{activity.title}</Text>
-            <View style={[styles.rowBetween, { marginTop: 6 }]}>
-              <Sub style={{ fontSize: 11 }}>
-                {es.community.goingCount(activity.goingCount + (joined ? 1 : 0))}
-              </Sub>
-              <Button
-                label={joined ? 'Apuntado ✓' : es.community.joinActivity}
-                tone="olive"
-                small
-                onPress={() => setJoined((v) => !v)}
-              />
-            </View>
-          </View>
-        </Card>
+        {notice ? <Notice text={notice} /> : null}
+        {error ? <Notice tone="wine" text={error} /> : null}
 
-        {suggested.map((group) => (
-          <Card key={group.id} style={{ padding: 12 }}>
-            <View style={styles.rowBetween}>
-              <View style={styles.row}>
-                <AvatarCircle name={group.name} size={34} />
-                <View>
-                  <Text style={styles.groupName}>{group.name}</Text>
-                  <Sub style={{ fontSize: 11 }}>{es.community.membersCount(group.memberCount)}</Sub>
+        {isLoading ? (
+          <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>{es.common.loading}</Sub>
+        ) : null}
+
+        {groups.map((group) => (
+          <Pressable key={group.id} onPress={() => openGroup(group.id)}>
+            <Card style={{ padding: 12 }}>
+              <View style={styles.rowBetween}>
+                <View style={styles.row}>
+                  <AvatarCircle name={group.name} size={38} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.groupName}>{group.name}</Text>
+                    <Sub style={{ fontSize: 11 }}>
+                      {es.community.membersCount(group.memberCount)}
+                      {group.postsToday ? ` · ${es.community.postsToday(group.postsToday)}` : ''}
+                    </Sub>
+                  </View>
                 </View>
+                {group.isOfficial ? <Chip label={es.common.official} tone="olive" /> : null}
               </View>
-              {group.type === 'APPROVAL' ? (
-                <Sub style={{ fontSize: 11 }}>{es.community.withApproval}</Sub>
-              ) : (
-                <Button label={es.community.join} tone="olive" small />
-              )}
-            </View>
-          </Card>
+
+              {!group.joined ? (
+                <View style={[styles.rowBetween, { marginTop: 10 }]}>
+                  <Sub style={{ fontSize: 11 }}>
+                    {group.type === 'APPROVAL' ? es.community.withApproval : es.community.open}
+                  </Sub>
+                  <Button
+                    label={
+                      group.type === 'APPROVAL' ? es.community.requestJoin : es.community.join
+                    }
+                    tone="olive"
+                    small
+                    disabled={joinGroup.isPending}
+                    onPress={() => join(group)}
+                  />
+                </View>
+              ) : null}
+            </Card>
+          </Pressable>
         ))}
+
+        {!isLoading && groups.length === 0 ? (
+          <Card>
+            <Sub style={{ textAlign: 'center', paddingVertical: 16 }}>
+              {tab === 'mine'
+                ? 'Todavía no formas parte de ningún grupo. Mira los sugeridos.'
+                : 'No tenemos grupos nuevos que sugerirte por ahora.'}
+            </Sub>
+          </Card>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -112,13 +116,13 @@ export default function CommunityScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   groupName: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text },
-  officialBadge: { backgroundColor: colors.ink, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  officialText: { color: '#fff', fontFamily: fonts.bodySemiBold, fontSize: 10.5 },
-  divider: { borderTopWidth: 1, borderTopColor: colors.line, marginVertical: 10 },
-  postBody: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.text, marginTop: 6 },
-  activityBox: { backgroundColor: colors.linen2, borderRadius: 12, padding: 10, marginTop: 10 },
 });

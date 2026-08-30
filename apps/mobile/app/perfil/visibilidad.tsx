@@ -1,27 +1,27 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { demoCurrentUser, es } from '@yugo/shared';
-import { Button, Card, Chip, H, Sub } from '../components/ui';
-import { theme } from '../lib/theme';
+import { useDemoStore, useSetInvisibleMode, useSubscriptionState } from '@yugo/app-core';
+import { Card, Chip, H, ScreenHeader, Sub, Toggle } from '../../components/ui';
+import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
+/** Visibilidad y búsqueda: age rule, invisible mode, travel mode, Oro badge. */
 export default function VisibilityScreen() {
-  const [invisible, setInvisible] = useState(true);
-  const [travel, setTravel] = useState(true);
-  const [oroBadge, setOroBadge] = useState(false);
+  const { data: subscription } = useSubscriptionState();
+  const setInvisible = useSetInvisibleMode();
+  const { showOroBadge, setShowOroBadge, travelModeOn, setTravelMode } = useDemoStore();
+
   const user = demoCurrentUser;
+  const invisible = subscription?.invisibleMode ?? false;
+  const travel = subscription?.travelMode ?? null;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <ScreenHeader title={es.visibility.title} />
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <Button label="‹" tone="ghost" small onPress={() => router.back()} />
-          <H>{es.visibility.title}</H>
-        </View>
-
+        {/* The mutual age rule is never a toggle (RF-DES-11). */}
         <View style={styles.sectionRow}>
           <H size={15}>{es.visibility.ageRange}</H>
           <Chip label={es.visibility.mandatory} />
@@ -43,14 +43,15 @@ export default function VisibilityScreen() {
         <Card style={{ padding: 12, borderWidth: 1.5, borderColor: colors.wheat }}>
           <View style={[styles.rowBetween, { alignItems: 'flex-start' }]}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.text}>{invisible ? es.visibility.invisibleOn : 'Desactivado'}</Text>
+              <Text style={styles.text}>
+                {invisible ? es.visibility.invisibleOn : 'Desactivado'}
+              </Text>
               <Sub style={{ fontSize: 11 }}>{es.visibility.invisibleHelp}</Sub>
             </View>
-            <Switch
-              value={invisible}
-              onValueChange={setInvisible}
-              trackColor={{ true: colors.olive, false: '#D5D2C8' }}
-              thumbColor="#fff"
+            <Toggle
+              on={invisible}
+              onChange={(value) => setInvisible.mutate(value)}
+              label={es.visibility.invisibleMode}
             />
           </View>
           {invisible ? (
@@ -69,14 +70,17 @@ export default function VisibilityScreen() {
           <View style={styles.rowBetween}>
             <View style={{ flex: 1 }}>
               <Text style={styles.text}>{es.visibility.travelSearch}</Text>
-              <Sub style={{ fontSize: 11 }}>Nueva York, EE. UU. · hasta el 15 sep</Sub>
+              <Sub style={{ fontSize: 11 }}>
+                {travel
+                  ? `${travel.city} · hasta el ${new Intl.DateTimeFormat('es-DO', {
+                      day: 'numeric',
+                      month: 'short',
+                      timeZone: 'America/Santo_Domingo',
+                    }).format(new Date(travel.activeUntil))}`
+                  : 'Sin viaje programado'}
+              </Sub>
             </View>
-            <Switch
-              value={travel}
-              onValueChange={setTravel}
-              trackColor={{ true: colors.olive, false: '#D5D2C8' }}
-              thumbColor="#fff"
-            />
+            <Toggle on={travelModeOn} onChange={setTravelMode} label={es.visibility.travelMode} />
           </View>
         </Card>
 
@@ -90,11 +94,10 @@ export default function VisibilityScreen() {
         <Card style={{ padding: 12 }}>
           <View style={styles.rowBetween}>
             <Text style={styles.text}>{es.visibility.showOroBadge}</Text>
-            <Switch
-              value={oroBadge}
-              onValueChange={setOroBadge}
-              trackColor={{ true: colors.olive, false: '#D5D2C8' }}
-              thumbColor="#fff"
+            <Toggle
+              on={showOroBadge}
+              onChange={setShowOroBadge}
+              label={es.visibility.showOroBadge}
             />
           </View>
         </Card>
@@ -104,14 +107,13 @@ export default function VisibilityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  container: { paddingHorizontal: 18, paddingBottom: 24 },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   text: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text },

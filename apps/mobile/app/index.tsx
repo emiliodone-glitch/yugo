@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
           label={es.welcome.haveAccount}
           tone="ghost-light"
           style={{ marginTop: 8 }}
-          onPress={() => router.replace('/(tabs)/inicio')}
+          onPress={() => router.push('/entrar')}
         />
         <Text style={styles.social}>{es.welcome.socialHint}</Text>
       </View>

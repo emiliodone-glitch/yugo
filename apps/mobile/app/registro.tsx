@@ -10,12 +10,21 @@ import {
   isAdult,
   LIMITS,
   SERVICE_AREAS,
+  type ProfileUpdateInput,
 } from '@yugo/shared';
-import { Button, CheckMark, Chip, H, ProgressBar, Sub, YugoMark } from '../components/ui';
+import { Button, CheckMark, Chip, Field, H, Notice, ProgressBar, Sub, YugoMark } from '../components/ui';
+import { DEMO_MODE, errorMessage, getApiClient } from '../lib/api';
 import { theme } from '../lib/theme';
 
 const { colors, fonts } = theme;
 const TOTAL_STEPS = 8;
+
+/**
+ * The account is created once the birth date is known, because the API refuses
+ * to register anyone under 18 (RF-AUT-03) — so the code is sent after step 2
+ * against the live API, and after step 1 in demo mode, where nothing is sent.
+ */
+const OTP_AFTER_STEP = DEMO_MODE ? 1 : 2;
 
 /** Onboarding de 8 pasos (mockups): cuenta → nacimiento → pacto → fe →
  * intención → fotos → testimonio y prácticas → preferencias. */
@@ -34,6 +43,10 @@ export default function OnboardingScreen() {
   const [testimony, setTestimony] = useState('');
   const [practices, setPractices] = useState<string[]>([]);
   const [done, setDone] = useState(false);
+  const [otpStage, setOtpStage] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const parsedBirth = useMemo(() => {
     const match = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -62,6 +75,65 @@ export default function OnboardingScreen() {
     }
   }, [step, email, password, parsedBirth, underage, gender, covenant, denomination, attendance, intention, openness, photos, testimony, practices]);
 
+  const next = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      if (otpStage) {
+        if (!DEMO_MODE) await getApiClient().auth.verifyOtp(email, otp);
+        setOtpStage(false);
+        setStep(OTP_AFTER_STEP + 1);
+        return;
+      }
+
+      if (step === OTP_AFTER_STEP) {
+        if (!DEMO_MODE) {
+          await getApiClient().auth.register({
+            email,
+            password,
+            birthDate,
+            gender: gender as 'MALE' | 'FEMALE',
+          });
+        }
+        setOtpStage(true);
+        return;
+      }
+
+      // RF-AUT-04: the covenant is recorded with its version before anything else.
+      if (step === 3 && !DEMO_MODE) {
+        await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+      }
+
+      if (step === TOTAL_STEPS) {
+        if (!DEMO_MODE) await saveProfile();
+        setDone(true);
+        return;
+      }
+
+      setStep((current) => current + 1);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Sends everything the wizard collected once the member finishes it. */
+  const saveProfile = async () => {
+    const client = getApiClient();
+    const denominations = await client.catalog.denominations().catch(() => []);
+    const denominationId = denominations.find((item) => item.slug === denomination)?.id;
+
+    await client.profiles.update({
+      denominationId,
+      attendance: (attendance ?? undefined) as ProfileUpdateInput['attendance'],
+      intention: (intention ?? undefined) as ProfileUpdateInput['intention'],
+      openness: (openness ?? undefined) as ProfileUpdateInput['openness'],
+      testimony: testimony || undefined,
+      practiceSlugs: practices,
+    });
+  };
+
   if (done) {
     return (
       <SafeAreaView style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -85,7 +157,7 @@ export default function OnboardingScreen() {
       <ProgressBar value={(step / TOTAL_STEPS) * 100} style={{ marginBottom: 14 }} />
       <Text style={styles.stepLabel}>{es.common.step(step, TOTAL_STEPS)}</Text>
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-        {step === 1 ? (
+        {step === 1 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.accountTitle}</H>
             <Sub style={{ marginVertical: 8 }}>{es.onboarding.accountSub}</Sub>
@@ -107,7 +179,22 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 2 ? (
+        {otpStage ? (
+          <View>
+            <H size={26}>{es.onboarding.otpTitle}</H>
+            <Sub style={{ marginVertical: 8 }}>{es.onboarding.otpSub(email)}</Sub>
+            <Field
+              value={otp}
+              onChangeText={(text) => setOtp(text.replace(/\D/g, ''))}
+              placeholder="······"
+              keyboardType="number-pad"
+              maxLength={6}
+              centered
+            />
+          </View>
+        ) : null}
+
+        {step === 2 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.birthTitle}</H>
             <Sub style={{ marginVertical: 8 }}>{es.onboarding.birthSub}</Sub>
@@ -136,7 +223,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 3 ? (
+        {step === 3 && !otpStage ? (
           <View>
             <H size={26}>{es.covenant.title}</H>
             <Sub style={{ marginVertical: 8 }}>{es.covenant.intro}</Sub>
@@ -160,7 +247,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 4 ? (
+        {step === 4 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.faithTitle}</H>
             <Sub style={{ marginVertical: 8 }}>{es.onboarding.faithSub}</Sub>
@@ -183,7 +270,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 5 ? (
+        {step === 5 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.intentionTitle}</H>
             <View style={{ marginTop: 12, gap: 8 }}>
@@ -218,7 +305,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 6 ? (
+        {step === 6 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.photosTitle}</H>
             <Sub style={{ marginVertical: 8 }}>{es.onboarding.photosSub}</Sub>
@@ -241,7 +328,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 7 ? (
+        {step === 7 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.testimonyTitle}</H>
             <Sub style={{ marginVertical: 8 }}>{es.onboarding.testimonySub}</Sub>
@@ -273,7 +360,7 @@ export default function OnboardingScreen() {
           </View>
         ) : null}
 
-        {step === 8 ? (
+        {step === 8 && !otpStage ? (
           <View>
             <H size={26}>{es.onboarding.preferencesTitle}</H>
             <View style={[styles.card, { marginTop: 12 }]}>
@@ -287,11 +374,22 @@ export default function OnboardingScreen() {
         ) : null}
       </ScrollView>
 
+      {error ? <Notice tone="wine" text={error} /> : null}
       <Button
-        label={step === 3 ? es.covenant.commit : step === TOTAL_STEPS ? 'Crear mi perfil' : es.common.continue}
-        tone={step === 3 ? 'olive' : 'ink'}
-        disabled={!canContinue}
-        onPress={() => (step === TOTAL_STEPS ? setDone(true) : setStep(step + 1))}
+        label={
+          busy
+            ? es.common.loading
+            : otpStage
+              ? es.common.continue
+              : step === 3
+                ? es.covenant.commit
+                : step === TOTAL_STEPS
+                  ? 'Crear mi perfil'
+                  : es.common.continue
+        }
+        tone={step === 3 && !otpStage ? 'olive' : 'ink'}
+        disabled={busy || !(otpStage ? otp.length === 6 : canContinue)}
+        onPress={next}
       />
     </SafeAreaView>
   );
