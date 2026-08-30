@@ -199,6 +199,46 @@ Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
   `pg_restore --list` antes de rotar** (si el respaldo de hoy salió mal conserva el
   histórico en vez de borrarlo) y opcionalmente lo copia fuera del servidor.
 
+### Primera ejecución real contra PostgreSQL — cuatro fallos de arranque
+Hasta aquí nada había levantado la API contra una base real: las pruebas
+unitarias cubren el dominio aislado y Playwright cubre la interfaz en modo demo,
+pero entre ambas no había nadie. Al ejecutarlo por fin aparecieron cuatro fallos,
+tres de ellos **impedían arrancar en producción**:
+
+- **El entrypoint compilado no existía.** `prisma/seed.ts` estaba en el `include`
+  del tsconfig, así que el `rootDir` común subía a la raíz y el build emitía
+  `dist/src/main.js`, mientras el script `start` y el `CMD` del Dockerfile
+  apuntan a `dist/main.js`. El contenedor arrancaba y moría. El seed se ejecuta
+  con `tsx`, nunca compilado, así que sale del build y se tipa en su propio
+  `tsconfig.typecheck.json`.
+- **`tsbuildinfo` quedaba fuera de `dist`.** Borrar `dist` sin borrarlo dejaba
+  builds vacíos en silencio; ahora vive dentro y `deleteOutDir` lo limpia.
+- **Un `ValidationPipe` global pedía `class-validator`**, paquete que el proyecto
+  no usa: la validación es de zod por controlador. Se retiró.
+- **`make_interval(days => $n)` recibía `bigint`** de Prisma donde Postgres
+  espera `int`: `/discover` respondía 500. Corregido con `::int` en las tres
+  consultas crudas.
+
+También apareció un fallo de producto: la lista diaria de Descubrir se cachea
+hasta la medianoche local (así debe ser: no hay feed infinito), pero **no se
+encogía**. Quien ya había recibido tu interés seguía en pantalla y volver a
+marcarlo devolvía `already_interested`. La exclusión ahora se aplica también al
+servir, de modo que la lista es estable en su composición y decrece conforme la
+persona la trabaja.
+
+Y uno de trazabilidad legal: el intento de registro de un menor se rechazaba en
+el esquema zod con 400, **antes** de llegar al servicio que lo escribe en
+`AuditLog`. El bloqueo funcionaba pero no dejaba rastro, que es justo lo que
+RF-AUT-03 exige. Ahora el esquema de la API no valida la edad —los clientes sí,
+para avisar antes de enviar— y el servidor es la única autoridad: audita y
+responde 403.
+
+**Para que no vuelvan**: `apps/api/test/api-smoke.ts` levanta la API y le habla
+por HTTP (21 comprobaciones sobre salud, mayoría de edad, regla mutua de edad,
+lista del día, horario silencioso, conexión recíproca y moderación previa del
+chat), y CI ahora aplica migraciones, **comprueba que no haya deriva de esquema**,
+compila la API, la arranca y corre esa suite.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de

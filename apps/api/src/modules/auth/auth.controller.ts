@@ -1,6 +1,11 @@
 import { Body, Controller, Delete, Get, Ip, Post } from '@nestjs/common';
 import { z } from 'zod';
-import { covenantAcceptSchema, loginSchema, otpVerifySchema, registerSchema } from '@yugo/shared';
+import {
+  covenantAcceptSchema,
+  loginSchema,
+  otpVerifySchema,
+  registerRequestSchema,
+} from '@yugo/shared';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
 import { OAuthService, type OAuthProvider } from './oauth.service';
@@ -51,7 +56,7 @@ export class AuthController {
   @Public()
   @RateLimit({ limit: 5, windowSeconds: 3600 })
   @Post('register')
-  register(@Body(new ZodPipe(registerSchema)) body: never, @Ip() ip: string) {
+  register(@Body(new ZodPipe(registerRequestSchema)) body: never, @Ip() ip: string) {
     return this.auth.register(body, ip);
   }
 

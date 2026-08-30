@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 
@@ -12,7 +12,9 @@ async function bootstrap() {
     origin: [process.env.WEB_URL ?? 'http://localhost:3000', /^http:\/\/localhost:\d+$/],
     credentials: true,
   });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  // La validación de entrada es de zod, por controlador (ZodPipe), para que
+  // el mismo esquema valide en la API, la web y el móvil. Un ValidationPipe
+  // global aquí solo pedía class-validator, que el proyecto no usa.
   app.enableShutdownHooks();
 
   const port = Number(process.env.API_PORT ?? 4000);

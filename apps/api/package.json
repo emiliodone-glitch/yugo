@@ -2,13 +2,13 @@
   "name": "@yugo/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Yugo API — NestJS 10, Prisma, PostgreSQL 16 + PostGIS, Redis, BullMQ, Socket.IO.",
+  "description": "Yugo API \u2014 NestJS 10, Prisma, PostgreSQL 16 + PostGIS, Redis, BullMQ, Socket.IO.",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "test": "jest",
     "test:cov": "jest --coverage",
     "db:migrate": "prisma migrate dev",
@@ -16,7 +16,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "test:smoke": "tsx test/api-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -55,13 +56,24 @@
     "typescript": "^5.5.4"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.json"
+        }
+      ]
     },
-    "collectCoverageFrom": ["**/*.service.ts"],
+    "collectCoverageFrom": [
+      "**/*.service.ts"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

@@ -16,8 +16,15 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "include": ["src", "prisma/seed.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

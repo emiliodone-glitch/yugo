@@ -111,3 +111,32 @@ jobs:
         run: |
           pnpm --filter @yugo/api db:deploy
           pnpm --filter @yugo/api db:seed
+
+      # El esquema y las migraciones no pueden separarse en silencio.
+      - name: Check for schema drift
+        env:
+          DATABASE_URL: postgresql://yugo:yugo@localhost:5432/yugo?schema=public
+        run: |
+          pnpm --filter @yugo/api exec prisma migrate diff \
+            --from-schema-datasource prisma/schema.prisma \
+            --to-schema-datamodel prisma/schema.prisma \
+            --exit-code
+
+      # Arrancar la API de verdad y hablarle por HTTP: sin este paso, ni el
+      # entrypoint compilado ni las consultas SQL crudas se ejercitan nunca.
+      - name: Build API
+        run: pnpm --filter @yugo/api build
+
+      - name: Start API
+        env:
+          DATABASE_URL: postgresql://yugo:yugo@localhost:5432/yugo?schema=public
+          JWT_ACCESS_SECRET: ci-access-secret
+          JWT_REFRESH_SECRET: ci-refresh-secret
+          OTP_PROVIDER: console
+          NODE_ENV: test
+        run: node apps/api/dist/main.js &
+
+      - name: Smoke tests against the running API
+        env:
+          DATABASE_URL: postgresql://yugo:yugo@localhost:5432/yugo?schema=public
+        run: pnpm --filter @yugo/api test:smoke

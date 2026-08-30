@@ -22,10 +22,12 @@ export const phoneSchema = z
   .regex(/^\+?[0-9]{10,15}$/, 'invalid_phone');
 
 /**
- * RF-AUT-01/03: registration requires email or phone, a birth date that
- * proves the person is 18 or older (enforced again server-side), and gender.
+ * RF-AUT-01: shape of a registration request. Deliberately does NOT check
+ * adulthood: the API validates that in the service so an underage attempt is
+ * written to the audit log before being rejected (RF-AUT-03). Rejecting it
+ * here would return 400 and leave no trace of who tried.
  */
-export const registerSchema = z
+export const registerRequestSchema = z
   .object({
     email: emailSchema.optional(),
     phone: phoneSchema.optional(),
@@ -36,11 +38,17 @@ export const registerSchema = z
   .refine((data) => data.email || data.phone, {
     message: 'email_or_phone_required',
     path: ['email'],
-  })
-  .refine((data) => isAdult(data.birthDate), {
-    message: 'must_be_adult',
-    path: ['birthDate'],
   });
+
+/**
+ * RF-AUT-03: the same shape plus the age rule, for the clients — the onboarding
+ * wizard tells the person before they submit. It is a courtesy, never the
+ * enforcement: the server checks again and is the only authority.
+ */
+export const registerSchema = registerRequestSchema.refine(
+  (data) => isAdult(data.birthDate),
+  { message: 'must_be_adult', path: ['birthDate'] },
+);
 
 export const loginSchema = z.object({
   identifier: z.string().trim().min(3),

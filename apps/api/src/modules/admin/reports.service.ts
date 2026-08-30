@@ -38,7 +38,7 @@ export class ReportsService {
     >`
       WITH semanas AS (
         SELECT generate_series(
-          date_trunc('week', now() - make_interval(weeks => ${weeks})),
+          date_trunc('week', now() - make_interval(weeks => ${weeks}::int)),
           date_trunc('week', now()),
           '1 week'
         ) AS week

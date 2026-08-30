@@ -58,11 +58,60 @@ export class DiscoverService {
     const cacheKey = `discover:${userId}:${this.limits.localDateKey()}:${prefsHash}`;
 
     const cached = await this.cache.getJson<ProfileCard[]>(cacheKey);
-    if (cached) return { items: cached, total: cached.length };
+    const cards = cached ?? (await this.generate(viewer, tier, filters, listSize));
+    if (!cached) {
+      await this.cache.setJson(cacheKey, cards, this.limits.secondsUntilLocalMidnight());
+    }
 
-    const cards = await this.generate(viewer, tier, filters, listSize);
-    await this.cache.setJson(cacheKey, cards, this.limits.secondsUntilLocalMidnight());
-    return { items: cards, total: cards.length };
+    // The day's list is fixed on purpose — no infinite feed — but it has to
+    // shrink as the member works through it. The cached list is generated once
+    // and would keep showing people already marked or passed until midnight,
+    // so the exclusion is applied again when serving.
+    const settled = await this.settledUserIds(
+      userId,
+      cards.map((card) => card.userId),
+    );
+    const items = cards.filter((card) => !settled.has(card.userId));
+    return { items, total: items.length };
+  }
+
+  /** Members of `candidateIds` this viewer already marked, passed or connected with. */
+  private async settledUserIds(userId: string, candidateIds: string[]): Promise<Set<string>> {
+    if (candidateIds.length === 0) return new Set();
+
+    const [interests, passes, matches] = await Promise.all([
+      this.prisma.interest.findMany({
+        where: { fromUserId: userId, toUserId: { in: candidateIds } },
+        select: { toUserId: true },
+      }),
+      this.prisma.pass.findMany({
+        where: {
+          fromUserId: userId,
+          toUserId: { in: candidateIds },
+          undoneAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        select: { toUserId: true },
+      }),
+      this.prisma.match.findMany({
+        where: {
+          status: 'ACTIVE',
+          OR: [
+            { userAId: userId, userBId: { in: candidateIds } },
+            { userBId: userId, userAId: { in: candidateIds } },
+          ],
+        },
+        select: { userAId: true, userBId: true },
+      }),
+    ]);
+
+    const settled = new Set<string>();
+    for (const row of interests) settled.add(row.toUserId);
+    for (const row of passes) settled.add(row.toUserId);
+    for (const row of matches) {
+      settled.add(row.userAId === userId ? row.userBId : row.userAId);
+    }
+    return settled;
   }
 
   private async loadViewer(userId: string) {
@@ -127,7 +176,7 @@ export class DiscoverService {
         AND u.status = 'ACTIVE'
         AND u."deletedAt" IS NULL
         AND u.gender::text = ${targetGender}
-        AND u."lastActiveAt" > now() - make_interval(days => ${domainLimits.inactivityHideDays})
+        AND u."lastActiveAt" > now() - make_interval(days => ${domainLimits.inactivityHideDays}::int)
         AND p.completeness >= ${domainLimits.minCompleteness}
         -- RF-DES-11: strict mutual age rule (both directions, in the query)
         AND date_part('year', age(u."birthDate"))::int BETWEEN ${profile.ageMin}::int AND ${profile.ageMax}::int
@@ -154,7 +203,7 @@ export class DiscoverService {
           SELECT 1 FROM "Match" m
           WHERE ((m."userAId" = ${viewer.user.id} AND m."userBId" = u.id)
               OR (m."userAId" = u.id AND m."userBId" = ${viewer.user.id}))
-            AND (m.status = 'ACTIVE' OR m."endedAt" > now() - make_interval(days => ${domainLimits.reconnectCooldownDays}))
+            AND (m.status = 'ACTIVE' OR m."endedAt" > now() - make_interval(days => ${domainLimits.reconnectCooldownDays}::int))
         )
         AND NOT EXISTS (
           SELECT 1 FROM "Pass" ps
