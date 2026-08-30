@@ -22,10 +22,22 @@ consola de la API) y `demo1@yugo.do` … `demo40@yugo.do` / `Yugo.demo1` (miembr
 ## Pruebas automatizadas
 
 ```bash
-pnpm test        # 27 specs API (Jest) + 16 specs shared (Vitest)
+pnpm test        # 36 specs API (Jest) + 16 specs shared (Vitest)
 pnpm typecheck   # api, web, mobile, packages
 pnpm lint        # 0 errores / 0 warnings
 pnpm build       # dist api + .next + packages
+
+# E2E web/admin/portal — 56 pruebas en móvil y escritorio
+pnpm --filter @yugo/web build
+pnpm --filter @yugo/web e2e
+# contra un despliegue: PLAYWRIGHT_BASE_URL=https://staging.yugo.do pnpm --filter @yugo/web e2e
+
+# E2E móvil (requiere Maestro y un emulador/dispositivo)
+maestro test apps/mobile/.maestro
+
+# Carga (requiere k6 y un token válido)
+k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> infra/k6/discover.js
+k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<id> infra/k6/chat.js
 ```
 
 ## Recorridos por hito
@@ -98,6 +110,31 @@ pnpm --filter @yugo/mobile start   # abre en Expo Go
 
 Recorrido: Bienvenida → Registro (8 pasos, pacto en el 3) → tabs Inicio/Descubrir/
 Conexiones/Comunidad/Eventos → Perfil → Paywall → Visibilidad. Funciona con datos demo.
+
+### Privacidad y cumplimiento (RF-SEG-06/07/08, Hito 14)
+1. `GET /v1/privacy/export` devuelve la copia completa de datos personales del titular
+   (perfil, fotos, intereses, conversaciones aprobadas, pagos, sanciones) citando la Ley 172-13.
+2. `PUT /v1/privacy/preferences` `{hideExactDistance: true}` → en Descubrir la otra persona
+   pasa a ver un rango (`5–10 km`) en lugar del número exacto.
+3. Publica una versión nueva del pacto (`POST /v1/privacy/legal`) y llama a cualquier ruta de
+   miembro → **403 covenant_acceptance_required** hasta volver a aceptarlo.
+4. Repite `POST /v1/auth/register` 6 veces en una hora → **429 rate_limited**.
+5. Web: `/perfil/privacidad` (descarga de datos, eliminación, consejos de seguridad) y
+   `/legal/privacidad`, `/legal/terminos`, `/legal/pacto` sin sesión.
+
+### Inicio de sesión social (RF-AUT-02)
+`POST /v1/auth/oauth` con `{provider: "google", idToken: "<token>"}`. Sin `GOOGLE_CLIENT_ID`
+configurado responde **400 google_client_id_not_configured**; con un token inválido,
+**400 invalid_token_signature**. Para una cuenta nueva devuelve `{needsProfile: true}` hasta
+que se envían `birthDate` (mayor de edad) y `gender`.
+
+### Observabilidad (RNF-08)
+```bash
+curl http://localhost:4000/v1/health          # base de datos, caché, uptime
+curl -H "Authorization: Bearer <admin>" \
+     http://localhost:4000/v1/health/metrics  # colas, backlog de moderación, SLA vencidos
+```
+Los logs de la API salen como una línea JSON por petición con `requestId` y `durationMs`.
 
 ## Correo y almacenamiento locales
 

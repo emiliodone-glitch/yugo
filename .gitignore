@@ -37,3 +37,8 @@ pnpm-debug.log*
 
 # Local uploads (MinIO volume, etc.)
 infra/.volumes/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.playwright/

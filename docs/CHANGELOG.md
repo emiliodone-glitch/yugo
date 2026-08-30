@@ -101,7 +101,51 @@ Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 ### App móvil (Expo)
 - Expo Router + tabs; mismas pantallas clave con tokens compartidos y datos demo.
 
-### Pendiente para siguientes iteraciones (hitos 14–15)
-- E2E Playwright/Maestro, pruebas de carga k6, exportación de datos (Ley 172-13),
-  despliegue staging/producción, guía de publicación en tiendas, Google/Apple Sign-In real,
-  BullMQ para colas dedicadas y proveedor real de comparación facial e imágenes.
+### Hito 14 — Seguridad, privacidad y cumplimiento (RF-SEG-06..08, RNF-04/07)
+- Módulo `privacy`: exportación completa de datos personales, solicitud de rectificación
+  y **borrado real** a los 14 días conservando solo lo que la ley permite retener.
+- Rangos de distancia como control opt-in (RF-SEG-07), con spec de los cortes.
+- Contenido legal versionado (pacto, términos, privacidad, consejos de seguridad) y
+  `CovenantGuard` que fuerza la re-aceptación cuando cambia la versión (RF-SEG-01).
+- Rate limiting global por usuario/IP con límites estrictos en registro (5/h), OTP (10/h),
+  login (10/15 min) y recuperación de contraseña.
+- Páginas legales públicas en la web y pantalla «Privacidad y seguridad» con los derechos
+  de la Ley 172-13, consejos de seguridad y eliminación de cuenta dentro de la app (RNF-07).
+
+### RF-AUT-02 — Inicio de sesión con Google y Apple
+- Verificación del `id_token` contra el JWKS del proveedor: firma RS256, emisor, audiencia
+  y expiración. La mayoría de edad se sigue validando en backend porque los proveedores no
+  entregan fecha de nacimiento; el intento de un menor queda auditado igual que en el
+  registro por correo.
+
+### Colas y notificaciones
+- BullMQ para moderación de imagen, push y correo, con ejecución en línea cuando no hay
+  Redis (dev y CI) para que el comportamiento sea idéntico.
+- Plantillas de correo transaccional en es-DO (bienvenida, OTP, resultado de verificación,
+  recibo de pago, aviso de moderación, descarga de datos, resumen semanal) con spec.
+- `/health` público y `/health/metrics` con backlog de moderación, SLA vencidos y
+  profundidad de colas.
+
+### Pantallas restantes del mapa de pantallas (10.1)
+- «Te interesa a…» con el corte gratuito/Plus, Guardados, detalle de grupo con muro
+  moderado y actividades, detalle de evento con check-in QR, centro de notificaciones con
+  preferencias por categoría y horario silencioso, privacidad y seguridad, páginas legales.
+
+### Hito 15 — Calidad, observabilidad y lanzamiento (RNF-01..03, RNF-08..10)
+- **56 pruebas E2E** con Playwright (móvil y escritorio) sobre los flujos críticos:
+  registro con pacto y bloqueo de menores, descubrir → interés → conexión → chat con
+  moderación previa, paywall Plus/Oro, regla mutua de edad, derechos Ley 172-13, colas del
+  panel administrativo y publicación de evento desde el portal hasta la agenda de la app.
+- Maestro para los dos flujos móviles críticos; k6 para Descubrir (p95 < 400 ms) y chat
+  (costo de la moderación previa, objetivo < 300 ms).
+- Logs estructurados en JSON con correlación y latencia, sin registrar cuerpos.
+- Dockerfiles multi-etapa para API y web, pipeline de despliegue con staging automático,
+  E2E contra staging y **aprobación manual para producción** (RNF-10).
+- `docs/OPERATIONS.md` (runbook con umbrales de alerta e incidentes frecuentes) y
+  `docs/STORE_RELEASE.md` (requisitos de App Store y Google Play para apps de citas).
+
+### Pendiente para siguientes iteraciones
+- Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
+  stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de
+  credenciales) y las funciones fuera del MVP de la sección 3.2 (videollamadas, mentoría,
+  devocionales, bolsa de oportunidades, multimoneda).

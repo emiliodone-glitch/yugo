@@ -57,6 +57,10 @@ pnpm build        # build de todos los workspaces
 pnpm lint         # eslint
 pnpm typecheck    # tsc --noEmit
 pnpm test         # pruebas unitarias (Vitest/Jest)
+
+pnpm --filter @yugo/web e2e     # 56 pruebas E2E (Playwright, móvil + escritorio)
+maestro test apps/mobile/.maestro   # flujos móviles críticos
+k6 run infra/k6/discover.js         # carga sobre Descubrir
 ```
 
 ## Documentación
@@ -66,6 +70,8 @@ pnpm test         # pruebas unitarias (Vitest/Jest)
 - `docs/ARCHITECTURE.md` — decisiones de arquitectura.
 - `docs/CHANGELOG.md` — registro por hito.
 - `docs/TESTING.md` — cómo probar manualmente cada entrega.
+- `docs/OPERATIONS.md` — runbook: alertas, incidentes frecuentes, respaldos.
+- `docs/STORE_RELEASE.md` — publicación en App Store y Google Play.
 
 ## Principios que no se negocian
 
