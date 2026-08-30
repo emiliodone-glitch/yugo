@@ -1,0 +1,24 @@
+{
+  "name": "@yugo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Yugo shared domain: types, zod validators, constants, affinity engine, i18n (es-DO), demo fixtures and typed API client.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.1"
+  }
+}

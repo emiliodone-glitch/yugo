@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+.turbo/
+out/
+coverage/
+*.tsbuildinfo
+
+# Expo
+.expo/
+expo-env.d.ts
+
+# Env & secrets — never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Prisma
+apps/api/prisma/*.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local uploads (MinIO volume, etc.)
+infra/.volumes/

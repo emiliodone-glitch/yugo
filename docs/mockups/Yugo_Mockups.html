@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yugo · Mockups de pantallas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#22315C; --ink-deep:#161F3D; --olive:#7A8450; --olive-soft:#E9ECDD; --wheat:#E0B25A; --wheat-soft:#FBF1D9;
+  --linen:#FAF8F3; --linen-2:#F1EDE3; --wine:#7B2D4B; --wine-soft:#F3E3E9; --text:#1B1F2A; --muted:#6C7280; --line:#E4E0D5;
+  --display:'Fraunces',Georgia,serif; --body:'DM Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:#EDE9DF;color:var(--text);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+
+/* ===== Page chrome ===== */
+.top{background:var(--ink);color:#fff;padding:28px 32px 0}
+.top .brand{display:flex;align-items:center;gap:14px}
+.mark{width:44px;height:44px}
+.top h1{font-family:var(--display);font-weight:600;font-size:34px;letter-spacing:-.5px;line-height:1}
+.top .tag{font-family:var(--display);font-style:italic;color:var(--wheat);font-size:16px;margin-top:4px}
+.top p{max-width:720px;color:#C9D0E3;margin-top:14px;font-size:14px;line-height:1.5}
+.tabs{display:flex;gap:6px;margin-top:22px}
+.tabs button{background:transparent;border:0;color:#C9D0E3;font:600 14px var(--body);padding:12px 18px;border-radius:10px 10px 0 0;cursor:pointer}
+.tabs button.on{background:#EDE9DF;color:var(--ink)}
+section.view{display:none;padding:28px 32px 60px}
+section.view.on{display:block}
+.grid{display:flex;flex-wrap:wrap;gap:34px 26px;align-items:flex-start}
+.shot{display:flex;flex-direction:column;gap:10px}
+.shot .cap{font-size:13px;color:var(--muted);max-width:320px;line-height:1.45}
+.shot .cap b{color:var(--ink);display:block;font-size:14px;margin-bottom:2px}
+.note{background:#fff;border-left:4px solid var(--wheat);padding:14px 18px;border-radius:8px;font-size:14px;line-height:1.5;margin-bottom:26px;max-width:900px}
+
+/* ===== Phone ===== */
+.phone{width:320px;height:668px;background:var(--linen);border:9px solid #1C1F27;border-radius:40px;overflow:hidden;position:relative;box-shadow:0 20px 40px -20px rgba(22,31,61,.5);display:flex;flex-direction:column}
+.status{height:34px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600;color:var(--ink)}
+.status .notch{position:absolute;left:50%;top:0;transform:translateX(-50%);width:96px;height:24px;background:#1C1F27;border-radius:0 0 16px 16px}
+.screen{flex:1;overflow:hidden;position:relative}
+.pad{padding:8px 18px}
+.tabbar{height:64px;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding-bottom:6px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--muted);font-weight:500}
+.tabbar div.on{color:var(--ink)}
+.tabbar svg{width:22px;height:22px}
+.h{font-family:var(--display);font-weight:600;color:var(--ink);letter-spacing:-.2px}
+.h1{font-size:26px;line-height:1.1}
+.h2{font-size:19px}
+.h3{font-size:15px}
+.sub{font-size:12px;color:var(--muted);line-height:1.4}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--ink);color:#fff;border:0;border-radius:14px;font:600 14px var(--body);padding:14px;width:100%;cursor:pointer}
+.btn.olive{background:var(--olive)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.wheat{background:var(--wheat);color:var(--ink-deep)}
+.btn.sm{padding:9px 12px;font-size:12px;width:auto;border-radius:10px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:5px 9px;border-radius:999px;background:var(--linen-2);color:var(--ink)}
+.chip.olive{background:var(--olive-soft);color:#4E5630}
+.chip.wheat{background:var(--wheat-soft);color:#7A5A12}
+.chip.wine{background:var(--wine-soft);color:var(--wine)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--olive);color:#fff}
+.badge svg{width:11px;height:11px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.av{border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;color:#fff}
+.av.s{width:34px;height:34px;font-size:13px}
+.av.m{width:46px;height:46px;font-size:17px}
+.av.l{width:64px;height:64px;font-size:22px}
+.a1{background:#8C6A9E}.a2{background:#5B8C7E}.a3{background:#B9694F}.a4{background:#4F79B9}.a5{background:#A67E3B}.a6{background:#6B7A8C}
+.photo{background:linear-gradient(160deg,#C9C1B1,#8E8A80);border-radius:18px;position:relative;overflow:hidden}
+.photo::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.35),transparent 50%)}
+.photo .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.photo .ph svg{width:72px;height:72px;opacity:.45}
+.ring{--v:78;width:52px;height:52px;border-radius:50%;background:conic-gradient(var(--olive) calc(var(--v)*1%),var(--linen-2) 0);display:flex;align-items:center;justify-content:center;flex:none}
+.ring span{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font:700 13px var(--body);color:var(--ink)}
+.bar{height:6px;border-radius:6px;background:var(--linen-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--olive);border-radius:6px}
+.list-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.list-row:last-child{border-bottom:0}
+.field{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px}
+.msg{max-width:78%;padding:9px 12px;border-radius:16px;font-size:12.5px;line-height:1.4;margin-bottom:8px}
+.msg.me{background:var(--ink);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.msg.them{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.yugo-link{display:flex;align-items:center;justify-content:center;position:relative;height:88px;margin:8px 0 4px}
+.yugo-link .arc{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:130px;height:60px;border:3px solid var(--wheat);border-bottom:0;border-radius:70px 70px 0 0}
+.yugo-link .av{position:relative;z-index:1;box-shadow:0 0 0 4px var(--linen)}
+.yugo-link .av+.av{margin-left:50px}
+.top-app{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 6px}
+.icon-btn{width:34px;height:34px;border-radius:10px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+.icon-btn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.8}
+.map{height:150px;border-radius:14px;background:
+ linear-gradient(#e6e2d6 1px,transparent 1px) 0 0/22px 22px,
+ linear-gradient(90deg,#e6e2d6 1px,transparent 1px) 0 0/22px 22px,#EFECE3;position:relative;overflow:hidden;margin-bottom:12px}
+.map::before{content:'';position:absolute;left:-30px;top:40px;width:400px;height:14px;background:#D9D3C2;transform:rotate(-12deg)}
+.pin{position:absolute;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--wine);border:3px solid #fff;box-shadow:0 3px 6px rgba(0,0,0,.2)}
+.pin.olive{background:var(--olive)}
+.toggle{width:36px;height:20px;border-radius:20px;background:var(--olive);position:relative;flex:none}
+.toggle::after{content:'';position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.toggle.off{background:#D5D2C8}.toggle.off::after{right:auto;left:2px}
+.segment{display:flex;background:var(--linen-2);border-radius:12px;padding:3px;margin-bottom:12px}
+.segment span{flex:1;text-align:center;font-size:12px;font-weight:600;padding:7px;border-radius:10px;color:var(--muted)}
+.segment span.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.count{font-family:var(--display);font-size:30px;font-weight:600;color:var(--ink);line-height:1}
+
+/* ===== Desktop frames ===== */
+.desk{width:100%;max-width:1040px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 40px -22px rgba(22,31,61,.5);border:1px solid #D9D5CB;display:flex;height:640px}
+.side{width:210px;background:var(--ink-deep);color:#C9D0E3;padding:18px 14px;display:flex;flex-direction:column;gap:2px;flex:none}
+.side .b{display:flex;align-items:center;gap:10px;color:#fff;font-family:var(--display);font-size:20px;font-weight:600;padding:4px 8px 18px}
+.side .b small{font-family:var(--body);font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--wheat);display:block}
+.side a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:13px;text-decoration:none}
+.side a.on{background:rgba(255,255,255,.1);color:#fff}
+.side a .n{margin-left:auto;background:var(--wine);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px}
+.side .sec{font-size:10px;letter-spacing:.1em;color:#7F89A6;padding:14px 10px 4px;font-weight:600}
+.main{flex:1;background:var(--linen);overflow:hidden;display:flex;flex-direction:column}
+.main .bar-top{display:flex;justify-content:space-between;align-items:center;padding:16px 26px;border-bottom:1px solid var(--line);background:#fff}
+.main .bar-top .h{font-size:20px}
+.main .body{padding:22px 26px;overflow:hidden;flex:1}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:11.5px;color:var(--muted);font-weight:500}
+.kpi .v{font-family:var(--display);font-size:28px;font-weight:600;color:var(--ink);margin:4px 0 2px}
+.kpi .d{font-size:11px;color:#4E5630;font-weight:600}
+.kpi .d.down{color:var(--wine)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;font-size:11px;letter-spacing:.04em;color:var(--muted);font-weight:600;padding:10px 12px;background:var(--linen-2);border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.two{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel .h3{margin-bottom:10px}
+.spark{display:flex;align-items:flex-end;gap:4px;height:90px;margin-top:6px}
+.spark i{flex:1;background:var(--ink);opacity:.85;border-radius:3px 3px 0 0}
+.spark i.w{background:var(--wheat)}
+.slider{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px}
+.slider label{width:150px;color:var(--text);font-weight:500}
+.slider .tr{flex:1;height:6px;background:var(--linen-2);border-radius:6px;position:relative}
+.slider .tr i{position:absolute;left:0;top:0;height:100%;background:var(--ink);border-radius:6px}
+.slider .tr b{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--ink);transform:translate(-50%,-50%)}
+.slider .val{width:40px;text-align:right;font-weight:600;color:var(--ink)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.compare .photo{height:200px}
+.txt{font-size:12.5px;line-height:1.5}
+.small{font-size:11px;color:var(--muted)}
+@media (max-width:700px){.top{padding:20px 16px 0}section.view{padding:20px 12px 40px}.desk{height:auto;flex-direction:column}.side{width:100%;flex-direction:row;flex-wrap:wrap}.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="yugo" viewBox="0 0 44 44"><circle cx="14" cy="27" r="8" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="30" cy="27" r="8" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 20c4-11 28-11 32 0" fill="none" stroke="#E0B25A" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15 9l-2 6-4 2 2-6z" fill="currentColor"/></symbol>
+  <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="group" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6M15 19c0-3 2-5 5-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5" fill="#fff"/><path d="M2 24c0-6 5-9 10-9s10 3 10 9z" fill="#fff"/></symbol>
+  <symbol id="pin" viewBox="0 0 24 24"><path d="M12 22s7-7 7-12a7 7 0 10-14 0c0 5 7 12 7 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 16.9 6.4 20l1.3-6.2L3 9.5l6.3-.7z" fill="currentColor"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="brand">
+    <svg class="mark" style="color:#fff"><use href="#yugo"/></svg>
+    <div><h1>Yugo</h1><div class="tag">Unidos en la misma fe</div></div>
+  </div>
+  <p>Mockups de pantallas del MVP. Tres superficies sobre un mismo backend: la app móvil para miembros, el panel administrativo y el portal para iglesias y ministerios. Los colores, tipografía y componentes corresponden a la identidad definida en el documento de requerimientos.</p>
+  <nav class="tabs">
+    <button class="on" data-v="mobile">App móvil</button>
+    <button data-v="admin">Panel administrativo</button>
+    <button data-v="church">Portal de iglesias</button>
+  </nav>
+</header>
+
+<!-- ======================================================= MOBILE ======================================================= -->
+<section class="view on" id="v-mobile">
+<div class="note">Recorrido principal: bienvenida → pacto de conducta → inicio → descubrir → perfil con afinidad → conexiones → chat → comunidad → eventos → mi perfil → Yugo Plus y Oro → visibilidad. Los nombres de las personas y las iglesias son ficticios.</div>
+<div class="grid">
+
+<!-- 1 Bienvenida -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen" style="background:var(--ink);color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:26px 22px 24px">
+    <div>
+      <svg style="width:54px;height:54px;color:#fff"><use href="#yugo"/></svg>
+      <div class="h h1" style="color:#fff;font-size:34px;margin-top:18px">Conoce a alguien<br>que ya ora<br>como tú.</div>
+      <p style="font-size:13.5px;color:#C9D0E3;margin-top:14px;line-height:1.5">Un lugar para cristianos de todas las denominaciones que buscan pareja con propósito y una comunidad donde crecer.</p>
+    </div>
+    <div>
+      <div class="row" style="gap:8px;margin-bottom:18px;flex-wrap:wrap">
+        <span class="chip" style="background:rgba(255,255,255,.12);color:#fff">Perfiles verificados por iglesias</span>
+        <span class="chip" style="background:rgba(255,255,255,.12);color:#fff">Solo mayores de 18</span>
+      </div>
+      <button class="btn wheat">Crear mi perfil</button>
+      <button class="btn" style="background:transparent;border:1.5px solid rgba(255,255,255,.4);margin-top:8px">Ya tengo cuenta</button>
+      <p style="text-align:center;font-size:11px;color:#8F9AB8;margin-top:12px">Continuar con Google · Apple</p>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Bienvenida</b>La promesa en una frase. Sin corazones ni fuegos: el tono es sereno y directo.</div>
+</div>
+
+<!-- 2 Pacto -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen pad" style="padding-top:14px">
+    <div class="sub" style="font-weight:600;letter-spacing:.08em;font-size:10.5px;color:var(--olive)">PASO 3 DE 8</div>
+    <div class="h h1" style="margin:6px 0 10px">Pacto de conducta</div>
+    <p class="sub" style="margin-bottom:10px">Antes de continuar, confirma que te comprometes con estos principios.</p>
+    <div class="card" style="padding:12px 14px">
+      <div class="list-row"><svg style="width:18px;height:18px;color:var(--olive);flex:none"><use href="#check"/></svg><span class="txt">Soy cristiano y mayor de 18 años; mi perfil dice la verdad sobre mí.</span></div>
+      <div class="list-row"><svg style="width:18px;height:18px;color:var(--olive);flex:none"><use href="#check"/></svg><span class="txt">Trato a los demás con respeto; no envío contenido sexual ni ofensivo.</span></div>
+      <div class="list-row"><svg style="width:18px;height:18px;color:var(--olive);flex:none"><use href="#check"/></svg><span class="txt">No pido dinero ni uso la plataforma para negocios o proselitismo.</span></div>
+      <div class="list-row"><svg style="width:18px;height:18px;color:var(--olive);flex:none"><use href="#check"/></svg><span class="txt">Respeto a quienes pertenecen a otra denominación.</span></div>
+      <div class="list-row"><svg style="width:18px;height:18px;color:var(--olive);flex:none"><use href="#check"/></svg><span class="txt">Entiendo que incumplir el pacto puede suspender mi cuenta.</span></div>
+    </div>
+    <div class="row" style="gap:10px;margin:2px 0 10px"><div class="toggle"></div><span class="txt">Acepto el Pacto de conducta, los Términos y la Política de privacidad (v1.0).</span></div>
+    <button class="btn olive">Me comprometo</button>
+  </div>
+</div>
+<div class="cap"><b>Pacto de conducta</b>Aceptación explícita y versionada (RF-AUT-04). Es la base de las sanciones y una bandera del producto.</div>
+</div>
+
+<!-- 3 Inicio -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div><div class="sub">Sábado 29 de agosto</div><div class="h h2">Bendiciones, Emilio</div></div><div class="av s a4">E</div></div>
+    <div class="pad">
+      <div class="card" style="background:var(--ink);color:#fff;border:0;display:flex;justify-content:space-between;align-items:center">
+        <div><div class="sub" style="color:#C9D0E3">Intereses de hoy</div><div class="count" style="color:#fff">5<span style="font-size:14px;color:#8F9AB8"> / 8</span></div></div>
+        <div style="text-align:right"><div class="sub" style="color:#C9D0E3">Nuevas conexiones</div><div class="count" style="color:var(--wheat)">2</div></div>
+      </div>
+      <div class="row between" style="margin:6px 0 8px"><div class="h h3">Eventos destacados</div><span class="sub">Ver todos</span></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="photo" style="height:92px;border-radius:0;background:linear-gradient(160deg,#7B2D4B,#22315C)"><div class="ph"><svg><use href="#cal"/></svg></div></div>
+        <div style="padding:12px 14px">
+          <div class="row between"><span class="chip wine">Vigilia</span><span class="small">Vie 4 sep · 8:00 pm</span></div>
+          <div class="h h3" style="margin-top:6px">Noche de adoración de jóvenes adultos</div>
+          <div class="sub row" style="gap:4px"><svg style="width:12px;height:12px"><use href="#pin"/></svg> Iglesia Monte de Sion · Santo Domingo Este · 4 km</div>
+          <div class="row between" style="margin-top:8px"><span class="sub">3 de tus conexiones asistirán</span><button class="btn sm olive">Asistiré</button></div>
+        </div>
+      </div>
+      <div class="row between" style="margin:8px 0"><div class="h h3">Te sugerimos hoy</div><span class="sub">Descubrir</span></div>
+      <div class="row" style="gap:10px;overflow:hidden">
+        <div class="card" style="min-width:120px;margin:0;padding:10px"><div class="row"><div class="av s a1">M</div><div class="ring" style="--v:86;width:34px;height:34px"><span style="width:26px;height:26px;font-size:9px">86</span></div></div><div class="h h3" style="margin-top:8px;font-size:13px">Mariel, 28</div><div class="small">Evangélica · 6 km</div></div>
+        <div class="card" style="min-width:120px;margin:0;padding:10px"><div class="row"><div class="av s a2">D</div><div class="ring" style="--v:74;width:34px;height:34px"><span style="width:26px;height:26px;font-size:9px">74</span></div></div><div class="h h3" style="margin-top:8px;font-size:13px">Daniela, 31</div><div class="small">Pentecostal · 12 km</div></div>
+        <div class="card" style="min-width:120px;margin:0;padding:10px"><div class="row"><div class="av s a3">S</div><div class="ring" style="--v:69;width:34px;height:34px"><span style="width:26px;height:26px;font-size:9px">69</span></div></div><div class="h h3" style="margin-top:8px;font-size:13px">Sarah, 26</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar"><div class="on"><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Inicio</b>Resumen del día: intereses disponibles, conexiones nuevas, un evento destacado y sugerencias. La comunidad tiene tanto peso como las citas.</div>
+</div>
+
+<!-- 4 Descubrir -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div class="h h2">Descubrir</div><div class="row"><span class="chip">5 intereses</span><div class="icon-btn"><svg><use href="#filter"/></svg></div></div></div>
+    <div class="pad" style="padding-top:2px">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="photo" style="height:250px;border-radius:0"><div class="ph"><svg><use href="#person"/></svg></div>
+          <div style="position:absolute;left:12px;top:12px" class="badge"><svg><use href="#check"/></svg>Respaldada por su iglesia</div>
+          <div style="position:absolute;right:12px;bottom:12px" class="ring" style="--v:86"><span>86</span></div>
+          <div style="position:absolute;left:14px;bottom:14px;color:#fff"><div class="h h1" style="color:#fff;font-size:24px">Mariel, 28</div><div style="font-size:12px;opacity:.9">Santo Domingo · 6 km · Contadora</div></div>
+        </div>
+        <div style="padding:12px 14px">
+          <div class="pill-row"><span class="chip olive">Evangélica</span><span class="chip">Iglesia Bíblica Emanuel</span><span class="chip wheat">Propósito de matrimonio</span></div>
+          <p class="txt" style="margin-top:10px;color:var(--text)">"Sirvo en el ministerio de niños desde hace 4 años. Me gusta cocinar para mucha gente y estoy leyendo Rut por tercera vez."</p>
+          <div class="row" style="gap:8px;margin-top:12px">
+            <button class="btn ghost" style="flex:1">Pasar</button>
+            <button class="btn olive" id="likeBtn" style="flex:1.6" onclick="this.textContent='Interés enviado ✓';this.disabled=true;document.getElementById('likeBtn').style.background='#4E5630'">Me interesa</button>
+          </div>
+        </div>
+      </div>
+      <div class="sub" style="text-align:center">Lista de hoy: 12 de 30 · ordenada por afinidad</div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div class="on"><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Descubrir</b>Lista curada, no un mazo infinito. El anillo de afinidad y la insignia de iglesia son visibles antes de decidir. Toca "Me interesa" para ver el estado.</div>
+</div>
+
+<!-- 5 Perfil detalle -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div class="icon-btn">‹</div><div class="h h3">Afinidad de fe</div><div style="width:34px"></div></div>
+    <div class="pad">
+      <div class="yugo-link" style="height:78px;margin-top:0"><div class="arc"></div><div class="av l a4">E</div><div class="av l a1">M</div></div>
+      <div style="text-align:center;margin-bottom:12px"><div class="count">86<span style="font-size:15px;color:var(--muted)"> / 100</span></div><div class="sub">Tú y Mariel comparten mucho de cómo viven la fe</div></div>
+      <div class="card">
+        <div style="margin-bottom:10px"><div class="row between txt"><span>Denominación</span><b>80</b></div><div class="bar"><i style="width:80%"></i></div><div class="small">Evangélica y Bautista: denominaciones afines</div></div>
+        <div style="margin-bottom:10px"><div class="row between txt"><span>Intención</span><b>100</b></div><div class="bar"><i style="width:100%"></i></div><div class="small">Ambos buscan relación con propósito de matrimonio</div></div>
+        <div style="margin-bottom:10px"><div class="row between txt"><span>Prácticas y valores</span><b>85</b></div><div class="bar"><i style="width:85%"></i></div><div class="small">Coinciden en servicio, estudio bíblico y asistencia semanal</div></div>
+        <div style="margin-bottom:10px"><div class="row between txt"><span>Cercanía</span><b>88</b></div><div class="bar"><i style="width:88%"></i></div></div>
+        <div><div class="row between txt"><span>Edad</span><b>100</b></div><div class="bar"><i style="width:100%"></i></div></div>
+      </div>
+      <div class="h h3" style="margin:4px 0 6px">En común</div>
+      <div class="pill-row"><span class="chip olive">Estudio bíblico</span><span class="chip olive">Servicio social</span><span class="chip olive">Cada semana</span><span class="chip">Sin hijos</span></div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div class="on"><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Desglose de afinidad</b>El elemento firma: dos avatares unidos por el arco del yugo. Cada componente explica por qué se sugiere a esa persona (RF-DES-03).</div>
+</div>
+
+<!-- 6 Conexiones -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div class="h h2">Conexiones</div><span class="chip wheat"><svg style="width:11px;height:11px"><use href="#star"/></svg> 7 te marcaron interés</span></div>
+    <div class="pad">
+      <div class="sub" style="font-weight:600;letter-spacing:.06em;font-size:10.5px;margin-bottom:6px">NUEVAS</div>
+      <div class="row" style="gap:12px;margin-bottom:14px">
+        <div style="text-align:center"><div class="av m a1" style="box-shadow:0 0 0 3px var(--wheat)">M</div><div class="small" style="margin-top:4px">Mariel</div></div>
+        <div style="text-align:center"><div class="av m a5" style="box-shadow:0 0 0 3px var(--wheat)">P</div><div class="small" style="margin-top:4px">Priscila</div></div>
+      </div>
+      <div class="sub" style="font-weight:600;letter-spacing:.06em;font-size:10.5px;margin-bottom:2px">CONVERSACIONES</div>
+      <div class="list-row"><div class="av m a2">D</div><div style="flex:1;min-width:0"><div class="row between"><b class="txt">Daniela</b><span class="small">10:12</span></div><div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">¡Sí! Voy a la vigilia del viernes, ¿nos vemos allá?</div></div><span style="width:8px;height:8px;border-radius:50%;background:var(--wine)"></span></div>
+      <div class="list-row"><div class="av m a3">S</div><div style="flex:1;min-width:0"><div class="row between"><b class="txt">Sarah</b><span class="small">Ayer</span></div><div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tú: Me encantó lo que dijiste sobre Rut 1:16</div></div></div>
+      <div class="list-row"><div class="av m a6">A</div><div style="flex:1;min-width:0"><div class="row between"><b class="txt">Ana Lucía</b><span class="small">Mar</span></div><div class="sub">Gracias por orar por mi papá 🙏</div></div><span class="badge" style="background:var(--ink)">Verificada</span></div>
+      <div class="card" style="background:var(--olive-soft);border:0;margin-top:14px"><div class="txt" style="font-weight:600;color:#4E5630;margin-bottom:4px">Antes de un primer encuentro</div><div class="small" style="color:#4E5630">Reúnanse en un lugar público, avisa a alguien de confianza y no compartas datos financieros.</div></div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#disc"/></svg>Descubrir</div><div class="on"><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Conexiones</b>Solo aparecen vínculos mutuos. La cuenta gratuita ve cuántas personas le marcaron interés; Plus ve quiénes.</div>
+</div>
+
+<!-- 7 Chat -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen" style="display:flex;flex-direction:column">
+    <div class="top-app" style="border-bottom:1px solid var(--line);background:#fff"><div class="row"><div class="icon-btn" style="border:0">‹</div><div class="av s a1">M</div><div><b class="txt">Mariel</b><div class="small row" style="gap:3px"><svg style="width:10px;height:10px;color:var(--olive)"><use href="#check"/></svg>Iglesia Bíblica Emanuel</div></div></div><div class="icon-btn">⋯</div></div>
+    <div class="pad" style="flex:1;overflow:hidden">
+      <div style="text-align:center;margin:8px 0 12px"><span class="chip wheat">Nueva conexión · hoy</span></div>
+      <div class="card" style="background:var(--wheat-soft);border:0">
+        <div class="small" style="font-weight:600;color:#7A5A12;margin-bottom:8px">ROMPEHIELOS SUGERIDOS</div>
+        <div class="txt" style="background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px">Vi que sirves con niños, ¿cómo llegaste ahí?</div>
+        <div class="txt" style="background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px">¿Qué es lo que más te ha hablado de Rut esta vez?</div>
+        <div class="txt" style="background:#fff;border-radius:10px;padding:8px 10px">¿Cuál es tu plato estrella para mucha gente?</div>
+      </div>
+      <div class="msg me">Vi que sirves con niños, ¿cómo llegaste ahí?</div>
+      <div class="msg them">Jaja empecé cubriendo a una amiga un domingo y me quedé. Ya son 4 años. ¿Y tú en qué sirves?</div>
+      <div class="msg me">Medios y sonido. Nada de niños, me ganan siempre 😅</div>
+      <div class="small" style="text-align:center;margin:8px 0">Sin fotos ni archivos en el chat. Los mensajes se revisan para mantener el respeto.</div>
+    </div>
+    <div style="padding:8px 14px 12px;background:#fff;border-top:1px solid var(--line)" class="row"><div class="field" style="flex:1;margin:0">Escribe un mensaje…</div><button class="btn sm">Enviar</button></div>
+  </div>
+</div>
+<div class="cap"><b>Chat con rompehielos</b>Las preguntas se generan del perfil de la otra persona (RF-CON-04). Texto solamente en el MVP; moderación previa a la entrega.</div>
+</div>
+
+<!-- 8 Comunidad -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div class="h h2">Comunidad</div><button class="btn sm ghost">+ Crear grupo</button></div>
+    <div class="pad">
+      <div class="segment"><span class="on">Mis grupos</span><span>Sugeridos</span><span>Oración</span></div>
+      <div class="card" style="padding:12px">
+        <div class="row between"><div class="row"><div class="av s a4" style="border-radius:10px">JA</div><div><b class="txt">Jóvenes adultos SDE</b><div class="small">142 miembros · 3 publicaciones hoy</div></div></div><span class="badge" style="background:var(--ink)">Oficial</span></div>
+        <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+          <div class="row"><div class="av s a5">P</div><div><b class="txt" style="font-size:12px">Priscila</b><div class="small">hace 2 h</div></div></div>
+          <p class="txt" style="margin-top:6px">Petición: mi mamá entra a cirugía el martes. Les agradezco sus oraciones 🙏</p>
+          <div class="row" style="gap:8px;margin-top:8px"><span class="chip olive">🙏 Estoy orando · 38</span><span class="chip">Amén · 12</span></div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="row between"><div class="row"><div class="av s a2" style="border-radius:10px">M</div><div><b class="txt">Misiones y servicio social</b><div class="small">89 miembros</div></div></div></div>
+        <div class="card" style="margin:10px 0 0;background:var(--linen-2);border:0;padding:10px">
+          <div class="row between"><span class="chip wheat">Actividad</span><span class="small">Sáb 12 sep · 8:00 am</span></div>
+          <b class="txt" style="display:block;margin-top:4px">Jornada de limpieza en Los Cacaos</b>
+          <div class="row between" style="margin-top:6px"><span class="small">24 asistirán</span><button class="btn sm olive">Me apunto</button></div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px"><div class="row between"><div class="row"><div class="av s a3" style="border-radius:10px">A</div><div><b class="txt">Alabanza y músicos</b><div class="small">213 miembros</div></div></div><span class="small">Con aprobación</span></div></div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div class="on"><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Comunidad</b>Grupos por ministerio, interés y ciudad. Peticiones de oración con "Estoy orando" y actividades ligeras del grupo (RF-COM-05/06).</div>
+</div>
+
+<!-- 9 Eventos -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="top-app"><div class="h h2">Eventos</div><div class="row"><span class="chip">Esta semana</span><div class="icon-btn"><svg><use href="#filter"/></svg></div></div></div>
+    <div class="pad">
+      <div class="map"><div class="pin" style="left:70px;top:60px"></div><div class="pin olive" style="left:180px;top:40px"></div><div class="pin" style="left:230px;top:95px"></div><div class="pin olive" style="left:120px;top:105px"></div><span class="chip" style="position:absolute;right:8px;bottom:8px;background:#fff">Lista</span></div>
+      <div class="card" style="padding:12px"><div class="row" style="align-items:flex-start"><div style="text-align:center;min-width:40px"><div class="small">VIE</div><div class="count" style="font-size:22px">4</div></div><div style="flex:1"><div class="row between"><span class="chip wine">Vigilia</span><span class="small">8:00 pm · Gratis</span></div><b class="txt" style="display:block;margin-top:4px">Noche de adoración de jóvenes adultos</b><div class="small">Iglesia Monte de Sion · 4 km</div><div class="row between" style="margin-top:6px"><div class="row" style="gap:-4px"><div class="av s a1" style="width:22px;height:22px;font-size:9px">M</div><div class="av s a2" style="width:22px;height:22px;font-size:9px;margin-left:-8px">D</div><span class="small" style="margin-left:6px">+3 conexiones</span></div><span class="chip olive">Asistiré ✓</span></div></div></div></div>
+      <div class="card" style="padding:12px"><div class="row" style="align-items:flex-start"><div style="text-align:center;min-width:40px"><div class="small">SÁB</div><div class="count" style="font-size:22px">5</div></div><div style="flex:1"><div class="row between"><span class="chip">Congreso</span><span class="small">9:00 am · RD$500</span></div><b class="txt" style="display:block;margin-top:4px">Congreso de solteros con propósito</b><div class="small">Centro Cristiano Vida Nueva · Santiago · 148 km</div><div class="row between" style="margin-top:6px"><span class="small">212 interesados</span><button class="btn sm ghost">Me interesa</button></div></div></div></div>
+      <div class="card" style="padding:12px"><div class="row" style="align-items:flex-start"><div style="text-align:center;min-width:40px"><div class="small">DOM</div><div class="count" style="font-size:22px">6</div></div><div style="flex:1"><div class="row between"><span class="chip olive">Servicio</span><span class="small">7:00 am</span></div><b class="txt" style="display:block;margin-top:4px">Desayuno solidario en Villa Altagracia</b><div class="small">Ministerio Manos Abiertas · 32 km</div></div></div></div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div class="on"><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Eventos</b>Publicados por iglesias verificadas. Mapa + lista, tipo, costo y quiénes de tus conexiones van (RF-EVE-03/05).</div>
+</div>
+
+<!-- 10 Mi perfil / verificación -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen">
+    <div class="pad" style="padding-top:12px">
+      <div class="row" style="gap:14px"><div class="av l a4">E</div><div><div class="h h2">Emilio, 34</div><div class="sub">Santo Domingo · QA Analyst</div><div class="pill-row" style="margin-top:6px"><span class="chip olive">Bautista</span><span class="chip wheat">Propósito de matrimonio</span></div></div></div>
+      <div class="card" style="margin-top:14px"><div class="row between txt"><span>Perfil completo</span><b>82%</b></div><div class="bar" style="margin-top:6px"><i style="width:82%"></i></div><div class="small" style="margin-top:6px">Agrega tu versículo favorito para llegar al 90%.</div></div>
+      <div class="h h3" style="margin-bottom:8px">Verificación</div>
+      <div class="card" style="padding:6px 14px">
+        <div class="list-row"><span class="badge"><svg><use href="#check"/></svg></span><div style="flex:1"><b class="txt">Contacto</b><div class="small">Correo y teléfono verificados</div></div></div>
+        <div class="list-row"><span class="badge"><svg><use href="#check"/></svg></span><div style="flex:1"><b class="txt">Identidad</b><div class="small">Selfie aprobada el 12 ago</div></div></div>
+        <div class="list-row"><span class="badge" style="background:var(--wheat);color:var(--ink-deep)">3</span><div style="flex:1"><b class="txt">Respaldo de iglesia</b><div class="small">Ingresa el código de tu iglesia o pide a tu líder que te respalde</div></div><button class="btn sm">Obtener</button></div>
+      </div>
+      <div class="card" style="background:var(--ink);color:#fff;border:0"><div class="row between"><div><div class="h h3" style="color:var(--wheat)">Yugo Plus · Yugo Oro</div><div class="small" style="color:#C9D0E3">Intereses ilimitados, modo invisible y más</div></div><span class="chip" style="background:var(--wheat);color:var(--ink-deep)">Ver</span></div></div>
+      <div class="list-row txt"><span>Preferencias de búsqueda</span><span style="margin-left:auto;color:var(--muted)">›</span></div>
+      <div class="list-row txt"><span>Privacidad y seguridad</span><span style="margin-left:auto;color:var(--muted)">›</span></div>
+      <div class="list-row txt"><span>Pausar mi perfil</span><div class="toggle off" style="margin-left:auto"></div></div>
+    </div>
+  </div>
+  <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#disc"/></svg>Descubrir</div><div><svg><use href="#chat"/></svg>Conexiones</div><div><svg><use href="#group"/></svg>Comunidad</div><div><svg><use href="#cal"/></svg>Eventos</div></div>
+</div>
+<div class="cap"><b>Mi perfil y verificación</b>Los tres niveles como escalera visible. El nivel 3 es el gancho hacia las iglesias (RF-VER-02/03).</div>
+</div>
+
+<!-- 11 Plus / Oro -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen" style="background:var(--ink);color:#fff;padding:14px 18px;display:flex;flex-direction:column">
+    <div class="row between"><span class="chip" style="background:rgba(255,255,255,.12);color:#fff">Límite de hoy alcanzado</span><span style="color:#8F9AB8">✕</span></div>
+    <div class="h h1" style="color:#fff;font-size:24px;margin:14px 0 4px">Elige tu nivel</div>
+    <p style="font-size:12px;color:#C9D0E3;line-height:1.45;margin-bottom:12px">Usaste tus 8 intereses de hoy. Grupos y eventos siguen siendo gratis en cualquier nivel.</p>
+    <div class="segment" style="background:rgba(255,255,255,.1);margin-bottom:10px"><span style="color:#C9D0E3">Mensual</span><span class="on" style="background:var(--wheat);color:var(--ink-deep)">Anual · ahorra 40%</span></div>
+    <div class="card" style="margin:0 0 8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);color:#fff;padding:12px">
+      <div class="row between"><b class="h h3" style="color:#fff">Yugo Plus</b><b class="txt">RD$ 2,990 / año</b></div>
+      <div class="txt" style="display:grid;gap:4px;margin-top:8px;font-size:12px">
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Intereses ilimitados</div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Ver quién te marcó interés</div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Filtros avanzados y mensaje con tu interés</div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Perfil destacado 1 vez por semana</div>
+      </div>
+    </div>
+    <div class="card" style="margin:0 0 10px;background:linear-gradient(160deg,rgba(224,178,90,.22),rgba(224,178,90,.08));border:1.5px solid var(--wheat);color:#fff;padding:12px;position:relative">
+      <span class="chip" style="position:absolute;right:12px;top:-10px;background:var(--wheat);color:var(--ink-deep)">Más elegido</span>
+      <div class="row between"><b class="h h3" style="color:var(--wheat)">Yugo Oro</b><b class="txt">RD$ 6,990 / año</b></div>
+      <div class="small" style="color:#C9D0E3;margin-top:2px">Todo lo de Plus, y además:</div>
+      <div class="txt" style="display:grid;gap:4px;margin-top:6px;font-size:12px">
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg><span><b>Modo invisible:</b> solo te ven a quienes marcas interés</span></div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Posición preferente en Descubrir</div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Deshacer "Pasar" y quién vio tu perfil</div>
+        <div class="row"><svg style="width:13px;height:13px;color:var(--wheat)"><use href="#check"/></svg>Modo viaje y verificación prioritaria</div>
+      </div>
+    </div>
+    <button class="btn wheat" style="margin-top:auto">Continuar con Oro</button>
+    <div class="small" style="text-align:center;color:#8F9AB8;margin-top:6px">Cancela cuando quieras · Sube de nivel con prorrateo</div>
+  </div>
+</div>
+<div class="cap"><b>Paywall: Plus y Oro</b>Dos niveles con precio y alcance distintos (RF-PLU-01/06). Oro añade el modo invisible y prioridad; Plus amplía límites.</div>
+</div>
+
+<!-- 12 Privacidad / Oro -->
+<div class="shot">
+<div class="phone">
+  <div class="status"><span>9:41</span><div class="notch"></div><span>●●●</span></div>
+  <div class="screen pad" style="padding-top:12px">
+    <div class="row" style="margin-bottom:6px"><div class="icon-btn">‹</div><div class="h h2" style="margin-left:8px">Visibilidad y búsqueda</div></div>
+    <div class="row between" style="margin:6px 0 4px"><div class="h h3">Rango de edad</div><span class="chip">Obligatorio</span></div>
+    <div class="card" style="padding:12px">
+      <div class="row between txt"><span>Quiero conocer personas de</span><b>26 – 38 años</b></div>
+      <div class="slider" style="margin:10px 0 4px"><div class="tr"><i style="left:18%;width:44%;position:absolute"></i><b style="left:18%"></b><b style="left:62%"></b></div></div>
+      <div class="small">Solo verás y te verán personas dentro de este rango, y tú debes estar dentro del rango de ellas. Esta regla no se puede desactivar.</div>
+    </div>
+    <div class="row between" style="margin:8px 0 4px"><div class="h h3">Modo invisible</div><span class="chip wheat">Yugo Oro</span></div>
+    <div class="card" style="padding:12px;border:1.5px solid var(--wheat)">
+      <div class="row between"><div style="flex:1"><b class="txt">Activado</b><div class="small">No apareces en Descubrir de nadie. Tu perfil solo se muestra a las personas a quienes marcas interés y a tus conexiones.</div></div><div class="toggle"></div></div>
+      <div class="row" style="gap:8px;margin-top:10px"><span class="chip olive">Visible para 4 personas</span><span class="chip">Vence en 212 días</span></div>
+    </div>
+    <div class="row between" style="margin:8px 0 4px"><div class="h h3">Modo viaje</div><span class="chip wheat">Yugo Oro</span></div>
+    <div class="card" style="padding:12px"><div class="row between"><div style="flex:1"><b class="txt">Buscar en otra ciudad</b><div class="small">Nueva York, EE. UU. · hasta el 15 sep</div></div><div class="toggle"></div></div></div>
+    <div class="card" style="padding:12px"><div class="row between txt"><span>Quién vio mi perfil (30 días)</span><b>27 ›</b></div></div>
+    <div class="card" style="padding:12px"><div class="row between txt"><span>Mostrar insignia Oro en mi perfil</span><div class="toggle off"></div></div></div>
+  </div>
+</div>
+<div class="cap"><b>Visibilidad y búsqueda</b>El rango de edad como regla mutua e innegociable (RF-DES-11) y los controles exclusivos de Oro: invisible, viaje, quién me vio (RF-DES-12/14/15).</div>
+</div>
+
+</div>
+</section>
+
+<!-- ======================================================= ADMIN ======================================================= -->
+<section class="view" id="v-admin">
+<div class="note">Panel web para el equipo de operación. Roles con permisos separados (moderador, gestor de comunidad, soporte, finanzas, superadmin) y bitácora de auditoría de cada acción.</div>
+<div class="grid" style="flex-direction:column">
+
+<!-- Tablero -->
+<div class="shot" style="width:100%">
+<div class="desk">
+  <aside class="side">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small>PANEL ADMIN</small></div></div>
+    <a class="on">Tablero</a><a>Miembros</a><a>Verificaciones<span class="n">23</span></a><a>Moderación<span class="n">9</span></a>
+    <div class="sec">COMUNIDAD</div><a>Organizaciones<span class="n">4</span></a><a>Eventos</a><a>Grupos</a>
+    <div class="sec">NEGOCIO</div><a>Suscripciones</a><a>Reportes</a>
+    <div class="sec">SISTEMA</div><a>Configuración</a><a>Roles y auditoría</a>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Tablero</div><div class="row"><span class="chip">Últimos 30 días</span><div class="av s a4">A</div></div></div>
+    <div class="body">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Miembros activos (30 d)</div><div class="v">4,812</div><div class="d">▲ 12% vs. mes anterior</div></div>
+        <div class="kpi"><div class="l">Conexiones creadas</div><div class="v">1,207</div><div class="d">▲ 8%</div></div>
+        <div class="kpi"><div class="l">Verificados nivel 2+</div><div class="v">53%</div><div class="d">▲ 4 pts</div></div>
+        <div class="kpi"><div class="l">Ingresos Plus (RD$)</div><div class="v">312,450</div><div class="d">▲ 19%</div></div>
+      </div>
+      <div class="two">
+        <div class="panel"><div class="h h3">Registros y conversiones a Plus por semana</div><div class="spark"><i style="height:40%"></i><i style="height:52%"></i><i style="height:48%"></i><i style="height:63%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:82%"></i><i style="height:90%"></i><i class="w" style="height:14%"></i><i class="w" style="height:18%"></i><i class="w" style="height:22%"></i><i class="w" style="height:30%"></i></div><div class="small" style="margin-top:6px">Índigo: registros · Trigo: conversiones a Plus</div></div>
+        <div class="panel"><div class="h h3">Requiere atención</div>
+          <div class="list-row"><span class="chip wine">Crítico</span><span class="txt">2 reportes de "menor de edad" sin asignar</span></div>
+          <div class="list-row"><span class="chip wheat">Alto</span><span class="txt">23 verificaciones esperan más de 24 h</span></div>
+          <div class="list-row"><span class="chip">Normal</span><span class="txt">4 iglesias pendientes de aprobación</span></div>
+          <div class="list-row"><span class="chip">Normal</span><span class="txt">Cola de moderación IA: 41 mensajes retenidos</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Tablero</b>Indicadores del negocio y alertas operativas en un solo lugar (RF-ADM-01).</div>
+</div>
+
+<!-- Moderación -->
+<div class="shot" style="width:100%">
+<div class="desk">
+  <aside class="side">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small>PANEL ADMIN</small></div></div>
+    <a>Tablero</a><a>Miembros</a><a>Verificaciones<span class="n">23</span></a><a class="on">Moderación<span class="n">9</span></a>
+    <div class="sec">COMUNIDAD</div><a>Organizaciones<span class="n">4</span></a><a>Eventos</a><a>Grupos</a>
+    <div class="sec">NEGOCIO</div><a>Suscripciones</a><a>Reportes</a>
+    <div class="sec">SISTEMA</div><a>Configuración</a><a>Roles y auditoría</a>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Cola de moderación</div><div class="row"><span class="chip">Asignados a mí: 3</span><button class="btn sm">Tomar siguiente</button></div></div>
+    <div class="body">
+      <div class="segment" style="max-width:520px"><span class="on">Reportes (9)</span><span>Retenidos por IA (41)</span><span>Apelaciones (2)</span></div>
+      <table>
+        <tr><th>Prioridad</th><th>Tipo</th><th>Reportado</th><th>Motivo</th><th>Evidencia</th><th>Antigüedad</th><th></th></tr>
+        <tr><td><span class="chip wine">Crítico</span></td><td>Perfil</td><td>@j.rodriguez_21</td><td>Posible menor de edad</td><td>3 fotos</td><td>2 h</td><td><button class="btn sm">Revisar</button></td></tr>
+        <tr><td><span class="chip wine">Crítico</span></td><td>Mensaje</td><td>@carlos.mv</td><td>Acoso</td><td>Historial (14 msg)</td><td>5 h</td><td><button class="btn sm">Revisar</button></td></tr>
+        <tr><td><span class="chip wheat">Alto</span></td><td>Mensaje</td><td>@inversor_fe</td><td>Sospecha de estafa · pidió dinero</td><td>Historial (6 msg) · IA 0.92</td><td>9 h</td><td><button class="btn sm ghost">Revisar</button></td></tr>
+        <tr><td><span class="chip wheat">Alto</span></td><td>Perfil</td><td>@mari.santos</td><td>Identidad falsa</td><td>Comparación selfie</td><td>11 h</td><td><button class="btn sm ghost">Revisar</button></td></tr>
+        <tr><td><span class="chip">Normal</span></td><td>Publicación</td><td>Grupo Alabanza y músicos</td><td>Contenido comercial</td><td>1 imagen</td><td>1 d</td><td><button class="btn sm ghost">Revisar</button></td></tr>
+        <tr><td><span class="chip">Normal</span></td><td>Perfil</td><td>@pedro_98</td><td>Perfil engañoso (no cristiano)</td><td>Bio</td><td>1 d</td><td><button class="btn sm ghost">Revisar</button></td></tr>
+      </table>
+      <div class="panel" style="margin-top:14px"><div class="h h3">Decisiones disponibles al revisar</div><div class="pill-row"><span class="chip">Sin acción</span><span class="chip wheat">Advertencia</span><span class="chip wheat">Suspender 3 / 7 / 30 días</span><span class="chip wine">Expulsión permanente</span><span class="chip">Retirar contenido</span><span class="chip">Revocar verificación</span><span class="chip olive">Escalar a superadmin</span></div><div class="small" style="margin-top:8px">Cada decisión exige motivo y queda en la bitácora de auditoría; el miembro recibe notificación con la plantilla correspondiente.</div></div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Moderación</b>Cola unificada de reportes, contenido retenido por IA y apelaciones, con prioridad automática y SLA (RF-ADM-04, RF-SEG-03/04).</div>
+</div>
+
+<!-- Verificaciones -->
+<div class="shot" style="width:100%">
+<div class="desk">
+  <aside class="side">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small>PANEL ADMIN</small></div></div>
+    <a>Tablero</a><a>Miembros</a><a class="on">Verificaciones<span class="n">23</span></a><a>Moderación<span class="n">9</span></a>
+    <div class="sec">COMUNIDAD</div><a>Organizaciones<span class="n">4</span></a><a>Eventos</a><a>Grupos</a>
+    <div class="sec">NEGOCIO</div><a>Suscripciones</a><a>Reportes</a>
+    <div class="sec">SISTEMA</div><a>Configuración</a><a>Roles y auditoría</a>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Verificación de identidad · caso 1 de 23</div><span class="chip">Mariel Peña · 28 · Santo Domingo</span></div>
+    <div class="body">
+      <div class="two">
+        <div class="panel">
+          <div class="compare">
+            <div><div class="small" style="margin-bottom:6px">SELFIE EN VIVO · 29 ago 9:02</div><div class="photo"><div class="ph"><svg><use href="#person"/></svg></div></div></div>
+            <div><div class="small" style="margin-bottom:6px">FOTO PRINCIPAL DEL PERFIL</div><div class="photo" style="background:linear-gradient(160deg,#B8AE9C,#7C766C)"><div class="ph"><svg><use href="#person"/></svg></div></div></div>
+          </div>
+          <div class="row between" style="margin-top:12px"><span class="txt">Similitud automática</span><span class="chip olive">0.91 · alta</span></div>
+          <div class="row between" style="margin-top:6px"><span class="txt">Prueba de vida (gestos)</span><span class="chip olive">Superada</span></div>
+          <div class="row between" style="margin-top:6px"><span class="txt">Fecha de nacimiento declarada</span><span class="chip">12/03/1998 · 28 años</span></div>
+        </div>
+        <div class="panel">
+          <div class="h h3">Decisión</div>
+          <div class="field" style="height:80px">Nota interna (opcional)…</div>
+          <button class="btn olive">Aprobar identidad</button>
+          <button class="btn ghost" style="margin-top:8px">Rechazar y pedir nueva selfie</button>
+          <button class="btn" style="margin-top:8px;background:var(--wine)">Escalar por posible menor</button>
+          <div class="small" style="margin-top:12px">Historial del miembro: 0 reportes · 0 sanciones · registro 20 ago 2026.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Verificaciones</b>Comparación lado a lado de selfie y foto de perfil con puntaje automático; el humano decide en la zona gris (RF-ADM-03, RF-VER-01).</div>
+</div>
+
+<!-- Config algoritmo -->
+<div class="shot" style="width:100%">
+<div class="desk">
+  <aside class="side">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small>PANEL ADMIN</small></div></div>
+    <a>Tablero</a><a>Miembros</a><a>Verificaciones<span class="n">23</span></a><a>Moderación<span class="n">9</span></a>
+    <div class="sec">COMUNIDAD</div><a>Organizaciones<span class="n">4</span></a><a>Eventos</a><a>Grupos</a>
+    <div class="sec">NEGOCIO</div><a>Suscripciones</a><a>Reportes</a>
+    <div class="sec">SISTEMA</div><a class="on">Configuración</a><a>Roles y auditoría</a>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Configuración · Afinidad de fe y límites</div><button class="btn sm">Guardar cambios</button></div>
+    <div class="body">
+      <div class="two">
+        <div class="panel">
+          <div class="h h3">Pesos del puntaje de afinidad <span class="small">(deben sumar 100)</span></div>
+          <div class="slider"><label>Denominación</label><div class="tr"><i style="width:25%"></i><b style="left:25%"></b></div><span class="val">25%</span></div>
+          <div class="slider"><label>Intención</label><div class="tr"><i style="width:25%"></i><b style="left:25%"></b></div><span class="val">25%</span></div>
+          <div class="slider"><label>Prácticas y valores</label><div class="tr"><i style="width:30%"></i><b style="left:30%"></b></div><span class="val">30%</span></div>
+          <div class="slider"><label>Cercanía</label><div class="tr"><i style="width:10%"></i><b style="left:10%"></b></div><span class="val">10%</span></div>
+          <div class="slider"><label>Edad</label><div class="tr"><i style="width:10%"></i><b style="left:10%"></b></div><span class="val">10%</span></div>
+          <div class="row between" style="margin-top:10px"><span class="txt">Bono de posición para nivel 3</span><span class="chip">+5</span></div>
+          <div class="h h3" style="margin-top:18px">Matriz de afinidad entre denominaciones</div>
+          <table>
+            <tr><th></th><th>Evangélica</th><th>Bautista</th><th>Pentecostal</th><th>Adventista</th><th>Católica</th></tr>
+            <tr><td><b>Evangélica</b></td><td>100</td><td>80</td><td>75</td><td>50</td><td>40</td></tr>
+            <tr><td><b>Bautista</b></td><td>80</td><td>100</td><td>65</td><td>50</td><td>40</td></tr>
+            <tr><td><b>Pentecostal</b></td><td>75</td><td>65</td><td>100</td><td>45</td><td>35</td></tr>
+          </table>
+          <div class="small" style="margin-top:6px">Valores editables. La matriz es neutral y se ajusta con retroalimentación de las iglesias aliadas.</div>
+        </div>
+        <div class="panel">
+          <div class="h h3">Límites e intencionalidad</div>
+          <div class="list-row txt"><span>Intereses diarios (gratuito / Plus / Oro)</span><span class="chip" style="margin-left:auto">8 / ∞ / ∞</span></div>
+          <div class="list-row txt"><span>Rango de edad por defecto · amplitud mínima</span><span class="chip" style="margin-left:auto">−5 / +7 · 3 años</span></div>
+          <div class="list-row txt"><span>Deshacer "Pasar" por día (Oro)</span><span class="chip" style="margin-left:auto">5</span></div>
+          <div class="list-row txt"><span>Perfiles sugeridos por día (gratuito · Oro)</span><span class="chip" style="margin-left:auto">30 · 60</span></div>
+          <div class="list-row txt"><span>Completitud mínima para aparecer</span><span class="chip" style="margin-left:auto">60%</span></div>
+          <div class="list-row txt"><span>Días ocultos tras "Pasar"</span><span class="chip" style="margin-left:auto">30</span></div>
+          <div class="list-row txt"><span>Inactividad que oculta el perfil</span><span class="chip" style="margin-left:auto">60 días</span></div>
+          <div class="h h3" style="margin-top:16px">Umbrales de moderación IA</div>
+          <div class="list-row txt"><span>Retener mensaje si riesgo ≥</span><span class="chip wheat" style="margin-left:auto">0.70</span></div>
+          <div class="list-row txt"><span>Rechazar automáticamente si ≥</span><span class="chip wine" style="margin-left:auto">0.92</span></div>
+          <div class="list-row txt"><span>Rechazos en 7 días para advertir</span><span class="chip" style="margin-left:auto">3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Configuración del algoritmo</b>Pesos, matriz de denominaciones, límites y umbrales de IA administrables sin despliegue (RF-ADM-07/08).</div>
+</div>
+
+</div>
+</section>
+
+<!-- ======================================================= CHURCH ======================================================= -->
+<section class="view" id="v-church">
+<div class="note">Portal web para congregaciones y ministerios aprobados. Publican eventos, administran su grupo oficial y emiten códigos de respaldo a sus miembros.</div>
+<div class="grid" style="flex-direction:column">
+
+<div class="shot" style="width:100%">
+<div class="desk">
+  <aside class="side" style="background:var(--olive)">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small style="color:#F3F0C8">PORTAL DE IGLESIAS</small></div></div>
+    <a>Inicio</a><a class="on">Eventos</a><a>Grupo oficial</a><a>Códigos de respaldo</a><a>Métricas</a><a>Usuarios del portal</a>
+    <div style="margin-top:auto;padding:10px;font-size:12px;color:#F3F0C8"><b>Iglesia Monte de Sion</b><br>Evangélica · Aprobada ✓</div>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Nuevo evento</div><div class="row"><button class="btn sm ghost">Guardar borrador</button><button class="btn sm olive">Enviar a revisión</button></div></div>
+    <div class="body">
+      <div class="two">
+        <div class="panel">
+          <div class="small" style="margin-bottom:4px">TÍTULO</div><div class="field" style="color:var(--text)">Noche de adoración de jóvenes adultos</div>
+          <div class="row" style="gap:10px"><div style="flex:1"><div class="small" style="margin-bottom:4px">TIPO</div><div class="field" style="color:var(--text)">Vigilia ▾</div></div><div style="flex:1"><div class="small" style="margin-bottom:4px">COSTO</div><div class="field" style="color:var(--text)">Gratis</div></div></div>
+          <div class="row" style="gap:10px"><div style="flex:1"><div class="small" style="margin-bottom:4px">INICIO</div><div class="field" style="color:var(--text)">Vie 4 sep 2026 · 8:00 pm</div></div><div style="flex:1"><div class="small" style="margin-bottom:4px">FIN</div><div class="field" style="color:var(--text)">11:00 pm</div></div></div>
+          <div class="small" style="margin-bottom:4px">LUGAR</div><div class="field" style="color:var(--text)">Av. San Vicente de Paúl 45, Santo Domingo Este</div>
+          <div class="map" style="height:110px"><div class="pin olive" style="left:200px;top:40px"></div></div>
+          <div class="small" style="margin-bottom:4px">DESCRIPCIÓN</div><div class="field" style="height:70px">Una noche de alabanza dirigida por el ministerio de jóvenes adultos. Trae a un amigo…</div>
+        </div>
+        <div class="panel">
+          <div class="h h3">Vista previa en la app</div>
+          <div class="card" style="padding:0;overflow:hidden"><div class="photo" style="height:80px;border-radius:0;background:linear-gradient(160deg,#7B2D4B,#22315C)"></div><div style="padding:12px"><div class="row between"><span class="chip wine">Vigilia</span><span class="small">Vie 4 sep · 8:00 pm</span></div><b class="txt" style="display:block;margin-top:4px">Noche de adoración de jóvenes adultos</b><div class="small">Iglesia Monte de Sion · Santo Domingo Este</div></div></div>
+          <div class="h h3" style="margin-top:14px">Estado</div>
+          <div class="list-row txt"><span class="chip">Borrador</span><span class="small">Los eventos se publican tras la revisión del equipo de Yugo (normalmente en menos de 24 h).</span></div>
+          <div class="h h3" style="margin-top:14px">Check-in</div>
+          <div class="small">Al publicarse, recibirás un código QR para registrar asistencia en la entrada.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Crear evento</b>Formulario con vista previa fiel a la app y flujo de revisión (RF-IGL-03, RF-EVE-01/02).</div>
+</div>
+
+<div class="shot" style="width:100%">
+<div class="desk" style="height:520px">
+  <aside class="side" style="background:var(--olive)">
+    <div class="b"><svg style="width:26px;height:26px;color:#fff"><use href="#yugo"/></svg><div>Yugo<small style="color:#F3F0C8">PORTAL DE IGLESIAS</small></div></div>
+    <a>Inicio</a><a>Eventos</a><a>Grupo oficial</a><a class="on">Códigos de respaldo</a><a>Métricas</a><a>Usuarios del portal</a>
+  </aside>
+  <div class="main">
+    <div class="bar-top"><div class="h">Códigos de respaldo</div><button class="btn sm olive">Generar 25 códigos</button></div>
+    <div class="body">
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="l">Miembros respaldados</div><div class="v">184</div></div>
+        <div class="kpi"><div class="l">Códigos vigentes sin usar</div><div class="v">37</div><div class="small">Vencen a los 30 días</div></div>
+        <div class="kpi"><div class="l">Solicitudes de líder pendientes</div><div class="v">3</div></div>
+      </div>
+      <div class="two">
+        <div class="panel"><div class="h h3">Solicitudes de respaldo</div>
+          <div class="list-row"><div class="av s a5">P</div><div style="flex:1"><b class="txt">Priscila Méndez</b><div class="small">Dice asistir desde 2021 · Pide respaldo de Pastor Luis</div></div><button class="btn sm olive">Confirmar</button><button class="btn sm ghost">No la conozco</button></div>
+          <div class="list-row"><div class="av s a6">R</div><div style="flex:1"><b class="txt">Raúl Féliz</b><div class="small">Dice asistir desde 2024</div></div><button class="btn sm olive">Confirmar</button><button class="btn sm ghost">No lo conozco</button></div>
+        </div>
+        <div class="panel"><div class="h h3">Cómo funciona</div><p class="txt">Entrega un código a cada miembro soltero que quiera usar Yugo. Al ingresarlo, su perfil muestra la insignia <span class="badge"><svg><use href="#check"/></svg>Respaldado por Iglesia Monte de Sion</span>. Los códigos son de un solo uso y puedes revocar un respaldo en cualquier momento. El portal nunca muestra la actividad de citas de tus miembros.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>Códigos de respaldo</b>Verificación nivel 3 en manos de la iglesia, con privacidad para el miembro (RF-IGL-05, RF-VER-02/03).</div>
+</div>
+
+</div>
+</section>
+
+<script>
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('section.view').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');document.getElementById('v-'+b.dataset.v).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+name: yugo
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: yugo-postgres
+    environment:
+      POSTGRES_USER: yugo
+      POSTGRES_PASSWORD: yugo
+      POSTGRES_DB: yugo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yugo -d yugo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: yugo-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: yugo-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: yugo
+      MINIO_ROOT_PASSWORD: yugo-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  createbucket:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 yugo yugo-secret;
+      mc mb --ignore-existing local/yugo-media;
+      exit 0"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: yugo-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
+  miniodata:

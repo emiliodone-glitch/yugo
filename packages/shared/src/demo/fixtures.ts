@@ -1,0 +1,660 @@
+/**
+ * Demo fixtures used when the frontends run in demo mode
+ * (NEXT_PUBLIC_DEMO_MODE / EXPO_PUBLIC_DEMO_MODE) so the whole UI can be
+ * exercised without the API. People and churches are fictional; the data
+ * mirrors the reference mockups.
+ */
+import type {
+  AffinityBreakdown,
+  ConnectionSummary,
+  ChatMessage,
+  DailySummary,
+  EventSummary,
+  GroupActivitySummary,
+  GroupPost,
+  GroupSummary,
+  NotificationItem,
+  ProfileCard,
+  SubscriptionState,
+} from '../types/domain';
+
+export interface DemoCurrentUser {
+  userId: string;
+  displayName: string;
+  age: number;
+  city: string;
+  occupation: string;
+  denomination: string;
+  intention: 'MARRIAGE' | 'FRIENDSHIP' | 'BOTH';
+  completeness: number;
+  completenessNext: { field: string; targetPct: number };
+  verification: { contact: boolean; identityApprovedAt?: string; endorsedBy?: string };
+  ageMin: number;
+  ageMax: number;
+  maxDistanceKm: number;
+  subscription: SubscriptionState;
+}
+
+export const demoCurrentUser: DemoCurrentUser = {
+  userId: 'u-emilio',
+  displayName: 'Emilio',
+  age: 34,
+  city: 'Santo Domingo',
+  occupation: 'QA Analyst',
+  denomination: 'Bautista',
+  intention: 'MARRIAGE',
+  completeness: 82,
+  completenessNext: { field: 'tu versículo favorito', targetPct: 90 },
+  verification: { contact: true, identityApprovedAt: '2026-08-12' },
+  ageMin: 26,
+  ageMax: 38,
+  maxDistanceKm: 50,
+  subscription: {
+    tier: 'ORO',
+    plan: 'ANNUAL',
+    status: 'ACTIVE',
+    renewsAt: '2027-03-30',
+    invisibleMode: true,
+    travelMode: { city: 'Nueva York, EE. UU.', activeUntil: '2026-09-15' },
+  },
+};
+
+const affinity = (
+  total: number,
+  d: number,
+  i: number,
+  p: number,
+  c: number,
+  a: number,
+  notes: Partial<Record<'denomination' | 'intention' | 'practices', string>> = {},
+): AffinityBreakdown => ({
+  total,
+  components: [
+    { key: 'denomination', score: d, note: notes.denomination },
+    { key: 'intention', score: i, note: notes.intention },
+    { key: 'practices', score: p, note: notes.practices },
+    { key: 'distance', score: c },
+    { key: 'age', score: a },
+  ],
+});
+
+export const demoDiscover: ProfileCard[] = [
+  {
+    userId: 'u-mariel',
+    displayName: 'Mariel',
+    age: 28,
+    gender: 'FEMALE',
+    city: 'Santo Domingo',
+    distanceKm: 6,
+    occupation: 'Contadora',
+    denomination: 'Evangélica',
+    churchName: 'Iglesia Bíblica Emanuel',
+    intention: 'MARRIAGE',
+    testimony:
+      '"Sirvo en el ministerio de niños desde hace 4 años. Me gusta cocinar para mucha gente y estoy leyendo Rut por tercera vez."',
+    verse: 'Rut 1:16',
+    practices: ['Estudio bíblico', 'Servicio social', 'Niños'],
+    affinity: affinity(86, 80, 100, 85, 88, 100, {
+      denomination: 'Evangélica y Bautista: denominaciones afines',
+      intention: 'Ambos buscan relación con propósito de matrimonio',
+      practices: 'Coinciden en servicio, estudio bíblico y asistencia semanal',
+    }),
+    badges: { contact: true, identity: true, endorsedBy: 'Iglesia Bíblica Emanuel' },
+    inCommon: ['Estudio bíblico', 'Servicio social', 'Cada semana', 'Sin hijos'],
+  },
+  {
+    userId: 'u-daniela',
+    displayName: 'Daniela',
+    age: 31,
+    gender: 'FEMALE',
+    city: 'Santo Domingo',
+    distanceKm: 12,
+    occupation: 'Enfermera',
+    denomination: 'Pentecostal',
+    churchName: 'Iglesia de Dios Getsemaní',
+    intention: 'MARRIAGE',
+    testimony:
+      '"Dios me sostuvo en los turnos más duros del hospital. Canto en el coro y amo los retiros de montaña."',
+    practices: ['Alabanza', 'Oración', 'Intercesión'],
+    affinity: affinity(74, 65, 100, 62, 76, 100, {
+      denomination: 'Pentecostal y Bautista: afinidad media',
+      intention: 'Ambos buscan relación con propósito de matrimonio',
+      practices: 'Coinciden en oración constante',
+    }),
+    badges: { contact: true, identity: true },
+    inCommon: ['Oración', 'Cada semana'],
+  },
+  {
+    userId: 'u-sarah',
+    displayName: 'Sarah',
+    age: 26,
+    gender: 'FEMALE',
+    city: 'Santo Domingo Este',
+    distanceKm: 9,
+    occupation: 'Diseñadora gráfica',
+    denomination: 'Bautista',
+    churchName: 'Iglesia Bautista Quisqueya',
+    intention: 'BOTH',
+    testimony:
+      '"Crecí en la iglesia, pero mi fe se hizo propia a los 22. Diseño los medios de mi congregación y colecciono Biblias antiguas."',
+    practices: ['Medios y sonido', 'Estudio bíblico', 'Jóvenes'],
+    affinity: affinity(69, 100, 70, 55, 82, 100, {
+      denomination: 'Comparten la misma denominación',
+      practices: 'Coinciden en estudio bíblico y medios',
+    }),
+    badges: { contact: true, identity: true },
+    inCommon: ['Estudio bíblico', 'Medios y sonido'],
+  },
+  {
+    userId: 'u-priscila',
+    displayName: 'Priscila',
+    age: 29,
+    gender: 'FEMALE',
+    city: 'Santo Domingo Este',
+    distanceKm: 4,
+    occupation: 'Maestra',
+    denomination: 'Evangélica',
+    churchName: 'Iglesia Monte de Sion',
+    intention: 'MARRIAGE',
+    testimony:
+      '"Doy clases a primaria y sirvo con los adolescentes. Creo que la fidelidad de Dios se ve en lo pequeño de cada día."',
+    practices: ['Jóvenes', 'Oración', 'Servicio social'],
+    affinity: affinity(78, 80, 100, 66, 92, 100, {
+      denomination: 'Evangélica y Bautista: denominaciones afines',
+      intention: 'Ambos buscan relación con propósito de matrimonio',
+    }),
+    badges: { contact: true, identity: true, endorsedBy: 'Iglesia Monte de Sion' },
+    inCommon: ['Oración', 'Servicio social'],
+  },
+  {
+    userId: 'u-ana',
+    displayName: 'Ana Lucía',
+    age: 33,
+    gender: 'FEMALE',
+    city: 'Santiago',
+    distanceKm: 28,
+    occupation: 'Abogada',
+    denomination: 'Metodista',
+    churchName: 'Iglesia Metodista Central',
+    intention: 'BOTH',
+    testimony:
+      '"Sirvo en el ministerio de intercesión. Después de años enfocada en mi carrera, quiero construir algo con propósito."',
+    practices: ['Intercesión', 'Estudio bíblico'],
+    affinity: affinity(64, 70, 70, 48, 44, 100),
+    badges: { contact: true, identity: true },
+    inCommon: ['Estudio bíblico'],
+  },
+];
+
+export const demoDailySummary: DailySummary = {
+  interestsUsedToday: 3,
+  interestsLimit: 8,
+  newConnections: 2,
+  whoMarkedInterestCount: 7,
+  discoverRemaining: 18,
+  discoverTotal: 30,
+};
+
+export const demoConnections: ConnectionSummary[] = [
+  {
+    matchId: 'm-mariel',
+    otherUser: {
+      userId: 'u-mariel',
+      displayName: 'Mariel',
+      badges: { contact: true, identity: true, endorsedBy: 'Iglesia Bíblica Emanuel' },
+      churchName: 'Iglesia Bíblica Emanuel',
+    },
+    isNew: true,
+    unreadCount: 0,
+  },
+  {
+    matchId: 'm-priscila',
+    otherUser: {
+      userId: 'u-priscila',
+      displayName: 'Priscila',
+      badges: { contact: true, identity: true, endorsedBy: 'Iglesia Monte de Sion' },
+      churchName: 'Iglesia Monte de Sion',
+    },
+    isNew: true,
+    unreadCount: 0,
+  },
+  {
+    matchId: 'm-daniela',
+    otherUser: {
+      userId: 'u-daniela',
+      displayName: 'Daniela',
+      badges: { contact: true, identity: true },
+      churchName: 'Iglesia de Dios Getsemaní',
+    },
+    isNew: false,
+    lastMessage: {
+      body: '¡Sí! Voy a la vigilia del viernes, ¿nos vemos allá?',
+      sentAt: '2026-08-29T10:12:00-04:00',
+      mine: false,
+    },
+    unreadCount: 1,
+  },
+  {
+    matchId: 'm-sarah',
+    otherUser: {
+      userId: 'u-sarah',
+      displayName: 'Sarah',
+      badges: { contact: true, identity: true },
+      churchName: 'Iglesia Bautista Quisqueya',
+    },
+    isNew: false,
+    lastMessage: {
+      body: 'Me encantó lo que dijiste sobre Rut 1:16',
+      sentAt: '2026-08-28T21:40:00-04:00',
+      mine: true,
+    },
+    unreadCount: 0,
+  },
+  {
+    matchId: 'm-ana',
+    otherUser: {
+      userId: 'u-ana',
+      displayName: 'Ana Lucía',
+      badges: { contact: true, identity: true },
+      churchName: 'Iglesia Metodista Central',
+    },
+    isNew: false,
+    lastMessage: {
+      body: 'Gracias por orar por mi papá 🙏',
+      sentAt: '2026-08-25T18:03:00-04:00',
+      mine: false,
+    },
+    unreadCount: 0,
+  },
+];
+
+export const demoIcebreakers: Record<string, string[]> = {
+  'm-mariel': [
+    'Vi que sirves con niños, ¿cómo llegaste ahí?',
+    '¿Qué es lo que más te ha hablado de Rut esta vez?',
+    '¿Cuál es tu plato estrella para mucha gente?',
+  ],
+  'm-priscila': [
+    '¿Qué es lo que más disfrutas de servir con adolescentes?',
+    '¿Cómo se ve "la fidelidad de Dios en lo pequeño" en tu semana?',
+    '¿Qué grado das en primaria?',
+  ],
+};
+
+export const demoMessages: Record<string, ChatMessage[]> = {
+  'm-mariel': [
+    {
+      id: 'msg-1',
+      conversationId: 'm-mariel',
+      senderId: 'u-emilio',
+      body: 'Vi que sirves con niños, ¿cómo llegaste ahí?',
+      moderationStatus: 'APPROVED',
+      sentAt: '2026-08-29T09:44:00-04:00',
+      deliveredAt: '2026-08-29T09:44:01-04:00',
+      readAt: '2026-08-29T09:50:00-04:00',
+    },
+    {
+      id: 'msg-2',
+      conversationId: 'm-mariel',
+      senderId: 'u-mariel',
+      body: 'Jaja empecé cubriendo a una amiga un domingo y me quedé. Ya son 4 años. ¿Y tú en qué sirves?',
+      moderationStatus: 'APPROVED',
+      sentAt: '2026-08-29T09:52:00-04:00',
+      deliveredAt: '2026-08-29T09:52:01-04:00',
+      readAt: '2026-08-29T09:53:00-04:00',
+    },
+    {
+      id: 'msg-3',
+      conversationId: 'm-mariel',
+      senderId: 'u-emilio',
+      body: 'Medios y sonido. Nada de niños, me ganan siempre 😅',
+      moderationStatus: 'APPROVED',
+      sentAt: '2026-08-29T09:55:00-04:00',
+      deliveredAt: '2026-08-29T09:55:01-04:00',
+    },
+  ],
+  'm-daniela': [
+    {
+      id: 'msg-d1',
+      conversationId: 'm-daniela',
+      senderId: 'u-emilio',
+      body: '¿Vas a la vigilia de Monte de Sion este viernes?',
+      moderationStatus: 'APPROVED',
+      sentAt: '2026-08-29T10:05:00-04:00',
+      deliveredAt: '2026-08-29T10:05:01-04:00',
+      readAt: '2026-08-29T10:10:00-04:00',
+    },
+    {
+      id: 'msg-d2',
+      conversationId: 'm-daniela',
+      senderId: 'u-daniela',
+      body: '¡Sí! Voy a la vigilia del viernes, ¿nos vemos allá?',
+      moderationStatus: 'APPROVED',
+      sentAt: '2026-08-29T10:12:00-04:00',
+      deliveredAt: '2026-08-29T10:12:01-04:00',
+    },
+  ],
+};
+
+export const demoEvents: EventSummary[] = [
+  {
+    id: 'ev-vigilia',
+    title: 'Noche de adoración de jóvenes adultos',
+    type: 'VIGILIA',
+    typeName: 'Vigilia',
+    startsAt: '2026-09-04T20:00:00-04:00',
+    endsAt: '2026-09-04T23:00:00-04:00',
+    churchName: 'Iglesia Monte de Sion',
+    city: 'Santo Domingo Este',
+    address: 'Av. San Vicente de Paúl 45, Santo Domingo Este',
+    distanceKm: 4,
+    costLabel: 'Gratis',
+    goingCount: 87,
+    interestedCount: 41,
+    myStatus: 'GOING',
+    connectionsGoing: [
+      { userId: 'u-mariel', displayName: 'Mariel' },
+      { userId: 'u-daniela', displayName: 'Daniela' },
+      { userId: 'u-priscila', displayName: 'Priscila' },
+    ],
+    lat: 18.4885,
+    lng: -69.8571,
+  },
+  {
+    id: 'ev-congreso',
+    title: 'Congreso de solteros con propósito',
+    type: 'CONGRESO',
+    typeName: 'Congreso',
+    startsAt: '2026-09-05T09:00:00-04:00',
+    churchName: 'Centro Cristiano Vida Nueva',
+    city: 'Santiago',
+    distanceKm: 148,
+    costLabel: 'RD$500',
+    goingCount: 96,
+    interestedCount: 212,
+    connectionsGoing: [],
+    lat: 19.4517,
+    lng: -70.6970,
+  },
+  {
+    id: 'ev-desayuno',
+    title: 'Desayuno solidario en Villa Altagracia',
+    type: 'SERVICIO_COMUNITARIO',
+    typeName: 'Servicio',
+    startsAt: '2026-09-06T07:00:00-04:00',
+    churchName: 'Ministerio Manos Abiertas',
+    city: 'Villa Altagracia',
+    distanceKm: 32,
+    costLabel: 'Gratis',
+    goingCount: 24,
+    interestedCount: 12,
+    connectionsGoing: [],
+    lat: 18.6702,
+    lng: -70.1694,
+  },
+  {
+    id: 'ev-retiro',
+    title: 'Retiro de jóvenes en Jarabacoa',
+    type: 'RETIRO',
+    typeName: 'Retiro',
+    startsAt: '2026-09-18T16:00:00-04:00',
+    endsAt: '2026-09-20T14:00:00-04:00',
+    churchName: 'Iglesia Bautista Quisqueya',
+    city: 'Jarabacoa',
+    distanceKm: 96,
+    costLabel: 'RD$2,500',
+    goingCount: 42,
+    interestedCount: 63,
+    connectionsGoing: [{ userId: 'u-sarah', displayName: 'Sarah' }],
+    lat: 19.1183,
+    lng: -70.6367,
+  },
+  {
+    id: 'ev-concierto',
+    title: 'Concierto de adoración: Un solo corazón',
+    type: 'CONCIERTO',
+    typeName: 'Concierto',
+    startsAt: '2026-09-12T19:00:00-04:00',
+    churchName: 'Iglesia Bíblica Emanuel',
+    city: 'Santo Domingo',
+    distanceKm: 7,
+    costLabel: 'RD$300',
+    goingCount: 154,
+    interestedCount: 89,
+    connectionsGoing: [{ userId: 'u-mariel', displayName: 'Mariel' }],
+    lat: 18.4720,
+    lng: -69.9120,
+  },
+];
+
+export const demoGroups: GroupSummary[] = [
+  {
+    id: 'g-ja-sde',
+    name: 'Jóvenes adultos SDE',
+    category: 'Jóvenes adultos',
+    type: 'OFFICIAL',
+    city: 'Santo Domingo Este',
+    memberCount: 142,
+    postsToday: 3,
+    isOfficial: true,
+    churchName: 'Iglesia Monte de Sion',
+    joined: true,
+  },
+  {
+    id: 'g-misiones',
+    name: 'Misiones y servicio social',
+    category: 'Misiones',
+    type: 'OPEN',
+    city: 'Santo Domingo',
+    memberCount: 89,
+    isOfficial: false,
+    joined: true,
+  },
+  {
+    id: 'g-alabanza',
+    name: 'Alabanza y músicos',
+    category: 'Alabanza',
+    type: 'APPROVAL',
+    city: 'Santo Domingo',
+    memberCount: 213,
+    isOfficial: false,
+    joined: false,
+  },
+  {
+    id: 'g-profesionales',
+    name: 'Profesionales con propósito',
+    category: 'Profesionales',
+    type: 'OPEN',
+    city: 'Distrito Nacional',
+    memberCount: 67,
+    isOfficial: false,
+    joined: false,
+  },
+];
+
+export const demoPosts: GroupPost[] = [
+  {
+    id: 'p-1',
+    groupId: 'g-ja-sde',
+    author: { userId: 'u-priscila', displayName: 'Priscila' },
+    body: 'Petición: mi mamá entra a cirugía el martes. Les agradezco sus oraciones 🙏',
+    isPrayerRequest: true,
+    prayingCount: 38,
+    amenCount: 12,
+    likeCount: 0,
+    createdAt: '2026-08-29T08:00:00-04:00',
+  },
+  {
+    id: 'p-2',
+    groupId: 'g-ja-sde',
+    author: { userId: 'u-sarah', displayName: 'Sarah' },
+    body: 'Ya está el arte para la vigilia del viernes. ¡Compartan con sus conocidos!',
+    isPrayerRequest: false,
+    prayingCount: 0,
+    amenCount: 6,
+    likeCount: 14,
+    createdAt: '2026-08-29T11:20:00-04:00',
+  },
+];
+
+export const demoActivities: GroupActivitySummary[] = [
+  {
+    id: 'a-1',
+    groupId: 'g-misiones',
+    title: 'Jornada de limpieza en Los Cacaos',
+    startsAt: '2026-09-12T08:00:00-04:00',
+    place: 'Los Cacaos, San Cristóbal',
+    goingCount: 24,
+  },
+];
+
+export const demoNotifications: NotificationItem[] = [
+  {
+    id: 'n-1',
+    category: 'CONNECTION',
+    title: 'Nueva conexión',
+    body: 'Tú y Mariel se marcaron interés. ¡Ya pueden conversar!',
+    createdAt: '2026-08-29T09:40:00-04:00',
+  },
+  {
+    id: 'n-2',
+    category: 'MESSAGE',
+    title: 'Mensaje de Daniela',
+    body: '¡Sí! Voy a la vigilia del viernes, ¿nos vemos allá?',
+    createdAt: '2026-08-29T10:12:00-04:00',
+  },
+  {
+    id: 'n-3',
+    category: 'EVENT',
+    title: 'Recordatorio de evento',
+    body: 'Noche de adoración de jóvenes adultos es mañana a las 8:00 pm.',
+    createdAt: '2026-09-03T20:00:00-04:00',
+    readAt: '2026-09-03T21:00:00-04:00',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Admin panel demo data
+// ---------------------------------------------------------------------------
+
+export const demoAdminKpis = {
+  activeMembers30d: 4812,
+  activeMembersDelta: '▲ 12% vs. mes anterior',
+  connectionsCreated: 1207,
+  connectionsDelta: '▲ 8%',
+  verifiedLevel2Pct: 53,
+  verifiedDelta: '▲ 4 pts',
+  plusRevenueDop: 312450,
+  revenueDelta: '▲ 19%',
+  weekly: [40, 52, 48, 63, 70, 66, 82, 90],
+  weeklyPlus: [14, 18, 22, 30],
+};
+
+export interface DemoModerationRow {
+  id: string;
+  priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+  type: string;
+  reported: string;
+  reason: string;
+  evidence: string;
+  ageLabel: string;
+}
+
+export const demoModerationQueue: DemoModerationRow[] = [
+  {
+    id: 'mod-1',
+    priority: 'CRITICAL',
+    type: 'Perfil',
+    reported: '@j.rodriguez_21',
+    reason: 'Posible menor de edad',
+    evidence: '3 fotos',
+    ageLabel: '2 h',
+  },
+  {
+    id: 'mod-2',
+    priority: 'CRITICAL',
+    type: 'Mensaje',
+    reported: '@carlos.mv',
+    reason: 'Acoso',
+    evidence: 'Historial (14 msg)',
+    ageLabel: '5 h',
+  },
+  {
+    id: 'mod-3',
+    priority: 'HIGH',
+    type: 'Mensaje',
+    reported: '@inversor_fe',
+    reason: 'Sospecha de estafa · pidió dinero',
+    evidence: 'Historial (6 msg) · IA 0.92',
+    ageLabel: '9 h',
+  },
+  {
+    id: 'mod-4',
+    priority: 'HIGH',
+    type: 'Perfil',
+    reported: '@mari.santos',
+    reason: 'Identidad falsa',
+    evidence: 'Comparación selfie',
+    ageLabel: '11 h',
+  },
+  {
+    id: 'mod-5',
+    priority: 'NORMAL',
+    type: 'Publicación',
+    reported: 'Grupo Alabanza y músicos',
+    reason: 'Contenido comercial',
+    evidence: '1 imagen',
+    ageLabel: '1 d',
+  },
+  {
+    id: 'mod-6',
+    priority: 'NORMAL',
+    type: 'Perfil',
+    reported: '@pedro_98',
+    reason: 'Perfil engañoso (no cristiano)',
+    evidence: 'Bio',
+    ageLabel: '1 d',
+  },
+];
+
+export const demoVerificationCase = {
+  index: 1,
+  total: 23,
+  memberLabel: 'Mariel Peña · 28 · Santo Domingo',
+  selfieTakenAt: '29 ago 9:02',
+  similarity: 0.91,
+  livenessPassed: true,
+  declaredBirth: '12/03/1998 · 28 años',
+  history: { reports: 0, sanctions: 0, since: '20 ago 2026' },
+};
+
+export const demoAttentionItems = [
+  { priority: 'CRITICAL' as const, text: '2 reportes de "menor de edad" sin asignar' },
+  { priority: 'HIGH' as const, text: '23 verificaciones esperan más de 24 h' },
+  { priority: 'NORMAL' as const, text: '4 iglesias pendientes de aprobación' },
+  { priority: 'NORMAL' as const, text: 'Cola de moderación IA: 41 mensajes retenidos' },
+];
+
+// ---------------------------------------------------------------------------
+// Church portal demo data
+// ---------------------------------------------------------------------------
+
+export const demoChurch = {
+  id: 'ch-monte-sion',
+  name: 'Iglesia Monte de Sion',
+  denomination: 'Evangélica',
+  status: 'APPROVED' as const,
+  endorsedMembers: 184,
+  activeCodes: 37,
+  pendingLeaderRequests: 3,
+  endorsementRequests: [
+    {
+      id: 'er-1',
+      name: 'Priscila Méndez',
+      gender: 'FEMALE' as const,
+      attendsSince: 2021,
+      leader: 'Pastor Luis',
+    },
+    { id: 'er-2', name: 'Raúl Féliz', gender: 'MALE' as const, attendsSince: 2024, leader: null },
+  ],
+};
