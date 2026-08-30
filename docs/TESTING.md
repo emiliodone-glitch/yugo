@@ -36,7 +36,8 @@ pnpm typecheck   # api, web, mobile, packages
 pnpm lint        # 0 errores / 0 warnings
 pnpm build       # dist api + .next + packages
 
-# E2E web/admin/portal — 88 pruebas en móvil y escritorio
+# E2E web/admin/portal — 130 pruebas en móvil y escritorio
+# (incluye 42 de accesibilidad: axe contra WCAG 2.1 AA en 21 superficies)
 pnpm --filter @yugo/web build
 pnpm --filter @yugo/web e2e
 # contra un despliegue: PLAYWRIGHT_BASE_URL=https://staging.yugo.do pnpm --filter @yugo/web e2e

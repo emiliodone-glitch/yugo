@@ -178,6 +178,27 @@ Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
   medianoche, el minuto exacto de cierre y la ventana vacía.
 - Web y móvil editan la ventana y silencian cada categoría por separado contra la API.
 
+### Requisitos no funcionales pendientes (RNF-01, RNF-05, RNF-06)
+- **Accesibilidad (RNF-05)** — se auditaron 21 superficies con axe contra WCAG 2.1 AA y
+  **10 fallaban**, todas por contraste. Correcciones en la paleta, no parches por pantalla:
+  `olive` #7A8450 → #6B7445 (texto blanco encima pasa de 4.0 a 4.99) y `muted` #6C7280 →
+  #63697A (sobre `linen2` pasa de 4.12 a 4.69). Además, el enlace al perfil desde Inicio
+  no tenía nombre accesible, el lateral del portal de iglesias usaba un crema de 4.30 y
+  aclaraba el fondo activo (bajando el contraste en vez de subirlo), y las notificaciones
+  leídas se atenuaban al 70 % — ninguna opacidad conserva AA, así que ahora lo **no leído**
+  se marca con un borde de acento en vez de apagar lo leído. 42 pruebas nuevas (móvil y
+  escritorio) dejan la regla puesta: una regresión de contraste rompe la suite.
+- **i18n (RNF-06)** — el español era el único idioma posible: un objeto `es` exportado
+  directamente. Ahora `packages/shared/src/i18n` tiene registro de locales, `Dictionary`
+  derivado del diccionario de referencia (con las literales de `as const` ensanchadas) y
+  `resolveLocale()` para la lista de idiomas del navegador o del dispositivo. Añadir
+  inglés es escribir un archivo tipado como `Dictionary`: el compilador exige cada clave,
+  incluidas las funciones de interpolación y sus firmas. Ninguna de las 70 pantallas cambia.
+- **Respaldos (RNF-01)** — la retención de 30 días estaba escrita como política pero no
+  existía el script. `infra/scripts/backup-postgres.sh` hace el volcado, **lo verifica con
+  `pg_restore --list` antes de rotar** (si el respaldo de hoy salió mal conserva el
+  histórico en vez de borrarlo) y opcionalmente lo copia fuera del servidor.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de

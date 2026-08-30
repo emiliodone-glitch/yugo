@@ -66,9 +66,11 @@ export default function NotificationsPage() {
             </div>
           ) : (
             notifications.map((notification) => (
+              // Lo no leído se marca con el borde de acento, no atenuando lo
+              // leído: bajar la opacidad rompía el contraste AA del cuerpo.
               <div
                 key={notification.id}
-                className={`card ${notification.readAt ? 'opacity-70' : ''}`}
+                className={`card ${notification.readAt ? '' : 'border-l-[3px] border-l-wheat'}`}
               >
                 <div className="flex items-center justify-between">
                   <span className={`chip ${CATEGORY_TONE[notification.category]}`}>

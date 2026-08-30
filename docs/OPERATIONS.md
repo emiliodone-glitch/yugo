@@ -78,7 +78,19 @@ prioridad alta, no crítica.
 
 ## Respaldos y recuperación
 
-- Respaldo diario de PostgreSQL con retención de 30 días (RNF-01).
+- Respaldo diario de PostgreSQL con retención de 30 días (RNF-01):
+  `infra/scripts/backup-postgres.sh`, pensado para cron o el job programado del
+  proveedor:
+
+  ```cron
+  0 2 * * * /opt/yugo/infra/scripts/backup-postgres.sh >> /var/log/yugo-backup.log 2>&1
+  ```
+
+  Variables: `DATABASE_URL` (obligatoria), `BACKUP_DIR` (por defecto
+  `/var/backups/yugo`), `BACKUP_RETENTION` (30) y `BACKUP_S3_URI` (opcional,
+  copia el volcado fuera del servidor). El script **verifica el volcado con
+  `pg_restore --list` antes de rotar**: si el respaldo de hoy salió mal, sale
+  con error y conserva el histórico en vez de borrarlo.
 - Probar la restauración en staging al menos una vez por trimestre.
 - Los objetos de S3/R2 (fotos, selfies) tienen versionado activado; una
   eliminación accidental se recupera desde la versión anterior.

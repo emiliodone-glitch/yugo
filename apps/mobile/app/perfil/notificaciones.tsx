@@ -71,7 +71,16 @@ export default function NotificationsScreen() {
             </Card>
           ) : (
             notifications.map((notification) => (
-              <Card key={notification.id} style={notification.readAt ? { opacity: 0.7 } : undefined}>
+              // Lo no leído se marca con el borde de acento, no atenuando lo
+              // leído: bajar la opacidad rompe el contraste del cuerpo.
+              <Card
+                key={notification.id}
+                style={
+                  notification.readAt
+                    ? undefined
+                    : { borderLeftWidth: 3, borderLeftColor: colors.wheat }
+                }
+              >
                 <View style={styles.rowBetween}>
                   <Chip
                     label={es.notifications.categories[notification.category]}

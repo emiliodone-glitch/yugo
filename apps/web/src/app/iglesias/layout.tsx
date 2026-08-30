@@ -21,12 +21,12 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex min-h-dvh bg-linen">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[210px] flex-col gap-0.5 bg-olive px-3.5 py-4 text-[#F3F0C8] lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[210px] flex-col gap-0.5 bg-olive px-3.5 py-4 text-[#F7F5E4] lg:flex">
         <Link href="/iglesias" className="flex items-center gap-2.5 px-2 pb-4 text-white">
           <YugoMark className="h-[26px] w-[26px]" />
           <span className="font-display text-xl font-semibold">
             Yugo
-            <small className="block font-sans text-[10px] font-semibold tracking-[0.08em] text-[#F3F0C8]">
+            <small className="block font-sans text-[10px] font-semibold tracking-[0.08em] text-[#F7F5E4]">
               {es.church.portalName}
             </small>
           </span>
@@ -36,7 +36,7 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
             key={item.href}
             href={item.href}
             className={`rounded-[9px] px-2.5 py-2 text-[13px] ${
-              isActive(item.href) ? 'bg-white/15 text-white' : 'hover:text-white'
+              isActive(item.href) ? 'bg-black/15 text-white' : 'hover:text-white'
             }`}
           >
             {item.label}
@@ -52,7 +52,7 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
       <div className="fixed inset-x-0 top-0 z-20 flex items-center gap-2 bg-olive px-4 py-2.5 text-white lg:hidden">
         <YugoMark className="h-6 w-6" />
         <b className="font-display">Yugo</b>
-        <span className="text-[10px] font-semibold tracking-[0.08em] text-[#F3F0C8]">
+        <span className="text-[10px] font-semibold tracking-[0.08em] text-[#F7F5E4]">
           {es.church.portalName}
         </span>
       </div>

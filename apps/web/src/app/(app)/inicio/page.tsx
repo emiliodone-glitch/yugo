@@ -52,7 +52,7 @@ export default function HomePage() {
           <div className="text-xs capitalize text-muted">{today}</div>
           <h1 className="h-display text-[19px]">{es.home.greeting(displayName)}</h1>
         </div>
-        <Link href="/perfil">
+        <Link href="/perfil" aria-label={es.profile.title}>
           <Avatar name={displayName} size="s" />
         </Link>
       </div>

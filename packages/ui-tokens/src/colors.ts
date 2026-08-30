@@ -8,8 +8,9 @@ export const colors = {
   ink: '#22315C',
   /** Deep indigo — sidebars, dark surfaces */
   inkDeep: '#161F3D',
-  /** Olive — positive actions, verification */
-  olive: '#7A8450',
+  /** Olive — positive actions, verification. Dark enough for white text
+   *  on top to clear WCAG AA at body size (4.99:1), which #7A8450 did not. */
+  olive: '#6B7445',
   oliveSoft: '#E9ECDD',
   /** Darker olive for text over oliveSoft (AA contrast) */
   oliveText: '#4E5630',
@@ -27,7 +28,9 @@ export const colors = {
   wineSoft: '#F3E3E9',
   /** Body text */
   text: '#1B1F2A',
-  muted: '#6C7280',
+  /** Secondary text. Clears AA over linen and linen2 alike; the previous
+   *  #6C7280 fell to 4.12:1 over linen2. */
+  muted: '#63697A',
   white: '#FFFFFF',
   /** Muted blue text over indigo surfaces */
   inkMuted: '#C9D0E3',
