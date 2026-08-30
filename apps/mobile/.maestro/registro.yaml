@@ -1,0 +1,49 @@
+# Maestro — flujo crítico: registro con pacto de conducta (RNF-09).
+# Ejecutar con: maestro test apps/mobile/.maestro/registro.yaml
+appId: do.yugo.app
+---
+- launchApp:
+    clearState: true
+
+# Bienvenida
+- assertVisible: "Conoce a alguien que ya ora como tú."
+- assertVisible: "Solo mayores de 18"
+- tapOn: "Crear mi perfil"
+
+# Paso 1 — cuenta
+- assertVisible: "PASO 1 DE 8"
+- tapOn:
+    id: "email"
+    optional: true
+- inputText: "nuevo@yugo.do"
+- tapOn: "Contraseña"
+- inputText: "Yugo.demo1"
+- tapOn: "Continuar"
+
+# Paso 2 — fecha de nacimiento y género
+- assertVisible: "¿Cuándo naciste?"
+- tapOn: "AAAA-MM-DD"
+- inputText: "1992-03-14"
+- tapOn: "Hombre"
+- tapOn: "Continuar"
+
+# Paso 3 — pacto de conducta (RF-AUT-04)
+- assertVisible: "Pacto de conducta"
+- assertVisible: "Soy cristiano y mayor de 18 años; mi perfil dice la verdad sobre mí."
+- assertVisible: "Respeto a quienes pertenecen a otra denominación."
+- tapOn:
+    id: "covenant-switch"
+    optional: true
+- tapOn: "Me comprometo"
+
+# Paso 4 — dimensión de fe
+- assertVisible: "Tu dimensión de fe"
+- tapOn: "Bautista"
+- tapOn: "Cada semana"
+- tapOn: "Continuar"
+
+# Paso 5 — intención y apertura
+- assertVisible: "¿Qué buscas en Yugo?"
+- tapOn: "Relación con propósito de matrimonio"
+- tapOn: "Denominaciones afines"
+- tapOn: "Continuar"

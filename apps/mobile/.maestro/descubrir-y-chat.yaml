@@ -1,0 +1,42 @@
+# Maestro — flujo crítico: interés → conexión → chat moderado (RNF-09).
+appId: do.yugo.app
+---
+- launchApp
+
+# Entrar con una cuenta existente
+- tapOn: "Ya tengo cuenta"
+- assertVisible: "Inicio"
+
+# Descubrir: lista curada con afinidad visible antes de decidir
+- tapOn: "Descubrir"
+- assertVisible: "Descubrir"
+- assertVisible: "Mariel, 28"
+- assertVisible: "Respaldada por su iglesia"
+- assertVisible:
+    text: "Lista de hoy.*"
+
+# Desglose de afinidad (RF-DES-03)
+- tapOn: "Afinidad de fe"
+- assertVisible: "Denominación"
+- assertVisible: "Intención"
+- assertVisible: "Prácticas y valores"
+- assertVisible: "En común"
+- back
+
+# Marcar interés consume el contador diario (RF-DES-05)
+- tapOn: "Me interesa"
+- assertVisible: "Interés enviado ✓"
+
+# Conexiones y chat con rompehielos (RF-CON-04)
+- tapOn: "Conexiones"
+- assertVisible: "NUEVAS"
+- tapOn: "Mariel"
+- assertVisible: "ROMPEHIELOS SUGERIDOS"
+- assertVisible: "Sin fotos ni archivos en el chat. Los mensajes se revisan para mantener el respeto."
+
+# Moderación previa: la solicitud de dinero no se entrega (7.3)
+- tapOn: "Escribe un mensaje…"
+- inputText: "Necesito que me deposites dinero"
+- tapOn: "Enviar"
+- assertVisible:
+    text: ".*Pacto de conducta.*"
