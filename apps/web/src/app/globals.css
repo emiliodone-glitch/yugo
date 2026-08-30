@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-linen text-body font-sans antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-white p-3.5;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-linen-2 px-2.5 py-1 text-[11px] font-medium text-ink;
+  }
+  .chip-olive {
+    @apply bg-olive-soft text-olive-text;
+  }
+  .chip-wheat {
+    @apply bg-wheat-soft text-wheat-text;
+  }
+  .chip-wine {
+    @apply bg-wine-soft text-wine;
+  }
+  .btn {
+    @apply inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-btn border-0 bg-ink px-3.5 py-3.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-olive {
+    @apply bg-olive;
+  }
+  .btn-wheat {
+    @apply bg-wheat text-ink-deep;
+  }
+  .btn-wine {
+    @apply bg-wine;
+  }
+  .btn-ghost {
+    @apply border-[1.5px] border-ink bg-transparent text-ink;
+  }
+  .btn-sm {
+    @apply w-auto rounded-[10px] px-3 py-2 text-xs;
+  }
+  .field {
+    @apply w-full rounded-field border border-line bg-white px-3.5 py-3 text-[13px] text-body placeholder:text-muted focus:border-ink focus:outline-none;
+  }
+  .h-display {
+    @apply font-display font-semibold tracking-[-0.2px] text-ink;
+  }
+  .list-row {
+    @apply flex items-center gap-2.5 border-b border-line py-2 last:border-b-0;
+  }
+  .bar {
+    @apply h-1.5 overflow-hidden rounded-md bg-linen-2;
+  }
+  .bar > i {
+    @apply block h-full rounded-md bg-olive;
+  }
+}

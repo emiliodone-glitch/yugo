@@ -1,0 +1,147 @@
+'use client';
+
+import Link from 'next/link';
+import {
+  demoCurrentUser,
+  demoDailySummary,
+  demoDiscover,
+  demoEvents,
+  es,
+} from '@yugo/shared';
+import { useDemoStore } from '@/lib/demo-store';
+import { Avatar, AffinityRing } from '@/components/ui';
+import { CalendarIcon, PinIcon } from '@/components/icons';
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('es-DO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Santo_Domingo',
+  }).format(date);
+}
+
+function formatEventDay(iso: string): string {
+  return new Intl.DateTimeFormat('es-DO', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Santo_Domingo',
+  }).format(new Date(iso));
+}
+
+export default function HomePage() {
+  const interestsUsed = useDemoStore((s) => s.interestsUsed);
+  const interestsLimit = useDemoStore((s) => s.interestsLimit) ?? demoDailySummary.interestsLimit;
+  const eventStatus = useDemoStore((s) => s.eventStatus);
+  const setEventStatus = useDemoStore((s) => s.setEventStatus);
+
+  const featured = demoEvents[0];
+  const going = eventStatus[featured.id] === 'GOING';
+  const today = formatDate(new Date());
+
+  return (
+    <div className="px-4 pt-3">
+      {/* Greeting */}
+      <div className="flex items-center justify-between pb-2">
+        <div>
+          <div className="text-xs capitalize text-muted">{today}</div>
+          <h1 className="h-display text-[19px]">{es.home.greeting(demoCurrentUser.displayName)}</h1>
+        </div>
+        <Link href="/perfil">
+          <Avatar name={demoCurrentUser.displayName} size="s" />
+        </Link>
+      </div>
+
+      {/* Daily summary */}
+      <div className="card flex items-center justify-between border-0 bg-ink text-white">
+        <div>
+          <div className="text-xs text-ink-muted">{es.home.interestsToday}</div>
+          <div className="font-display text-[30px] font-semibold leading-none">
+            {interestsUsed}
+            <span className="text-sm text-ink-muted2">
+              {' '}
+              / {interestsLimit ?? '∞'}
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-ink-muted">{es.home.newConnections}</div>
+          <div className="font-display text-[30px] font-semibold leading-none text-wheat">
+            {demoDailySummary.newConnections}
+          </div>
+        </div>
+      </div>
+
+      {/* Featured event */}
+      <div className="mb-2 mt-3 flex items-center justify-between">
+        <h2 className="h-display text-[15px]">{es.home.featuredEvents}</h2>
+        <Link href="/eventos" className="text-xs text-muted">
+          {es.common.seeAll}
+        </Link>
+      </div>
+      <div className="card overflow-hidden p-0">
+        <div
+          className="flex h-[92px] items-center justify-center"
+          style={{ background: 'linear-gradient(160deg,#7B2D4B,#22315C)' }}
+        >
+          <CalendarIcon className="h-16 w-16 text-white/45" />
+        </div>
+        <div className="p-3.5">
+          <div className="flex items-center justify-between">
+            <span className="chip chip-wine">{featured.typeName}</span>
+            <span className="text-[11px] capitalize text-muted">{formatEventDay(featured.startsAt)}</span>
+          </div>
+          <h3 className="h-display mt-1.5 text-[15px]">{featured.title}</h3>
+          <div className="flex items-center gap-1 text-xs text-muted">
+            <PinIcon className="h-3 w-3" />
+            {featured.churchName} · {featured.city} · {featured.distanceKm} km
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-xs text-muted">
+              {es.home.connectionsGoing(featured.connectionsGoing.length)}
+            </span>
+            <button
+              type="button"
+              className={`btn btn-sm ${going ? 'chip-olive bg-olive-soft text-olive-text' : 'btn-olive'}`}
+              onClick={() => setEventStatus(featured.id, going ? undefined : 'GOING')}
+            >
+              {going ? es.events.goingMarked : es.home.willAttend}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Suggestions */}
+      <div className="mb-2 mt-3 flex items-center justify-between">
+        <h2 className="h-display text-[15px]">{es.home.suggestionsToday}</h2>
+        <Link href="/descubrir" className="text-xs text-muted">
+          {es.tabs.discover}
+        </Link>
+      </div>
+      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-2">
+        {demoDiscover.slice(0, 4).map((profile) => (
+          <Link
+            key={profile.userId}
+            href={`/descubrir/${profile.userId}`}
+            className="card m-0 min-w-[130px] p-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <Avatar name={profile.displayName} size="s" />
+              <AffinityRing value={profile.affinity.total} size={34} />
+            </div>
+            <div className="h-display mt-2 text-[13px]">
+              {profile.displayName}, {profile.age}
+            </div>
+            <div className="text-[11px] text-muted">
+              {profile.denomination} · {profile.distanceKm} km
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
