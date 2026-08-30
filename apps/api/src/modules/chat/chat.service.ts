@@ -176,6 +176,33 @@ export class ChatService {
     return message;
   }
 
+  /**
+   * RF-CON-10: share an event from the chat so they can attend together. The
+   * invitation is a normal moderated message, so it follows the same rules.
+   */
+  async inviteToEvent(conversationId: string, senderId: string, eventId: string) {
+    await this.assertParticipant(conversationId, senderId);
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { church: { select: { name: true } } },
+    });
+    if (!event || event.status !== 'PUBLISHED') throw new NotFoundException('event_not_available');
+
+    const when = new Intl.DateTimeFormat('es-DO', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Santo_Domingo',
+    }).format(event.startsAt);
+
+    const body = `¿Vamos juntos? "${event.title}" · ${when} · ${event.church.name}`;
+    const message = await this.sendMessage(conversationId, senderId, body);
+    return { message, event: { id: event.id, title: event.title, startsAt: event.startsAt } };
+  }
+
   /** RF-CON-08: end the connection; conversation hidden for both, 90-day cooldown. */
   async disconnect(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({ where: { id: matchId } });
@@ -263,6 +290,54 @@ export class ChatService {
       data: { status: 'ENDED', endedAt: new Date(), endedById: blockerId },
     });
     return { blocked: true };
+  }
+
+  /**
+   * RF-CON-09: connections with no activity for 30 days get one gentle
+   * reminder. Runs daily; the notification itself is the marker, so nobody
+   * gets nudged twice for the same connection.
+   */
+  async remindInactiveConnections() {
+    const cutoff = new Date(Date.now() - 30 * 86400000);
+    const stale = await this.prisma.match.findMany({
+      where: {
+        status: 'ACTIVE',
+        createdAt: { lte: cutoff },
+        conversation: { messages: { none: { sentAt: { gt: cutoff } } } },
+      },
+      include: {
+        userA: { include: { profile: { select: { displayName: true } } } },
+        userB: { include: { profile: { select: { displayName: true } } } },
+      },
+      take: 200,
+    });
+
+    let sent = 0;
+    for (const match of stale) {
+      for (const [user, other] of [
+        [match.userA, match.userB],
+        [match.userB, match.userA],
+      ] as const) {
+        const already = await this.prisma.notification.findFirst({
+          where: {
+            userId: user.id,
+            category: 'CONNECTION',
+            title: 'Conexión sin actividad',
+            data: { path: ['matchId'], equals: match.id },
+          },
+        });
+        if (already) continue;
+        await this.notifications.notify(
+          user.id,
+          'CONNECTION',
+          'Conexión sin actividad',
+          `Hace un mes que no conversas con ${other.profile?.displayName ?? 'tu conexión'}. Un saludo sencillo basta para retomar.`,
+          { matchId: match.id },
+        );
+        sent += 1;
+      }
+    }
+    return { reminded: sent };
   }
 
   /** RF-CON-09 (Plus): archive a conversation. */

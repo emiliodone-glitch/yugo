@@ -4,19 +4,17 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { demoCurrentUser, es, LIMITS } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
+import { useSetInvisibleMode, useSubscriptionState } from '@/lib/hooks';
 import { Toggle } from '@/components/ui';
 import { ChevronLeft } from '@/components/icons';
 
 /** Visibilidad y búsqueda (mockup 12): mutual age rule + Oro controls. */
 export default function VisibilityPage() {
-  const {
-    invisibleMode,
-    setInvisibleMode,
-    travelModeOn,
-    setTravelMode,
-    showOroBadge,
-    setShowOroBadge,
-  } = useDemoStore();
+  const { travelModeOn, setTravelMode, showOroBadge, setShowOroBadge } = useDemoStore();
+  const { data: subscription } = useSubscriptionState();
+  const setInvisible = useSetInvisibleMode();
+  const invisibleMode = subscription?.invisibleMode ?? false;
+  const isOro = subscription?.tier === 'ORO';
   const [ageMin, setAgeMin] = useState(demoCurrentUser.ageMin);
   const [ageMax, setAgeMax] = useState(demoCurrentUser.ageMax);
   const travel = demoCurrentUser.subscription.travelMode;
@@ -83,7 +81,12 @@ export default function VisibilityPage() {
             <b className="text-[12.5px]">{invisibleMode ? es.visibility.invisibleOn : 'Desactivado'}</b>
             <div className="text-[11px] text-muted">{es.visibility.invisibleHelp}</div>
           </div>
-          <Toggle on={invisibleMode} onChange={setInvisibleMode} label={es.visibility.invisibleMode} />
+          <Toggle
+            on={invisibleMode}
+            onChange={(value) => setInvisible.mutate(value)}
+            disabled={!isOro}
+            label={es.visibility.invisibleMode}
+          />
         </div>
         {invisibleMode ? (
           <div className="mt-2.5 flex gap-2">

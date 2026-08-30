@@ -154,6 +154,72 @@ export class EventsService {
     return attendances.length;
   }
 
+  /** RF-EVE-08: iCalendar export so the event lands in the device calendar. */
+  async icsFor(eventId: string): Promise<string> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { church: { select: { name: true } } },
+    });
+    if (!event || event.status !== 'PUBLISHED') throw new NotFoundException();
+
+    const stamp = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const escape = (text: string) =>
+      text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    const endsAt = event.endsAt ?? new Date(event.startsAt.getTime() + 2 * 3600_000);
+
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Yugo//Eventos//ES',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `UID:${event.id}@yugo.do`,
+      `DTSTAMP:${stamp(new Date())}`,
+      `DTSTART:${stamp(event.startsAt)}`,
+      `DTEND:${stamp(endsAt)}`,
+      `SUMMARY:${escape(event.title)}`,
+      `DESCRIPTION:${escape(`${event.description ?? ''}\n\nOrganiza: ${event.church.name}`)}`,
+      `LOCATION:${escape([event.address, event.city].filter(Boolean).join(', '))}`,
+      `URL:${process.env.WEB_URL ?? 'https://yugo.do'}/e/${event.id}`,
+      'BEGIN:VALARM',
+      'TRIGGER:-PT24H',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${escape(event.title)}`,
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+  }
+
+  /** RF-EVE-08: public payload for the shareable link (no member data). */
+  async publicEvent(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { church: { select: { name: true, city: true } }, _count: { select: { attendances: true } } },
+    });
+    if (!event || event.status !== 'PUBLISHED') throw new NotFoundException();
+    return {
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      type: event.type,
+      typeName: this.typeName(event.type),
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      address: event.address,
+      city: event.city,
+      lat: event.lat,
+      lng: event.lng,
+      churchName: event.church.name,
+      costLabel: event.costAmount
+        ? `${event.costCurrency === 'USD' ? 'US$' : 'RD$'}${Number(event.costAmount).toLocaleString('es-DO')}`
+        : 'Gratis',
+      externalUrl: event.externalUrl,
+      interestedCount: event._count.attendances,
+      shareUrl: `${process.env.WEB_URL ?? 'https://yugo.do'}/e/${event.id}`,
+    };
+  }
+
   async featured() {
     return this.prisma.event.findMany({
       where: { status: 'PUBLISHED', featured: true, startsAt: { gt: new Date() } },

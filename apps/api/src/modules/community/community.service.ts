@@ -7,12 +7,14 @@ import {
 import { LIMITS, type CreateGroupInput } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { TextModerationService } from '../moderation/text-moderation.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CommunityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly moderation: TextModerationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async myGroups(userId: string) {
@@ -118,20 +120,94 @@ export class CommunityService {
     });
   }
 
-  async joinGroup(userId: string, groupId: string) {
+  /**
+   * RF-COM-02: open groups join immediately; groups "con aprobación" queue a
+   * request for their admins. Official church groups are open to members too.
+   */
+  async joinGroup(userId: string, groupId: string, message?: string) {
     const group = await this.prisma.group.findUnique({ where: { id: groupId } });
     if (!group || group.status !== 'ACTIVE') throw new NotFoundException();
-    if (group.type === 'APPROVAL') {
-      // Join request modeled as membership pending admin action; simplest MVP:
-      // members join muted until an admin confirms is out of scope — request queue:
-      throw new BadRequestException('requires_admin_approval');
-    }
-    await this.prisma.groupMember.upsert({
+
+    const existing = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
-      update: {},
-      create: { groupId, userId },
     });
-    return { joined: true };
+    if (existing) return { joined: true, pending: false };
+
+    if (group.type === 'APPROVAL') {
+      const request = await this.prisma.groupJoinRequest.upsert({
+        where: { groupId_userId: { groupId, userId } },
+        update: { status: 'PENDING', message, resolvedAt: null },
+        create: { groupId, userId, message },
+      });
+      return { joined: false, pending: true, requestId: request.id };
+    }
+
+    await this.prisma.groupMember.create({ data: { groupId, userId } });
+    return { joined: true, pending: false };
+  }
+
+  /** Pending join requests for the admins of a group (RF-COM-02/07). */
+  async joinRequests(actorId: string, groupId: string) {
+    const membership = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: actorId } },
+    });
+    if (!membership || membership.role === 'MEMBER') throw new ForbiddenException('admin_required');
+
+    const requests = await this.prisma.groupJoinRequest.findMany({
+      where: { groupId, status: 'PENDING' },
+      include: {
+        user: {
+          include: {
+            profile: { select: { displayName: true, city: true } },
+            verifications: { where: { status: 'APPROVED' }, select: { level: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return requests.map((request) => ({
+      id: request.id,
+      userId: request.userId,
+      displayName: request.user.profile?.displayName ?? 'Miembro',
+      city: request.user.profile?.city,
+      verificationLevel: Math.max(1, ...request.user.verifications.map((v) => v.level)),
+      message: request.message,
+      createdAt: request.createdAt,
+    }));
+  }
+
+  async resolveJoinRequest(actorId: string, requestId: string, accept: boolean) {
+    const request = await this.prisma.groupJoinRequest.findUnique({ where: { id: requestId } });
+    if (!request) throw new NotFoundException();
+
+    const membership = await this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: request.groupId, userId: actorId } },
+    });
+    if (!membership || membership.role === 'MEMBER') throw new ForbiddenException('admin_required');
+
+    await this.prisma.groupJoinRequest.update({
+      where: { id: requestId },
+      data: {
+        status: accept ? 'CONFIRMED' : 'DECLINED',
+        resolvedAt: new Date(),
+        resolvedById: actorId,
+      },
+    });
+    if (accept) {
+      await this.prisma.groupMember.upsert({
+        where: { groupId_userId: { groupId: request.groupId, userId: request.userId } },
+        update: {},
+        create: { groupId: request.groupId, userId: request.userId },
+      });
+      await this.notifications.notify(
+        request.userId,
+        'GROUP',
+        'Solicitud aprobada',
+        'Ya eres parte del grupo. ¡Bienvenido!',
+        { groupId: request.groupId },
+      );
+    }
+    return { resolved: true, accepted: accept };
   }
 
   async groupDetail(groupId: string, userId: string) {

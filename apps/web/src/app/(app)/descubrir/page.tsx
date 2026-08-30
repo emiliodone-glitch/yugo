@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { demoDiscover, es, LIMITS } from '@yugo/shared';
-import { useDemoStore } from '@/lib/demo-store';
+import { es, LIMITS } from '@yugo/shared';
+import { useDiscover, useMarkInterest, usePassProfile, useSaveProfile } from '@/lib/hooks';
+import { errorMessage } from '@/lib/api';
 import { AffinityRing, EndorsedBadge, PhotoPlaceholder } from '@/components/ui';
 import { FilterIcon, PersonSilhouette, StarIcon } from '@/components/icons';
 
@@ -16,24 +17,33 @@ const CARD_GRADIENTS = [
 
 export default function DiscoverPage() {
   const router = useRouter();
-  const {
-    interestsUsed,
-    interestsLimit,
-    sentInterests,
-    passedProfiles,
-    markInterest,
-    passProfile,
-    saveProfile,
-    savedProfiles,
-  } = useDemoStore();
+  const { data, isLoading } = useDiscover();
+  const markInterest = useMarkInterest();
+  const passProfile = usePassProfile();
+  const saveProfile = useSaveProfile();
+
   const [showFilters, setShowFilters] = useState(false);
+  const [sent, setSent] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const visible = demoDiscover.filter((p) => !passedProfiles[p.userId]);
-  const remaining = interestsLimit === null ? null : Math.max(0, interestsLimit - interestsUsed);
+  const items = data?.items ?? [];
+  const remaining = data?.limit === null || data?.limit === undefined ? null : Math.max(0, data.limit - data.used);
 
-  const handleInterest = (userId: string) => {
-    const result = markInterest(userId);
-    if (result === 'limit') router.push('/plus');
+  const handleInterest = async (userId: string) => {
+    try {
+      await markInterest.mutateAsync({ userId });
+      setSent((current) => ({ ...current, [userId]: true }));
+      setNotice(null);
+    } catch (error) {
+      // Hitting the daily allowance is the paywall trigger (RF-PLU-06).
+      const message = error instanceof Error ? error.message : '';
+      if (message === 'daily_interests_used' || errorMessage(error) === es.errors.dailyInterestsUsed) {
+        router.push('/plus');
+        return;
+      }
+      setNotice(errorMessage(error));
+    }
   };
 
   return (
@@ -77,11 +87,17 @@ export default function DiscoverPage() {
         </div>
       ) : null}
 
-      {visible.length === 0 ? (
+      {notice ? (
+        <div className="mb-3 rounded-field bg-wine-soft px-3 py-2 text-[12px] text-wine">{notice}</div>
+      ) : null}
+
+      {isLoading ? (
+        <div className="card py-10 text-center text-sm text-muted">{es.common.loading}</div>
+      ) : items.length === 0 ? (
         <div className="card py-10 text-center text-sm text-muted">{es.discover.emptyToday}</div>
       ) : (
-        visible.map((profile, index) => {
-          const sent = sentInterests[profile.userId];
+        items.map((profile, index) => {
+          const alreadySent = sent[profile.userId];
           return (
             <article key={profile.userId} className="card mb-3 overflow-hidden p-0">
               <Link href={`/descubrir/${profile.userId}`} className="block">
@@ -132,28 +148,31 @@ export default function DiscoverPage() {
                   <button
                     type="button"
                     className="btn btn-ghost flex-1"
-                    onClick={() => passProfile(profile.userId)}
+                    onClick={() => passProfile.mutate(profile.userId)}
                   >
                     {es.discover.pass}
                   </button>
                   <button
                     type="button"
-                    disabled={sent}
-                    className={`btn flex-[1.6] ${sent ? 'bg-olive-text' : 'btn-olive'}`}
+                    disabled={alreadySent || markInterest.isPending}
+                    className={`btn flex-[1.6] ${alreadySent ? 'bg-olive-text' : 'btn-olive'}`}
                     onClick={() => handleInterest(profile.userId)}
                   >
-                    {sent ? es.discover.interestSent : es.discover.interested}
+                    {alreadySent ? es.discover.interestSent : es.discover.interested}
                   </button>
                 </div>
                 <button
                   type="button"
                   className="mt-2 flex w-full items-center justify-center gap-1 text-[11px] text-muted"
-                  onClick={() => saveProfile(profile.userId)}
+                  onClick={() => {
+                    saveProfile.mutate(profile.userId);
+                    setSaved((current) => ({ ...current, [profile.userId]: true }));
+                  }}
                 >
                   <StarIcon
-                    className={`h-3 w-3 ${savedProfiles[profile.userId] ? 'text-wheat' : 'text-line'}`}
+                    className={`h-3 w-3 ${saved[profile.userId] ? 'text-wheat' : 'text-line'}`}
                   />
-                  {savedProfiles[profile.userId] ? 'Guardado' : es.discover.saveForLater}
+                  {saved[profile.userId] ? 'Guardado' : es.discover.saveForLater}
                 </button>
               </div>
             </article>
@@ -162,7 +181,7 @@ export default function DiscoverPage() {
       )}
 
       <p className="pb-4 pt-1 text-center text-xs text-muted">
-        {es.discover.listProgress(visible.length, LIMITS.DISCOVER_PER_DAY_FREE)}
+        {es.discover.listProgress(items.length, LIMITS.DISCOVER_PER_DAY_FREE)}
       </p>
     </div>
   );

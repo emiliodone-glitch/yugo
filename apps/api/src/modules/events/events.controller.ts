@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Query } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { z } from 'zod';
 import { EventsService } from './events.service';
-import { CurrentUser, type AuthUser } from '../../common/decorators';
+import { CurrentUser, Public, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const attendanceSchema = z.object({ status: z.enum(['GOING', 'INTERESTED']).nullable() });
@@ -27,6 +27,22 @@ export class EventsController {
   @Get('featured')
   featured() {
     return this.events.featured();
+  }
+
+  /** RF-EVE-08: enlace público compartible, sin datos de miembros. */
+  @Public()
+  @Get(':id/public')
+  publicEvent(@Param('id') id: string) {
+    return this.events.publicEvent(id);
+  }
+
+  /** RF-EVE-08: exportar al calendario del dispositivo (.ics). */
+  @Public()
+  @Get(':id/calendar.ics')
+  @Header('Content-Type', 'text/calendar; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="yugo-evento.ics"')
+  calendar(@Param('id') id: string) {
+    return this.events.icsFor(id);
   }
 
   @Post(':id/attendance')

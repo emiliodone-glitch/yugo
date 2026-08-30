@@ -179,6 +179,92 @@ export class SubscriptionsService {
     return subscription;
   }
 
+  /**
+   * RF-PLU-04: redeem a promotional code — typically a trial granted to an
+   * allied congregation. Creates a TRIAL subscription with no charge; a
+   * member can only use one promo and never while already subscribed.
+   */
+  async redeemPromoCode(userId: string, rawCode: string) {
+    const code = rawCode.trim().toUpperCase();
+    const promo = await this.prisma.promoCode.findUnique({ where: { code } });
+    if (!promo) throw new BadRequestException('invalid_promo_code');
+    if (promo.expiresAt && promo.expiresAt < new Date()) {
+      throw new BadRequestException('promo_code_expired');
+    }
+    if (promo.maxUses !== null && promo.usedCount >= promo.maxUses) {
+      throw new BadRequestException('promo_code_exhausted');
+    }
+
+    const current = await this.activeSubscription(userId);
+    if (current) throw new BadRequestException('already_subscribed');
+
+    const alreadyUsed = await this.prisma.subscription.findFirst({
+      where: { userId, promoCodeId: promo.id },
+    });
+    if (alreadyUsed) throw new BadRequestException('promo_already_used');
+
+    const endsAt = new Date(Date.now() + promo.trialDays * 86400000);
+    const subscription = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.subscription.create({
+        data: {
+          userId,
+          tier: promo.tier,
+          plan: 'MONTHLY',
+          channel: 'PROMO',
+          status: 'TRIAL',
+          startsAt: new Date(),
+          endsAt,
+          promoCodeId: promo.id,
+        },
+      });
+      await tx.promoCode.update({
+        where: { id: promo.id },
+        data: { usedCount: { increment: 1 } },
+      });
+      return created;
+    });
+
+    await this.audit.log({
+      actorId: userId,
+      action: 'PROMO_CODE_REDEEMED',
+      targetType: 'SUBSCRIPTION',
+      targetId: subscription.id,
+      after: { code, tier: promo.tier, trialDays: promo.trialDays },
+    });
+    return { tier: promo.tier, trialDays: promo.trialDays, endsAt };
+  }
+
+  /** Admin side of RF-PLU-04: create and list promotional codes. */
+  async createPromoCode(
+    actorId: string,
+    input: { code: string; tier: PaidTier; trialDays: number; maxUses?: number; expiresAt?: Date },
+  ) {
+    const promo = await this.prisma.promoCode.create({
+      data: {
+        code: input.code.trim().toUpperCase(),
+        tier: input.tier,
+        trialDays: input.trialDays,
+        maxUses: input.maxUses,
+        expiresAt: input.expiresAt,
+      },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'PROMO_CODE_CREATED',
+      targetType: 'PROMO_CODE',
+      targetId: promo.id,
+      after: { code: promo.code, tier: promo.tier, trialDays: promo.trialDays },
+    });
+    return promo;
+  }
+
+  async listPromoCodes() {
+    return this.prisma.promoCode.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { subscriptions: true } } },
+    });
+  }
+
   /** RF-PLU-05: cancel anytime; access continues until period end. */
   async cancel(userId: string) {
     const current = await this.activeSubscription(userId);

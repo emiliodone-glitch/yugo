@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { demoConnections, demoDailySummary, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
+import { useConnections, useSafetyTips, useWhoMarkedMe } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { StarIcon, CheckIcon } from '@/components/icons';
 
@@ -25,8 +26,12 @@ function formatTime(iso: string): string {
 }
 
 export default function ConnectionsPage() {
-  const fresh = demoConnections.filter((c) => c.isNew);
-  const conversations = demoConnections.filter((c) => !c.isNew);
+  const { data: connections = [], isLoading } = useConnections();
+  const { data: whoMarked } = useWhoMarkedMe();
+  const { data: safety } = useSafetyTips();
+
+  const fresh = connections.filter((c) => c.isNew);
+  const conversations = connections.filter((c) => !c.isNew);
 
   return (
     <div className="px-4 pt-3">
@@ -34,9 +39,13 @@ export default function ConnectionsPage() {
         <h1 className="h-display text-[19px]">{es.connections.title}</h1>
         <Link href="/descubrir/te-interesa" className="chip chip-wheat">
           <StarIcon className="h-[11px] w-[11px]" />
-          {es.discover.interestedCount(demoDailySummary.whoMarkedInterestCount)}
+          {es.discover.interestedCount(whoMarked?.count ?? 0)}
         </Link>
       </div>
+
+      {isLoading ? (
+        <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
+      ) : null}
 
       {/* New connections */}
       <div className="mb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">
@@ -90,8 +99,12 @@ export default function ConnectionsPage() {
 
       {/* Safety tips before a first date (RF-SEG-06) */}
       <div className="card mt-3.5 border-0 bg-olive-soft">
-        <div className="text-[12.5px] font-semibold text-olive-text">{es.connections.safetyTitle}</div>
-        <div className="mt-1 text-[11px] text-olive-text">{es.connections.safetyBody}</div>
+        <div className="text-[12.5px] font-semibold text-olive-text">
+          {safety?.firstConnection.title ?? es.connections.safetyTitle}
+        </div>
+        <div className="mt-1 text-[11px] text-olive-text">
+          {safety?.firstConnection.points.slice(0, 3).join(' ') ?? es.connections.safetyBody}
+        </div>
       </div>
     </div>
   );

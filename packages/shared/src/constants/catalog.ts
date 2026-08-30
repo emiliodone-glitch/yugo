@@ -139,6 +139,21 @@ export const COVENANT_V1 = {
 };
 
 /**
+ * Conversation questions (RF-PER-09): short answers that give context for the
+ * icebreakers. Administrable from the panel like the rest of the catalogs.
+ */
+export const CONVERSATION_QUESTIONS: Array<{ key: string; question: string; maxLength: number }> = [
+  { key: 'gratitude', question: 'Lo que más agradezco a Dios este año…', maxLength: 200 },
+  { key: 'sunday', question: 'Un domingo perfecto para mí es…', maxLength: 200 },
+  { key: 'serving', question: 'Sirvo en mi iglesia porque…', maxLength: 200 },
+  { key: 'growth', question: 'En lo que Dios está trabajando en mí ahora…', maxLength: 200 },
+  { key: 'family', question: 'La familia que quiero construir…', maxLength: 200 },
+  { key: 'worship', question: 'La canción que no falta en mi adoración…', maxLength: 120 },
+  { key: 'book', question: 'El libro de la Biblia al que siempre vuelvo…', maxLength: 120 },
+  { key: 'weekend', question: 'Mi plan favorito para un sábado libre…', maxLength: 200 },
+];
+
+/**
  * Safety tips shown when a first connection is created and before a first
  * meeting (RF-SEG-06). Administrable from the panel as versioned content.
  */

@@ -4,6 +4,7 @@ import { PrismaService } from './prisma.service';
 import { CacheService } from './cache.service';
 import { AuditService } from './audit.service';
 import { SettingsService } from './settings.service';
+import { ContentService } from './content.service';
 
 @Global()
 @Module({
@@ -14,7 +15,7 @@ import { SettingsService } from './settings.service';
       signOptions: { expiresIn: process.env.JWT_ACCESS_TTL ?? '900s' },
     }),
   ],
-  providers: [PrismaService, CacheService, AuditService, SettingsService],
-  exports: [PrismaService, CacheService, AuditService, SettingsService],
+  providers: [PrismaService, CacheService, AuditService, SettingsService, ContentService],
+  exports: [PrismaService, CacheService, AuditService, SettingsService, ContentService],
 })
 export class CommonModule {}

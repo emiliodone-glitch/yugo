@@ -2,13 +2,10 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import {
-  demoActivities,
-  demoGroups,
-  demoPosts,
-  es,
-} from '@yugo/shared';
+import { demoActivities, demoPosts } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
+import { useGroups, useJoinGroup } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
 
 type TabValue = 'mine' | 'suggested' | 'prayer';
@@ -29,8 +26,11 @@ export default function CommunityPage() {
   const [tab, setTab] = useState<TabValue>('mine');
   const { praying, amen, togglePraying, toggleAmen, activityJoined, toggleActivity } = useDemoStore();
 
-  const myGroups = demoGroups.filter((g) => g.joined);
-  const suggested = demoGroups.filter((g) => !g.joined);
+  const { data: groups, isLoading } = useGroups();
+  const joinGroup = useJoinGroup();
+
+  const myGroups = groups?.mine ?? [];
+  const suggested = groups?.suggested ?? [];
   const prayerPosts = demoPosts.filter((p) => p.isPrayerRequest);
   const post = demoPosts[0];
   const activity = demoActivities[0];
@@ -56,7 +56,11 @@ export default function CommunityPage() {
         />
       </div>
 
-      {tab === 'mine' ? (
+      {isLoading ? (
+        <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
+      ) : null}
+
+      {tab === 'mine' && myGroups.length >= 2 ? (
         <>
           {/* Official group with prayer request (mockup) */}
           <div className="card p-3">
@@ -149,9 +153,19 @@ export default function CommunityPage() {
                 </div>
               </Link>
               {group.type === 'APPROVAL' ? (
-                <span className="text-[11px] text-muted">{es.community.withApproval}</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => joinGroup.mutate({ groupId: group.id })}
+                >
+                  {es.community.requestJoin}
+                </button>
               ) : (
-                <button type="button" className="btn btn-sm btn-olive">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-olive"
+                  onClick={() => joinGroup.mutate({ groupId: group.id })}
+                >
                   {es.community.join}
                 </button>
               )}

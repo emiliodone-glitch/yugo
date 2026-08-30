@@ -3,12 +3,19 @@
 import Link from 'next/link';
 import { demoCurrentUser, es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
+import { useLogout, useSubscriptionState, useVerificationStatus } from '@/lib/hooks';
 import { Avatar, Toggle } from '@/components/ui';
 import { CheckIcon } from '@/components/icons';
 
 export default function ProfilePage() {
   const { pausedProfile, setPausedProfile } = useDemoStore();
+  const { data: verification } = useVerificationStatus();
+  const { data: subscription } = useSubscriptionState();
+  const logout = useLogout();
   const user = demoCurrentUser;
+
+  const identityApproved = verification?.level2?.status === 'APPROVED';
+  const endorsed = verification?.level3?.status === 'APPROVED';
 
   return (
     <div className="px-4 pt-4">
@@ -61,7 +68,11 @@ export default function ProfilePage() {
           </span>
           <div className="flex-1">
             <b className="text-[12.5px]">{es.profile.verificationIdentity}</b>
-            <div className="text-[11px] text-muted">{es.profile.verificationIdentityDone('12 ago')}</div>
+            <div className="text-[11px] text-muted">
+              {identityApproved
+                ? es.profile.verificationIdentityDone('12 ago')
+                : es.profile.verificationIdentityPending}
+            </div>
           </div>
         </div>
         <div className="list-row">
@@ -72,17 +83,27 @@ export default function ProfilePage() {
             <b className="text-[12.5px]">{es.profile.verificationChurch}</b>
             <div className="text-[11px] text-muted">{es.profile.verificationChurchHint}</div>
           </div>
-          <button type="button" className="btn btn-sm">
-            {es.profile.obtain}
-          </button>
+          <Link href="/perfil/verificacion" className="btn btn-sm">
+            {endorsed ? es.common.see : es.profile.obtain}
+          </Link>
         </div>
       </div>
 
       {/* Plus / Oro card */}
       <Link href="/plus" className="card mt-3 flex items-center justify-between border-0 bg-ink text-white">
         <div>
-          <div className="h-display text-[15px] text-wheat">{es.profile.plusOroCard}</div>
-          <div className="text-[11px] text-ink-muted">{es.profile.plusOroSub}</div>
+          <div className="h-display text-[15px] text-wheat">
+            {subscription?.tier ? `Yugo ${subscription.tier}` : es.profile.plusOroCard}
+          </div>
+          <div className="text-[11px] text-ink-muted">
+            {subscription?.tier
+              ? `Activo${
+                  subscription.renewsAt
+                    ? ` · renueva el ${new Date(subscription.renewsAt).toLocaleDateString('es-DO')}`
+                    : ''
+                }`
+              : es.profile.plusOroSub}
+          </div>
         </div>
         <span className="chip bg-wheat text-ink-deep">{es.common.see}</span>
       </Link>
@@ -95,6 +116,14 @@ export default function ProfilePage() {
         </Link>
         <Link href="/perfil/visibilidad" className="list-row text-[12.5px]">
           <span>{es.visibility.title}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
+        <Link href="/perfil/destacar" className="list-row text-[12.5px]">
+          <span>Perfil destacado</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
+        <Link href="/perfil/promo" className="list-row text-[12.5px]">
+          <span>Código promocional</span>
           <span className="ml-auto text-muted">›</span>
         </Link>
         <Link href="/perfil/notificaciones" className="list-row text-[12.5px]">
@@ -115,6 +144,13 @@ export default function ProfilePage() {
           <span>{es.profile.deleteAccount}</span>
           <span className="ml-auto text-muted">›</span>
         </Link>
+        <button
+          type="button"
+          className="list-row w-full text-left text-[12.5px]"
+          onClick={() => logout.mutate()}
+        >
+          Cerrar sesión
+        </button>
       </div>
       <div className="mt-4 flex justify-center gap-4 text-[11px] text-muted">
         <Link href="/legal/terminos" className="underline">

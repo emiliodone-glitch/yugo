@@ -7,5 +7,7 @@ export * from './validators/profile';
 export * from './validators/discover';
 export * from './validators/community';
 export * from './affinity/affinity';
+export * from './api/http';
+export * from './api/client';
 export * from './i18n/es-DO';
 export * from './demo/fixtures';

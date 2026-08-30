@@ -1,13 +1,45 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
+import { z } from 'zod';
 import { profileUpdateSchema, searchPreferencesSchema } from '@yugo/shared';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '@yugo/shared';
 import { ProfilesService } from './profiles.service';
-import { CurrentUser, type AuthUser } from '../../common/decorators';
+import { AnswersService } from './answers.service';
+import { CurrentUser, Public, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
+
+const answerSchema = z.object({ key: z.string().min(1), answer: z.string().trim().min(1).max(200) });
 
 @Controller('profiles')
 export class ProfilesController {
-  constructor(private readonly profiles: ProfilesService) {}
+  constructor(
+    private readonly profiles: ProfilesService,
+    private readonly answers: AnswersService,
+  ) {}
+
+  /** RF-PER-09: conversation questions catalog and the member's answers. */
+  @Public()
+  @Get('questions')
+  questions() {
+    return this.answers.catalog();
+  }
+
+  @Get('me/answers')
+  myAnswers(@CurrentUser() user: AuthUser) {
+    return this.answers.list(user.id);
+  }
+
+  @Put('me/answers')
+  saveAnswer(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(answerSchema)) body: { key: string; answer: string },
+  ) {
+    return this.answers.upsert(user.id, body.key, body.answer);
+  }
+
+  @Delete('me/answers/:key')
+  removeAnswer(@CurrentUser() user: AuthUser, @Param('key') key: string) {
+    return this.answers.remove(user.id, key);
+  }
 
   @Get('me')
   getMine(@CurrentUser() user: AuthUser) {

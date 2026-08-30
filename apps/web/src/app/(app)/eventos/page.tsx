@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { demoEvents, es } from '@yugo/shared';
-import { useDemoStore } from '@/lib/demo-store';
+import { es } from '@yugo/shared';
+import { useEvents, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { FilterIcon } from '@/components/icons';
 
@@ -81,7 +81,8 @@ function MapPreview() {
 }
 
 export default function EventsPage() {
-  const { eventStatus, setEventStatus } = useDemoStore();
+  const { data: events = [], isLoading } = useEvents();
+  const setAttendance = useSetAttendance();
 
   return (
     <div className="px-4 pt-3">
@@ -101,9 +102,13 @@ export default function EventsPage() {
 
       <MapPreview />
 
-      {demoEvents.map((event) => {
+      {isLoading ? (
+        <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
+      ) : null}
+
+      {events.map((event) => {
         const { weekday, day } = dayParts(event.startsAt);
-        const mine = eventStatus[event.id];
+        const mine = event.myStatus;
         return (
           <div key={event.id} className="card p-3">
             <div className="flex items-start gap-2.5">
@@ -149,7 +154,7 @@ export default function EventsPage() {
                     <button
                       type="button"
                       className="chip chip-olive"
-                      onClick={() => setEventStatus(event.id, undefined)}
+                      onClick={() => setAttendance.mutate({ eventId: event.id, status: null })}
                     >
                       {es.events.goingMarked}
                     </button>
@@ -158,14 +163,14 @@ export default function EventsPage() {
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        onClick={() => setEventStatus(event.id, 'INTERESTED')}
+                        onClick={() => setAttendance.mutate({ eventId: event.id, status: 'INTERESTED' })}
                       >
                         {es.events.interested}
                       </button>
                       <button
                         type="button"
                         className="btn btn-olive btn-sm"
-                        onClick={() => setEventStatus(event.id, 'GOING')}
+                        onClick={() => setAttendance.mutate({ eventId: event.id, status: 'GOING' })}
                       >
                         {es.events.going}
                       </button>

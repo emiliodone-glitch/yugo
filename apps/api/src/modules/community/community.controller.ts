@@ -16,6 +16,8 @@ const manageSchema = z.object({
   userId: z.string().min(1),
   action: z.enum(['EXPEL', 'MUTE', 'UNMUTE', 'PROMOTE_MODERATOR']),
 });
+const joinSchema = z.object({ message: z.string().trim().max(300).optional() });
+const resolveJoinSchema = z.object({ accept: z.boolean() });
 
 @Controller('community')
 export class CommunityController {
@@ -42,8 +44,27 @@ export class CommunityController {
   }
 
   @Post('groups/:id/join')
-  join(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.community.joinGroup(user.id, id);
+  join(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodPipe(joinSchema)) body: { message?: string },
+  ) {
+    return this.community.joinGroup(user.id, id, body.message);
+  }
+
+  /** RF-COM-02: cola de solicitudes para grupos con aprobación. */
+  @Get('groups/:id/join-requests')
+  joinRequests(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.community.joinRequests(user.id, id);
+  }
+
+  @Put('join-requests/:id')
+  resolveJoinRequest(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodPipe(resolveJoinSchema)) body: { accept: boolean },
+  ) {
+    return this.community.resolveJoinRequest(user.id, id, body.accept);
   }
 
   @Post('posts')

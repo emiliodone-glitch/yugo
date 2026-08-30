@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { z } from 'zod';
 import { SubscriptionsService } from './subscriptions.service';
-import { CurrentUser, Public, type AuthUser } from '../../common/decorators';
+import { CurrentUser, Public, Roles, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const purchaseSchema = z.object({
@@ -13,6 +13,14 @@ const purchaseSchema = z.object({
   token: z.string().optional(),
 });
 const invisibleSchema = z.object({ enabled: z.boolean() });
+const promoSchema = z.object({ code: z.string().trim().min(3).max(40) });
+const createPromoSchema = z.object({
+  code: z.string().trim().min(3).max(40),
+  tier: z.enum(['PLUS', 'ORO']),
+  trialDays: z.number().int().min(1).max(365),
+  maxUses: z.number().int().positive().optional(),
+  expiresAt: z.coerce.date().optional(),
+});
 const badgeSchema = z.object({ show: z.boolean() });
 const travelSchema = z
   .object({
@@ -52,6 +60,30 @@ export class SubscriptionsController {
       body.currency,
       body.token,
     );
+  }
+
+  /** RF-PLU-04: canjear un código promocional (prueba gratuita). */
+  @Post('promo')
+  redeemPromo(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(promoSchema)) body: { code: string },
+  ) {
+    return this.subscriptions.redeemPromoCode(user.id, body.code);
+  }
+
+  @Get('promo')
+  @Roles('FINANCE', 'SUPERADMIN')
+  listPromos() {
+    return this.subscriptions.listPromoCodes();
+  }
+
+  @Post('promo/create')
+  @Roles('FINANCE', 'SUPERADMIN')
+  createPromo(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(createPromoSchema)) body: z.infer<typeof createPromoSchema>,
+  ) {
+    return this.subscriptions.createPromoCode(user.id, body);
   }
 
   @Delete('me')

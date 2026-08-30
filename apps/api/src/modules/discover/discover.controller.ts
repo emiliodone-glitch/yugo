@@ -1,7 +1,8 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { discoverFiltersSchema, type DiscoverFilters } from '@yugo/shared';
 import { DiscoverService } from './discover.service';
 import { DailyLimitsService } from './daily-limits.service';
+import { BoostService } from './boost.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { SettingsService } from '../../common/settings.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
@@ -13,7 +14,19 @@ export class DiscoverController {
     private readonly limits: DailyLimitsService,
     private readonly subscriptions: SubscriptionsService,
     private readonly settings: SettingsService,
+    private readonly boost: BoostService,
   ) {}
+
+  /** RF-DES-10: featured profile — Plus 1/week, Oro 3/week, 24 h each. */
+  @Get('boost')
+  boostStatus(@CurrentUser() user: AuthUser) {
+    return this.boost.status(user.id);
+  }
+
+  @Post('boost')
+  activateBoost(@CurrentUser() user: AuthUser) {
+    return this.boost.activate(user.id);
+  }
 
   @Get()
   async list(@CurrentUser() user: AuthUser, @Query('filters') rawFilters?: string) {

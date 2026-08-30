@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
+import { ContentService, type IcebreakerTemplates } from '../../common/content.service';
 
 /**
  * RF-CON-04: three suggested questions generated from the OTHER person's
@@ -8,7 +9,10 @@ import { PrismaService } from '../../common/prisma.service';
  */
 @Injectable()
 export class IcebreakersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly content: ContentService,
+  ) {}
 
   async forConversation(conversationId: string, requesterId: string): Promise<string[]> {
     const conversation = await this.prisma.conversation.findUnique({
@@ -30,19 +34,27 @@ export class IcebreakersService {
       },
     });
     if (!other) return [];
-    return buildIcebreakers({
-      practices: other.serviceAreas.map((sa) => sa.serviceArea.name),
-      verse: other.verse,
-      occupation: other.occupation,
-      churchName: other.church?.name ?? other.churchFreeText,
-      yearsInFaith: other.yearsInFaith,
-      answers: other.answers.map((a) => ({ question: a.question, answer: a.answer })),
-    });
+    // Templates are administrable without a deploy (RF-ADM-10).
+    const templates = await this.content.icebreakers();
+    return buildIcebreakers(
+      {
+        practices: other.serviceAreas.map((sa) => sa.serviceArea.name),
+        practiceSlugs: other.serviceAreas.map((sa) => sa.serviceArea.slug),
+        verse: other.verse,
+        occupation: other.occupation,
+        churchName: other.church?.name ?? other.churchFreeText,
+        yearsInFaith: other.yearsInFaith,
+        answers: other.answers.map((a) => ({ question: a.question, answer: a.answer })),
+      },
+      templates,
+    );
   }
 }
 
 export interface IcebreakerProfileFacts {
   practices: string[];
+  /** Slugs let the administrable templates key on stable identifiers. */
+  practiceSlugs?: string[];
   verse?: string | null;
   occupation?: string | null;
   churchName?: string | null;
@@ -50,23 +62,34 @@ export interface IcebreakerProfileFacts {
   answers: Array<{ question: string; answer: string }>;
 }
 
+const DEFAULT_TEMPLATES: IcebreakerTemplates = {
+  byPractice: {
+    alabanza: 'Vi que sirves en alabanza, ¿cómo llegaste ahí?',
+    ninos: 'Vi que sirves con niños, ¿cómo llegaste ahí?',
+    jovenes: 'Vi que sirves con jóvenes, ¿qué es lo que más disfrutas de eso?',
+    misiones: '¿Cuál ha sido el viaje misionero que más te marcó?',
+    'servicio-social': 'Vi que te mueve el servicio social, ¿en qué proyecto andas ahora?',
+    'estudio-biblico': '¿Qué libro de la Biblia estás estudiando en este tiempo?',
+    medios: 'Vi que sirves en medios, ¿consola o cámara?',
+    intercesion: '¿Cómo empezaste en el ministerio de intercesión?',
+    oracion: '¿Cómo es tu tiempo de oración ideal?',
+  },
+  generic: [
+    '¿Qué es lo que más agradeces a Dios este año?',
+    '¿Cuál es tu plan perfecto para un sábado libre?',
+    '¿Qué canción no falta en tu playlist de adoración?',
+  ],
+};
+
 /** Pure generator — unit-tested; picks the 3 most specific prompts. */
-export function buildIcebreakers(facts: IcebreakerProfileFacts): string[] {
+export function buildIcebreakers(
+  facts: IcebreakerProfileFacts,
+  templates: IcebreakerTemplates = DEFAULT_TEMPLATES,
+): string[] {
   const pool: string[] = [];
 
-  const practiceTemplates: Record<string, string> = {
-    Alabanza: 'Vi que sirves en alabanza, ¿cómo llegaste ahí?',
-    Niños: 'Vi que sirves con niños, ¿cómo llegaste ahí?',
-    Jóvenes: 'Vi que sirves con jóvenes, ¿qué es lo que más disfrutas de eso?',
-    Misiones: '¿Cuál ha sido el viaje misionero que más te marcó?',
-    'Servicio social': 'Vi que te mueve el servicio social, ¿en qué proyecto andas ahora?',
-    'Estudio bíblico': '¿Qué libro de la Biblia estás estudiando en este tiempo?',
-    'Medios y sonido': 'Vi que sirves en medios, ¿consola o cámara?',
-    Intercesión: '¿Cómo empezaste en el ministerio de intercesión?',
-    Oración: '¿Cómo es tu tiempo de oración ideal?',
-  };
-  for (const practice of facts.practices) {
-    const template = practiceTemplates[practice];
+  for (const slug of facts.practiceSlugs ?? []) {
+    const template = templates.byPractice[slug];
     if (template) pool.push(template);
   }
 
@@ -82,9 +105,7 @@ export function buildIcebreakers(facts: IcebreakerProfileFacts): string[] {
   }
 
   // Generic fallbacks keep the list at 3 even for sparse profiles.
-  pool.push('¿Qué es lo que más agradeces a Dios este año?');
-  pool.push('¿Cuál es tu plan perfecto para un sábado libre?');
-  pool.push('¿Qué canción no falta en tu playlist de adoración?');
+  pool.push(...templates.generic);
 
   return [...new Set(pool)].slice(0, 3);
 }

@@ -32,6 +32,9 @@ interface DemoState {
   showOroBadge: boolean;
   travelModeOn: boolean;
   pausedProfile: boolean;
+  /** RF-DES-10: featured until, so the demo reflects the activation. */
+  boostActiveUntil: string | null;
+  boostUsedThisWeek: number;
   markInterest: (userId: string) => 'ok' | 'limit';
   passProfile: (userId: string) => void;
   undoPass: () => string | null;
@@ -45,6 +48,7 @@ interface DemoState {
   setShowOroBadge: (on: boolean) => void;
   setTravelMode: (on: boolean) => void;
   setPausedProfile: (on: boolean) => void;
+  activateBoost: () => string;
 }
 
 /** Mirrors the API's stub classifier so demo mode shows real moderation UX. */
@@ -71,6 +75,8 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   showOroBadge: false,
   travelModeOn: !!demoCurrentUser.subscription.travelMode,
   pausedProfile: false,
+  boostActiveUntil: null,
+  boostUsedThisWeek: 1,
 
   markInterest: (userId) => {
     const { interestsUsed, interestsLimit, sentInterests } = get();
@@ -140,4 +146,10 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   setShowOroBadge: (on) => set({ showOroBadge: on }),
   setTravelMode: (on) => set({ travelModeOn: on }),
   setPausedProfile: (on) => set({ pausedProfile: on }),
+
+  activateBoost: () => {
+    const until = new Date(Date.now() + 24 * 3600_000).toISOString();
+    set((state) => ({ boostActiveUntil: until, boostUsedThisWeek: state.boostUsedThisWeek + 1 }));
+    return until;
+  },
 }));

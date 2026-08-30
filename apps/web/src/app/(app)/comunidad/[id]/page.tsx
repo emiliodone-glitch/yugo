@@ -2,8 +2,9 @@
 
 import { notFound } from 'next/navigation';
 import { useState } from 'react';
-import { demoActivities, demoCurrentUser, demoGroups, demoPosts, es } from '@yugo/shared';
+import { demoCurrentUser, es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
+import { useCreatePost, useGroupDetail, useJoinRequests } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
 import { PageHeader } from '@/components/page-header';
 
@@ -11,8 +12,8 @@ type Tab = 'wall' | 'activities' | 'members';
 
 /** Group detail with moderated wall, prayer requests and activities. */
 export default function GroupDetailPage({ params }: { params: { id: string } }) {
-  const group = demoGroups.find((g) => g.id === params.id);
-  if (!group) notFound();
+  const { data: group, isLoading } = useGroupDetail(params.id);
+  const createPost = useCreatePost(params.id);
 
   const [tab, setTab] = useState<Tab>('wall');
   const [draft, setDraft] = useState('');
@@ -23,19 +24,26 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
   >([]);
   const { praying, amen, togglePraying, toggleAmen, activityJoined, toggleActivity } = useDemoStore();
 
-  const posts = demoPosts.filter((post) => post.groupId === group.id);
-  const activities = demoActivities.filter((activity) => activity.groupId === group.id);
+  const isAdmin = group?.myRole === 'ADMIN' || group?.myRole === 'MODERATOR';
+  const { data: joinRequests = [] } = useJoinRequests(params.id, !!isAdmin);
 
-  const publish = () => {
+  if (isLoading) {
+    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+  }
+  if (!group) notFound();
+
+  const posts = group.posts;
+  const activities = group.activities;
+
+  const publish = async () => {
     const body = draft.trim();
     if (!body) return;
-    // Mirrors the API: every post is classified before it is published.
-    const held = /\b(dinero|vendo|promoción|whatsapp)\b/i.test(body);
-    setLocalPosts((current) => [{ id: `local-${Date.now()}`, body, isPrayer: isPrayer, held }, ...current]);
+    // Every post is classified before it is published (RF-COM-08).
+    const result = await createPost.mutateAsync({ body, isPrayerRequest: isPrayer });
+    const held = result.moderationStatus !== 'APPROVED';
+    setLocalPosts((current) => [{ id: result.id, body, isPrayer, held }, ...current]);
     setNotice(
-      held
-        ? 'Tu publicación está en revisión: la moderación la revisa antes de mostrarla.'
-        : null,
+      held ? 'Tu publicación está en revisión: la moderación la revisa antes de mostrarla.' : null,
     );
     setDraft('');
     setIsPrayer(false);
@@ -76,7 +84,10 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
             options={[
               { value: 'wall', label: 'Muro' },
               { value: 'activities', label: 'Actividades' },
-              { value: 'members', label: 'Miembros' },
+              {
+                value: 'members',
+                label: isAdmin && joinRequests.length > 0 ? `Miembros (${joinRequests.length})` : 'Miembros',
+              },
             ]}
           />
         </div>
@@ -213,12 +224,40 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
         ) : null}
 
         {tab === 'members' ? (
-          <div className="card">
-            <div className="text-[12.5px] text-muted">
-              {es.community.membersCount(group.memberCount)}. Los administradores del grupo pueden
-              silenciar o expulsar miembros y reciben los reportes de su grupo (RF-COM-07/08).
+          <>
+            {/* RF-COM-02: cola de solicitudes para grupos con aprobación */}
+            {isAdmin && joinRequests.length > 0 ? (
+              <div className="card">
+                <b className="text-[12.5px]">Solicitudes pendientes</b>
+                {joinRequests.map((request) => (
+                  <div key={request.id} className="list-row">
+                    <Avatar name={request.displayName} size="s" />
+                    <div className="min-w-0 flex-1">
+                      <b className="text-[12.5px]">{request.displayName}</b>
+                      <div className="text-[11px] text-muted">
+                        {request.city ? `${request.city} · ` : ''}Nivel {request.verificationLevel}
+                      </div>
+                      {request.message ? (
+                        <div className="mt-0.5 text-[11px] text-muted">{request.message}</div>
+                      ) : null}
+                    </div>
+                    <button type="button" className="btn btn-sm btn-olive">
+                      Aceptar
+                    </button>
+                    <button type="button" className="btn btn-sm btn-ghost">
+                      Rechazar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div className="card">
+              <div className="text-[12.5px] text-muted">
+                {es.community.membersCount(group.memberCount)}. Los administradores del grupo pueden
+                silenciar o expulsar miembros y reciben los reportes de su grupo (RF-COM-07/08).
+              </div>
             </div>
-          </div>
+          </>
         ) : null}
       </div>
     </div>

@@ -3,43 +3,61 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { es } from '@yugo/shared';
 import {
-  demoConnections,
-  demoCurrentUser,
-  demoIcebreakers,
-  es,
-} from '@yugo/shared';
-import { useDemoStore } from '@/lib/demo-store';
+  useBlockUser,
+  useConnections,
+  useConversation,
+  useDisconnect,
+  useEvents,
+  useInviteToEvent,
+  useReport,
+  useSendMessage,
+  useCurrentUserId,
+} from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { CheckIcon, ChevronLeft } from '@/components/icons';
 
 export default function ChatPage({ params }: { params: { id: string } }) {
-  const connection = demoConnections.find((c) => c.matchId === params.id);
-  if (!connection) notFound();
+  const { data: connections = [], isLoading: connectionsLoading } = useConnections();
+  const { data: conversation } = useConversation(params.id);
+  const { data: events = [] } = useEvents();
+  const sendMessage = useSendMessage(params.id);
+  const inviteToEvent = useInviteToEvent(params.id);
+  const report = useReport();
+  const blockUser = useBlockUser();
+  const disconnect = useDisconnect();
 
-  const messages = useDemoStore((s) => s.messages[params.id] ?? []);
-  const sendMessage = useDemoStore((s) => s.sendMessage);
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const connection =
+    connections.find((c) => (c.conversationId ?? c.matchId) === params.id) ?? connections[0];
+  const messages = conversation?.messages ?? [];
+  const icebreakers = conversation?.icebreakers ?? [];
+  const currentUserId = useCurrentUserId();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  const isNew = messages.length === 0;
-  const icebreakers = demoIcebreakers[params.id] ?? [
-    '¿Qué es lo que más agradeces a Dios este año?',
-    '¿Cuál es tu plan perfecto para un sábado libre?',
-    '¿Qué canción no falta en tu playlist de adoración?',
-  ];
+  // Wait for the list before deciding the conversation does not exist,
+  // otherwise the first render 404s while the query is still in flight.
+  if (connectionsLoading) {
+    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+  }
+  if (!connection) notFound();
 
-  const handleSend = (text: string) => {
+  const isNew = messages.length === 0;
+
+  const handleSend = async (text: string) => {
     const body = text.trim();
     if (!body) return;
-    const message = sendMessage(params.id, body);
     setDraft('');
+    const message = await sendMessage.mutateAsync(body);
     if (message.moderationStatus === 'HELD') setNotice(es.connections.messageHeld);
     else if (message.moderationStatus === 'REJECTED') setNotice(es.connections.messageRejected);
     else setNotice(null);
@@ -75,16 +93,44 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           </button>
           {menuOpen ? (
             <div className="absolute right-0 top-10 z-30 w-52 rounded-field border border-line bg-white py-1 shadow-raised">
-              <MenuItem label={es.connections.inviteToEvent} onClick={() => setMenuOpen(false)} />
-              <MenuItem label={es.connections.report} onClick={() => setMenuOpen(false)} wine />
-              <MenuItem label={es.connections.block} onClick={() => setMenuOpen(false)} wine />
+              <MenuItem
+                label={es.connections.inviteToEvent}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setEventPickerOpen(true);
+                }}
+              />
+              <MenuItem
+                label={es.connections.report}
+                wine
+                onClick={() => {
+                  setMenuOpen(false);
+                  report.mutate({
+                    targetType: 'PROFILE',
+                    targetId: connection.otherUser.userId,
+                    category: 'INAPPROPRIATE',
+                  });
+                  setNotice('Reporte enviado. El equipo de moderación lo revisará.');
+                }}
+              />
+              <MenuItem
+                label={es.connections.block}
+                wine
+                onClick={() => {
+                  setMenuOpen(false);
+                  blockUser.mutate(connection.otherUser.userId);
+                  setNotice('Bloqueaste a esta persona.');
+                }}
+              />
               <MenuItem
                 label={es.connections.disconnect}
-                onClick={() => {
-                  if (window.confirm(es.connections.disconnectConfirm)) setMenuOpen(false);
-                  else setMenuOpen(false);
-                }}
                 wine
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (window.confirm(es.connections.disconnectConfirm)) {
+                    disconnect.mutate(connection.matchId);
+                  }
+                }}
               />
             </div>
           ) : null}
@@ -116,7 +162,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         ) : null}
 
         {messages.map((message) => {
-          const mine = message.senderId === demoCurrentUser.userId;
+          const mine = message.senderId === currentUserId;
           const held = message.moderationStatus === 'HELD';
           const rejected = message.moderationStatus === 'REJECTED';
           return (
@@ -142,6 +188,36 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         {notice ? (
           <div className="my-2 rounded-field bg-wine-soft px-3 py-2 text-center text-[11px] text-wine">
             {notice}
+          </div>
+        ) : null}
+
+        {/* RF-CON-10: invitar a un evento de la agenda */}
+        {eventPickerOpen ? (
+          <div className="card border-[1.5px] border-wheat">
+            <div className="mb-2 flex items-center justify-between">
+              <b className="text-[12.5px]">{es.connections.inviteToEvent}</b>
+              <button
+                type="button"
+                className="text-[11px] text-muted underline"
+                onClick={() => setEventPickerOpen(false)}
+              >
+                {es.common.cancel}
+              </button>
+            </div>
+            {events.slice(0, 4).map((event) => (
+              <button
+                key={event.id}
+                type="button"
+                className="mb-1.5 block w-full rounded-[10px] bg-white px-2.5 py-2 text-left text-[12.5px] last:mb-0 hover:bg-linen"
+                onClick={async () => {
+                  await inviteToEvent.mutateAsync({ id: event.id, title: event.title });
+                  setEventPickerOpen(false);
+                }}
+              >
+                {event.title}
+                <span className="block text-[11px] text-muted">{event.churchName}</span>
+              </button>
+            ))}
           </div>
         ) : null}
 

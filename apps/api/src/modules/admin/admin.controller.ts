@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Put, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { AdminService } from './admin.service';
+import { ReportsService, toCsv, type ReportKind } from './reports.service';
+import { ContentService } from '../../common/content.service';
 import { CurrentUser, Roles, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
@@ -40,11 +42,33 @@ const weightsSchema = z.object({
 const settingSchema = z.object({ key: z.string().min(1), value: z.unknown() });
 const matrixSchema = z.object({ aId: z.string(), bId: z.string(), value: z.number().min(0).max(100) });
 const heldSchema = z.object({ approve: z.boolean() });
+const bannersSchema = z.object({
+  banners: z.array(
+    z.object({
+      id: z.string().min(1),
+      title: z.string().min(1).max(80),
+      body: z.string().min(1).max(300),
+      ctaLabel: z.string().max(40).optional(),
+      ctaHref: z.string().max(200).optional(),
+      tone: z.enum(['ink', 'olive', 'wheat', 'wine']),
+      activeFrom: z.string().optional(),
+      activeUntil: z.string().optional(),
+    }),
+  ),
+});
+const icebreakersSchema = z.object({
+  byPractice: z.record(z.string().min(1).max(200)),
+  generic: z.array(z.string().min(1).max(200)).min(1),
+});
 
 @Controller('admin')
 @Roles('MODERATOR', 'COMMUNITY_MANAGER', 'SUPPORT', 'FINANCE', 'SUPERADMIN')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly reports: ReportsService,
+    private readonly content: ContentService,
+  ) {}
 
   @Get('dashboard')
   dashboard() {
@@ -241,6 +265,63 @@ export class AdminController {
     @Query('page') page?: string,
   ) {
     return this.admin.auditLog({ actorId, action, page: page ? Number(page) : 1 });
+  }
+
+  // Contenido administrable (RF-ADM-10)
+  @Get('content/banners')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  banners() {
+    return this.content.allBanners();
+  }
+
+  @Put('content/banners')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  saveBanners(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(bannersSchema)) body: z.infer<typeof bannersSchema>,
+  ) {
+    return this.content.saveBanners(user.id, body.banners);
+  }
+
+  @Get('content/icebreakers')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  icebreakers() {
+    return this.content.icebreakers();
+  }
+
+  @Put('content/icebreakers')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  saveIcebreakers(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(icebreakersSchema)) body: z.infer<typeof icebreakersSchema>,
+  ) {
+    return this.content.saveIcebreakers(user.id, body);
+  }
+
+  @Get('content/safety-tips')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  safetyTips() {
+    return this.content.safetyTips();
+  }
+
+  @Put('content/safety-tips')
+  @Roles('COMMUNITY_MANAGER', 'SUPERADMIN')
+  saveSafetyTips(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    return this.content.saveSafetyTips(user.id, body);
+  }
+
+  // Reportes exportables (RF-ADM-12)
+  @Get('reports/:kind')
+  report(@Param('kind') kind: ReportKind, @Query('weeks') weeks?: string) {
+    return this.reports.build(kind, weeks ? Number(weeks) : 12);
+  }
+
+  @Get('reports/:kind/export.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="yugo-reporte.csv"')
+  async exportReport(@Param('kind') kind: ReportKind, @Query('weeks') weeks?: string) {
+    const { rows } = await this.reports.build(kind, weeks ? Number(weeks) : 12);
+    return toCsv(rows);
   }
 
   // Payments (RF-ADM-09)
