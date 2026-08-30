@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Yugo",
+    "slug": "yugo",
+    "version": "0.1.0",
+    "scheme": "yugo",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FAF8F3",
+    "splash": {
+      "backgroundColor": "#22315C"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "do.yugo.app"
+    },
+    "android": {
+      "package": "do.yugo.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#22315C"
+      }
+    },
+    "plugins": ["expo-router", "expo-font"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

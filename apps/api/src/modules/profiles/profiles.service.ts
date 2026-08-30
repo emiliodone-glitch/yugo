@@ -48,7 +48,7 @@ export class ProfilesService {
           ageMax: age + limits.ageRangeDefaultOffsets[1],
         };
 
-    const profile = await this.prisma.profile.upsert({
+    await this.prisma.profile.upsert({
       where: { userId },
       update: fields,
       create: { userId, ...defaults, ...fields } as never,

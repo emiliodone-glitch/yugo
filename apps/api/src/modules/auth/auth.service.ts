@@ -194,7 +194,7 @@ export class AuthService {
       },
     });
     if (!user) throw new UnauthorizedException();
-    const { passwordHash, twoFactorSecret, ...safe } = user;
+    const { passwordHash: _ph, twoFactorSecret: _tfs, ...safe } = user;
     return safe;
   }
 }

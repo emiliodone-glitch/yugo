@@ -66,7 +66,7 @@ export class StripeProvider implements PaymentProvider {
 export class AzulProvider implements PaymentProvider {
   readonly channel = 'AZUL' as const;
 
-  async charge(request: ChargeRequest): Promise<ChargeResult> {
+  async charge(_request: ChargeRequest): Promise<ChargeResult> {
     if (!process.env.AZUL_MERCHANT_ID || !process.env.AZUL_AUTH_KEY) {
       return { ok: false, error: 'azul_not_configured' };
     }

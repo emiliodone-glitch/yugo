@@ -1,11 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import {
-  ageFromBirthDate,
-  DiscoverFilters,
-  es,
-  ProfileCard,
-} from '@yugo/shared';
+import { ageFromBirthDate, DiscoverFilters, ProfileCard } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache.service';
 import { SettingsService } from '../../common/settings.service';

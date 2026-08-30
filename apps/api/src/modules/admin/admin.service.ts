@@ -133,7 +133,7 @@ export class AdminService {
       },
     });
     if (!user) throw new NotFoundException();
-    const { passwordHash, twoFactorSecret, ...safe } = user;
+    const { passwordHash: _ph, twoFactorSecret: _tfs, ...safe } = user;
     return safe;
   }
 
