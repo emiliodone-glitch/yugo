@@ -220,6 +220,7 @@ export class EventsService {
     };
   }
 
+  /** RF-EVE-07: the events the community manager pinned to the home screen. */
   async featured() {
     return this.prisma.event.findMany({
       where: { status: 'PUBLISHED', featured: true, startsAt: { gt: new Date() } },

@@ -300,6 +300,7 @@ model User {
   payments             Payment[]
   notifications        Notification[]
   notificationPrefs    NotificationPreference[]
+  quietHours           NotificationQuietHours?
   profileViewsMade     ProfileView[]        @relation("Viewer")
   profileViewsReceived ProfileView[]        @relation("Viewed")
   travelLocations      TravelLocation[]
@@ -1004,6 +1005,16 @@ model NotificationPreference {
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, category])
+}
+
+/// RF-NOT-02: quiet hours, stored as whole hours in America/Santo_Domingo.
+/// A push raised inside the window is held until it closes, never dropped.
+model NotificationQuietHours {
+  userId    String  @id
+  enabled   Boolean @default(true)
+  startHour Int     @default(22)
+  endHour   Int     @default(7)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PushToken {

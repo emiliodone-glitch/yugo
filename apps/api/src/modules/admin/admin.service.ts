@@ -137,6 +137,10 @@ export class AdminService {
     return safe;
   }
 
+  /**
+   * RF-SEG-04: graduated sanctions — warning, temporary suspension (3, 7 or 30
+   * days) and permanent expulsion. Every one is recorded and notified.
+   */
   async memberAction(
     actorId: string,
     userId: string,

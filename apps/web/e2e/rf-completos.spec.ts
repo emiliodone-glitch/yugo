@@ -149,3 +149,31 @@ test.describe('Grupos con aprobación (RF-COM-02)', () => {
     await expect(page.getByRole('button', { name: 'Unirme' }).first()).toBeVisible();
   });
 });
+
+test.describe('Notificaciones (RF-NOT-01/02)', () => {
+  test('el centro de notificaciones lista lo recibido por categoría', async ({ page }) => {
+    await page.goto('/perfil/notificaciones');
+
+    await expect(page.getByRole('heading', { name: 'Notificaciones' })).toBeVisible();
+    // La categoría se muestra como chip dentro de cada notificación, no en el menú.
+    await expect(page.getByRole('main').getByText('Conexiones').first()).toBeVisible();
+  });
+
+  test('las preferencias permiten silenciar una categoría y fijar el horario', async ({ page }) => {
+    await page.goto('/perfil/notificaciones');
+    await page.getByRole('button', { name: 'Preferencias' }).click();
+
+    // Cada categoría se silencia por separado.
+    const messages = page.getByRole('switch', { name: 'Mensajes' });
+    await expect(messages).toBeVisible();
+    await messages.click();
+
+    // Horario silencioso con su ventana editable.
+    await expect(page.getByText('Horario silencioso', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Desde')).toHaveValue('22');
+    await expect(page.getByLabel('Hasta')).toHaveValue('7');
+    await expect(
+      page.getByText('Las guardamos y te las entregamos al terminar.', { exact: false }),
+    ).toBeVisible();
+  });
+});

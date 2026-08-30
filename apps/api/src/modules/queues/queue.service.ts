@@ -53,11 +53,16 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     this.workers.push(worker);
   }
 
-  /** Enqueues a job, or runs it inline when queues are disabled. */
-  async add(name: QueueName, payload: Record<string, unknown>): Promise<void> {
+  /**
+   * Enqueues a job, or runs it inline when queues are disabled. `delayMs`
+   * postpones it — used by quiet hours, which hold a push until morning
+   * instead of dropping it (RF-NOT-02). Inline mode ignores the delay: there
+   * is no scheduler without Redis, and a dev push arriving at once is fine.
+   */
+  async add(name: QueueName, payload: Record<string, unknown>, delayMs = 0): Promise<void> {
     const queue = this.queues.get(name);
     if (queue) {
-      await queue.add(name, payload);
+      await queue.add(name, payload, delayMs > 0 ? { delay: delayMs } : undefined);
       return;
     }
     const handler = this.handlers.get(name);

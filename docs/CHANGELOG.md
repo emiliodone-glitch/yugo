@@ -144,6 +144,40 @@ Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 - `docs/OPERATIONS.md` (runbook con umbrales de alerta e incidentes frecuentes) y
   `docs/STORE_RELEASE.md` (requisitos de App Store y Google Play para apps de citas).
 
+### Cliente de API tipado y cableado real (Hito 1, cierre)
+- `@yugo/shared/api`: transporte con token bearer, refresco transparente compartido entre
+  401 simultáneos y errores de dominio tipados (`ApiError.needsUpgrade`, `needsCovenant`);
+  cliente con un método por endpoint agrupado por módulo. `TokenStorage` es un adaptador:
+  `localStorage` en la web, llavero del dispositivo (`expo-secure-store`) en móvil.
+- `@yugo/app-core`: los hooks de pantalla y el estado demo viven una sola vez y los usan
+  web y móvil; cada pantalla resuelve contra los fixtures o contra la API según el modo
+  demo, con un solo camino de código. El `QueryClient` se crea aquí para que ambas apps
+  compartan una única instancia de react-query.
+- Los mensajes en español de los códigos de error del API se centralizaron en
+  `@yugo/shared/i18n/api-errors`.
+
+### Paridad completa de la app móvil
+- Pantallas nuevas: entrar, recuperar contraseña, verificación en tres niveles con selfie
+  guiada, perfil destacado, código promocional, notificaciones, preferencias de búsqueda,
+  privacidad y seguridad, guardados, «Te interesa a…», detalle de grupo, detalle de evento
+  con check-in QR y documentos legales.
+- Las pantallas existentes pasaron de fixtures locales a los hooks compartidos: inicio,
+  descubrir, conexiones, comunidad, eventos, chat (con reportar, bloquear, deshacer
+  conexión e invitar a un evento), afinidad, perfil, visibilidad y Plus.
+- El registro crea la cuenta contra la API en web y móvil: la cuenta se registra cuando ya
+  se conoce la fecha de nacimiento (RF-AUT-03), luego el código OTP, el pacto con su
+  versión (RF-AUT-04) y el perfil al terminar.
+- Tres flujos Maestro: registro, descubrir → chat y perfil → verificación.
+
+### Horario silencioso real (RF-NOT-02)
+- Modelo `NotificationQuietHours` (migración `0004`) con la ventana en horas enteras de
+  `America/Santo_Domingo`, ventana que cruza la medianoche incluida (22:00 → 07:00).
+- Una notificación levantada dentro de la ventana **siempre se guarda**; lo que espera es
+  el push, que se encola con retraso hasta que la ventana cierra en vez de perderse.
+- 8 pruebas unitarias fijan instantes en UTC y verifican la lectura local, el cruce de
+  medianoche, el minuto exacto de cierre y la ventana vacía.
+- Web y móvil editan la ventana y silencian cada categoría por separado contra la API.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de

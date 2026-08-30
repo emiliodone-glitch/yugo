@@ -19,6 +19,11 @@ const prefSchema = z.object({
   push: z.boolean(),
   email: z.boolean(),
 });
+const quietHoursSchema = z.object({
+  enabled: z.boolean(),
+  startHour: z.number().int().min(0).max(23),
+  endHour: z.number().int().min(0).max(23),
+});
 
 @Controller('notifications')
 export class NotificationsController {
@@ -53,5 +58,19 @@ export class NotificationsController {
     @Body(new ZodPipe(prefSchema)) body: z.infer<typeof prefSchema>,
   ) {
     return this.notifications.setPreference(user.id, body.category, body.push, body.email);
+  }
+
+  /** RF-NOT-02: quiet hours, in America/Santo_Domingo. */
+  @Get('quiet-hours')
+  quietHours(@CurrentUser() user: AuthUser) {
+    return this.notifications.quietHours(user.id);
+  }
+
+  @Put('quiet-hours')
+  setQuietHours(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(quietHoursSchema)) body: z.infer<typeof quietHoursSchema>,
+  ) {
+    return this.notifications.setQuietHours(user.id, body);
   }
 }

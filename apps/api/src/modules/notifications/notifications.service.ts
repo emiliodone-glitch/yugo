@@ -3,10 +3,54 @@ import type { NotificationCategory } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { QueueService } from '../queues/queue.service';
 
+const TIMEZONE = 'America/Santo_Domingo';
+
+export interface QuietHours {
+  enabled: boolean;
+  startHour: number;
+  endHour: number;
+}
+
+export const DEFAULT_QUIET_HOURS: QuietHours = { enabled: true, startHour: 22, endHour: 7 };
+
+/** Local hour and minute in Santo Domingo, whatever the server's timezone is. */
+export function localTime(now: Date, timeZone = TIMEZONE): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  // Midnight can come back as hour 24 in some ICU versions.
+  return { hour: value('hour') % 24, minute: value('minute') };
+}
+
+/**
+ * Milliseconds a push must wait for the quiet window to close, or 0 when it
+ * can go out now. The window wraps midnight (22:00 → 07:00), which is why it
+ * cannot be a simple `start <= hour < end`.
+ */
+export function quietHoursDelayMs(quiet: QuietHours, now: Date, timeZone = TIMEZONE): number {
+  if (!quiet.enabled) return 0;
+  if (quiet.startHour === quiet.endHour) return 0;
+
+  const { hour, minute } = localTime(now, timeZone);
+  const wraps = quiet.startHour > quiet.endHour;
+  const inside = wraps
+    ? hour >= quiet.startHour || hour < quiet.endHour
+    : hour >= quiet.startHour && hour < quiet.endHour;
+  if (!inside) return 0;
+
+  const hoursUntilEnd = (quiet.endHour - hour + 24) % 24;
+  return hoursUntilEnd * 3_600_000 - minute * 60_000;
+}
+
 /**
  * In-app notification center + push fan-out (RF-NOT-01/02). Push goes through
- * Expo's push API when tokens exist; respects per-category preferences and
- * the quiet-hours window.
+ * Expo's push API when tokens exist; it respects the per-category preferences
+ * and holds anything raised inside the quiet-hours window until it closes —
+ * the notification is always stored, only the push waits.
  */
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -35,9 +79,12 @@ export class NotificationsService implements OnModuleInit {
     body: string,
     data?: Record<string, unknown>,
   ) {
-    const preference = await this.prisma.notificationPreference.findUnique({
-      where: { userId_category: { userId, category } },
-    });
+    const [preference, quiet] = await Promise.all([
+      this.prisma.notificationPreference.findUnique({
+        where: { userId_category: { userId, category } },
+      }),
+      this.prisma.notificationQuietHours.findUnique({ where: { userId } }),
+    ]);
 
     const notification = await this.prisma.notification.create({
       data: { userId, category, title, body, data: data as never },
@@ -45,8 +92,10 @@ export class NotificationsService implements OnModuleInit {
 
     if (preference?.push !== false) {
       // Fan-out runs on the queue so a slow push provider never delays the
-      // request that triggered the notification.
-      await this.queues.add('push', { userId, title, body, data });
+      // request that triggered the notification, and quiet hours postpone it
+      // instead of losing it (RF-NOT-02).
+      const delay = quietHoursDelayMs(quiet ?? DEFAULT_QUIET_HOURS, new Date());
+      await this.queues.add('push', { userId, title, body, data }, delay);
     }
     return notification;
   }
@@ -103,5 +152,24 @@ export class NotificationsService implements OnModuleInit {
       update: { push, email },
       create: { userId, category, push, email },
     });
+  }
+
+  /** RF-NOT-02: the quiet-hours window, defaulted for members who never set it. */
+  async quietHours(userId: string): Promise<QuietHours> {
+    const stored = await this.prisma.notificationQuietHours.findUnique({ where: { userId } });
+    return stored
+      ? { enabled: stored.enabled, startHour: stored.startHour, endHour: stored.endHour }
+      : DEFAULT_QUIET_HOURS;
+  }
+
+  async setQuietHours(userId: string, input: QuietHours): Promise<QuietHours> {
+    const startHour = Math.min(23, Math.max(0, Math.trunc(input.startHour)));
+    const endHour = Math.min(23, Math.max(0, Math.trunc(input.endHour)));
+    const saved = await this.prisma.notificationQuietHours.upsert({
+      where: { userId },
+      update: { enabled: input.enabled, startHour, endHour },
+      create: { userId, enabled: input.enabled, startHour, endHour },
+    });
+    return { enabled: saved.enabled, startHour: saved.startHour, endHour: saved.endHour };
   }
 }

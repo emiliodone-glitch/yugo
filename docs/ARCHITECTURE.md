@@ -14,8 +14,18 @@ Cuatro superficies sobre una única API NestJS y una base PostgreSQL 16 + PostGI
 ```
 
 - `packages/shared` es la fuente única de: tipos de dominio, validadores zod, límites,
-  **motor de afinidad puro**, i18n es-DO y fixtures demo. API, web y móvil lo consumen.
+  **motor de afinidad puro**, i18n es-DO (incluidos los mensajes de error del API),
+  fixtures demo y el **cliente de API tipado**. API, web y móvil lo consumen.
+- `packages/app-core` es la capa de datos común de las dos aplicaciones cliente: un hook
+  por pantalla y el estado del modo demo. Cada hook resuelve contra los fixtures o contra
+  la API según el modo, de forma que una pantalla tiene un solo camino de código y web y
+  móvil no pueden divergir. El `QueryClient` se crea aquí para que ambas compartan una
+  única instancia de react-query.
 - `packages/ui-tokens` fija la identidad (paleta, tipografía, radios) para web y móvil.
+
+Lo único que cada aplicación aporta por su cuenta es dónde viven los tokens de sesión —
+`localStorage` en la web, llavero del dispositivo (`expo-secure-store`) en móvil — detrás
+del adaptador `TokenStorage`, y su propia capa de presentación.
 
 ## Decisiones y sus porqués
 

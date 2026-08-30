@@ -17,6 +17,7 @@ import {
   demoPosts,
   DEFAULT_PRICES,
   LIMITS,
+  NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
   type ChatMessage,
   type ConnectionSummary,
@@ -650,6 +651,52 @@ export function useNotifications() {
       if (isDemoMode()) return demoNotifications;
       return api().notifications.list();
     },
+  });
+}
+
+/** RF-NOT-02: per-category preferences and the quiet-hours window. */
+export function useNotificationSettings() {
+  return useQuery({
+    queryKey: ['notification-settings'],
+    queryFn: async () => {
+      if (isDemoMode()) {
+        return {
+          preferences: NOTIFICATION_CATEGORIES.map((category) => ({
+            category,
+            push: true,
+            email: false,
+          })),
+          quietHours: { enabled: true, startHour: 22, endHour: 7 },
+        };
+      }
+      const [preferences, quietHours] = await Promise.all([
+        api().notifications.preferences(),
+        api().notifications.quietHours(),
+      ]);
+      return { preferences, quietHours };
+    },
+  });
+}
+
+export function useSetNotificationPreference() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { category: string; push: boolean; email: boolean }) => {
+      if (isDemoMode()) return input;
+      return api().notifications.setPreference(input.category, input.push, input.email);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-settings'] }),
+  });
+}
+
+export function useSetQuietHours() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { enabled: boolean; startHour: number; endHour: number }) => {
+      if (isDemoMode()) return input;
+      return api().notifications.setQuietHours(input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-settings'] }),
   });
 }
 

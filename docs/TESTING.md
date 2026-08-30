@@ -15,24 +15,34 @@ pnpm --filter @yugo/web dev            # Web http://localhost:3000
 Credenciales sembradas: `admin@yugo.do` / `Yugo.demo1` (superadmin con 2FA por OTP en
 consola de la API) y `demo1@yugo.do` … `demo40@yugo.do` / `Yugo.demo1` (miembros).
 
-> **Modo demo de la web**: con `NEXT_PUBLIC_DEMO_MODE=true` (por defecto) toda la
-> interfaz funciona sin API usando los fixtures de `@yugo/shared` — ideal para revisar
-> la UI de los mockups. Las verificaciones de API de abajo usan `curl`.
+> **Modo demo**: con `NEXT_PUBLIC_DEMO_MODE=true` en la web y `EXPO_PUBLIC_DEMO_MODE=true`
+> en móvil (ambos por defecto) toda la interfaz funciona sin API usando los fixtures de
+> `@yugo/shared` — ideal para revisar la UI de los mockups. Poniendo esas variables en
+> `false` las mismas pantallas hablan con la API real a través del cliente tipado
+> compartido; no hay un segundo camino de código. Las verificaciones de API de abajo
+> usan `curl`.
+
+```bash
+# La app móvil contra la API local
+EXPO_PUBLIC_DEMO_MODE=false EXPO_PUBLIC_API_URL=http://localhost:4000 \
+  pnpm --filter @yugo/mobile dev
+```
 
 ## Pruebas automatizadas
 
 ```bash
-pnpm test        # 36 specs API (Jest) + 16 specs shared (Vitest)
+pnpm test        # 51 specs API (Jest) + 26 specs shared (Vitest)
 pnpm typecheck   # api, web, mobile, packages
 pnpm lint        # 0 errores / 0 warnings
 pnpm build       # dist api + .next + packages
 
-# E2E web/admin/portal — 56 pruebas en móvil y escritorio
+# E2E web/admin/portal — 88 pruebas en móvil y escritorio
 pnpm --filter @yugo/web build
 pnpm --filter @yugo/web e2e
 # contra un despliegue: PLAYWRIGHT_BASE_URL=https://staging.yugo.do pnpm --filter @yugo/web e2e
 
-# E2E móvil (requiere Maestro y un emulador/dispositivo)
+# E2E móvil (requiere Maestro y un emulador/dispositivo) — 3 flujos:
+# registro con pacto, descubrir → chat moderado, perfil → verificación
 maestro test apps/mobile/.maestro
 
 # Carga (requiere k6 y un token válido)
@@ -140,3 +150,14 @@ Los logs de la API salen como una línea JSON por petición con `requestId` y `d
 
 - Mailpit: `http://localhost:8025` (correos transaccionales).
 - MinIO: `http://localhost:9001` (`yugo` / `yugo-secret`), bucket `yugo-media`.
+
+### Horario silencioso (RF-NOT-02)
+1. `GET /v1/notifications/quiet-hours` → la ventana por defecto `22:00 – 07:00`.
+2. `PUT /v1/notifications/quiet-hours` con `{ "enabled": true, "startHour": 22, "endHour": 7 }`.
+3. Provoca una notificación dentro de la ventana (por ejemplo un mensaje entrante a las
+   11 p. m. hora de Santo Domingo): la fila aparece de inmediato en `GET /v1/notifications`,
+   pero el push **no** sale — el trabajo queda en la cola con retraso hasta las 7 a. m.
+   Con `REDIS_URL` sin definir las colas corren en línea y el retraso se ignora, que es lo
+   esperado en desarrollo.
+4. En la app: Perfil → Notificaciones → Preferencias muestra la ventana y permite
+   silenciar cada categoría por separado.

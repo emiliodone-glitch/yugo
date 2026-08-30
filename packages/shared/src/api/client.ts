@@ -512,6 +512,16 @@ export class YugoApiClient {
       ),
     setPreference: (category: string, push: boolean, email: boolean) =>
       this.http.put<unknown>('/notifications/preferences', { category, push, email }),
+    // RF-NOT-02
+    quietHours: () =>
+      this.http.get<{ enabled: boolean; startHour: number; endHour: number }>(
+        '/notifications/quiet-hours',
+      ),
+    setQuietHours: (input: { enabled: boolean; startHour: number; endHour: number }) =>
+      this.http.put<{ enabled: boolean; startHour: number; endHour: number }>(
+        '/notifications/quiet-hours',
+        input,
+      ),
   };
 
   // ---- Privacy & legal (RF-SEG-06..08) ------------------------------------

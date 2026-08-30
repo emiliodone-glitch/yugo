@@ -230,17 +230,23 @@ export interface SubscriptionState {
   travelMode?: { city: string; activeUntil: string } | null;
 }
 
+/** The categories a member can silence one by one (RF-NOT-02). */
+export const NOTIFICATION_CATEGORIES = [
+  'CONNECTION',
+  'MESSAGE',
+  'INTEREST',
+  'EVENT',
+  'GROUP',
+  'VERIFICATION',
+  'MODERATION',
+  'SUBSCRIPTION',
+] as const;
+
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
 export interface NotificationItem {
   id: string;
-  category:
-    | 'CONNECTION'
-    | 'MESSAGE'
-    | 'INTEREST'
-    | 'EVENT'
-    | 'GROUP'
-    | 'VERIFICATION'
-    | 'MODERATION'
-    | 'SUBSCRIPTION';
+  category: NotificationCategory;
   title: string;
   body: string;
   createdAt: string;
