@@ -59,9 +59,14 @@ export default function DiscoverPage() {
         <div className="card mb-3 p-3">
           <div className="mb-2 flex items-center justify-between">
             <b className="text-[13px]">{es.discover.filters}</b>
-            <Link href="/perfil/preferencias" className="text-xs text-muted underline">
-              {es.profile.searchPreferences}
-            </Link>
+            <div className="flex gap-3 text-xs text-muted">
+              <Link href="/descubrir/guardados" className="underline">
+                {es.discover.savedProfiles}
+              </Link>
+              <Link href="/perfil/preferencias" className="underline">
+                {es.profile.searchPreferences}
+              </Link>
+            </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
             <span className="chip">Edad 26–38</span>

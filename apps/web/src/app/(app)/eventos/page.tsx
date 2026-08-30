@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { demoEvents, es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
 import { Avatar } from '@/components/ui';
@@ -117,7 +118,9 @@ export default function EventsPage() {
                     {timeLabel(event.startsAt)} · {event.costLabel}
                   </span>
                 </div>
-                <b className="mt-1 block text-[12.5px]">{event.title}</b>
+                <Link href={`/eventos/${event.id}`} className="mt-1 block">
+                  <b className="text-[12.5px]">{event.title}</b>
+                </Link>
                 <div className="text-[11px] text-muted">
                   {event.churchName}
                   {event.distanceKm !== undefined ? ` · ${event.distanceKm} km` : ''}

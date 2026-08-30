@@ -32,7 +32,7 @@ export default function ConnectionsPage() {
     <div className="px-4 pt-3">
       <div className="flex items-center justify-between pb-2">
         <h1 className="h-display text-[19px]">{es.connections.title}</h1>
-        <Link href="/plus" className="chip chip-wheat">
+        <Link href="/descubrir/te-interesa" className="chip chip-wheat">
           <StarIcon className="h-[11px] w-[11px]" />
           {es.discover.interestedCount(demoDailySummary.whoMarkedInterestCount)}
         </Link>

@@ -94,6 +94,14 @@ export default function ProfilePage() {
           <span className="ml-auto text-muted">›</span>
         </Link>
         <Link href="/perfil/visibilidad" className="list-row text-[12.5px]">
+          <span>{es.visibility.title}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
+        <Link href="/perfil/notificaciones" className="list-row text-[12.5px]">
+          <span>{es.notifications.title}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
+        <Link href="/perfil/privacidad" className="list-row text-[12.5px]">
           <span>{es.profile.privacySecurity}</span>
           <span className="ml-auto text-muted">›</span>
         </Link>
@@ -103,13 +111,21 @@ export default function ProfilePage() {
             <Toggle on={pausedProfile} onChange={setPausedProfile} label={es.profile.pauseProfile} />
           </span>
         </div>
-        <button
-          type="button"
-          className="list-row w-full text-left text-[12.5px] text-wine"
-          onClick={() => window.confirm(es.profile.deleteGrace)}
-        >
-          {es.profile.deleteAccount}
-        </button>
+        <Link href="/perfil/privacidad" className="list-row text-[12.5px] text-wine">
+          <span>{es.profile.deleteAccount}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
+      </div>
+      <div className="mt-4 flex justify-center gap-4 text-[11px] text-muted">
+        <Link href="/legal/terminos" className="underline">
+          Términos
+        </Link>
+        <Link href="/legal/privacidad" className="underline">
+          Privacidad
+        </Link>
+        <Link href="/legal/pacto" className="underline">
+          Pacto de conducta
+        </Link>
       </div>
       <p className="pb-6 pt-3 text-center text-[11px] text-muted">
         Yugo v0.1 · {es.common.tagline}

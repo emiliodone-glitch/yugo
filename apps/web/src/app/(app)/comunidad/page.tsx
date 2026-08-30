@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import {
   demoActivities,
@@ -60,7 +61,7 @@ export default function CommunityPage() {
           {/* Official group with prayer request (mockup) */}
           <div className="card p-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+              <Link href={`/comunidad/${myGroups[0].id}`} className="flex items-center gap-2.5">
                 <Avatar name={myGroups[0].name} size="s" square />
                 <div>
                   <b className="text-[12.5px]">{myGroups[0].name}</b>
@@ -69,7 +70,7 @@ export default function CommunityPage() {
                     {es.community.postsToday(myGroups[0].postsToday ?? 0)}
                   </div>
                 </div>
-              </div>
+              </Link>
               <span className="inline-flex items-center rounded-full bg-ink px-2 py-[3px] text-[10.5px] font-semibold text-white">
                 {es.common.official}
               </span>
@@ -100,7 +101,7 @@ export default function CommunityPage() {
 
           {/* Group with activity */}
           <div className="card p-3">
-            <div className="flex items-center gap-2.5">
+            <Link href={`/comunidad/${myGroups[1].id}`} className="flex items-center gap-2.5">
               <Avatar name={myGroups[1].name} size="s" square />
               <div>
                 <b className="text-[12.5px]">{myGroups[1].name}</b>
@@ -108,7 +109,7 @@ export default function CommunityPage() {
                   {es.community.membersCount(myGroups[1].memberCount)}
                 </div>
               </div>
-            </div>
+            </Link>
             <div className="mt-2.5 rounded-field bg-linen-2 p-2.5">
               <div className="flex items-center justify-between">
                 <span className="chip chip-wheat">{es.community.activityChip}</span>
@@ -137,7 +138,7 @@ export default function CommunityPage() {
       {tab === 'suggested'
         ? suggested.map((group) => (
             <div key={group.id} className="card flex items-center justify-between p-3">
-              <div className="flex items-center gap-2.5">
+              <Link href={`/comunidad/${group.id}`} className="flex items-center gap-2.5">
                 <Avatar name={group.name} size="s" square />
                 <div>
                   <b className="text-[12.5px]">{group.name}</b>
@@ -146,7 +147,7 @@ export default function CommunityPage() {
                     {group.city ? ` · ${group.city}` : ''}
                   </div>
                 </div>
-              </div>
+              </Link>
               {group.type === 'APPROVAL' ? (
                 <span className="text-[11px] text-muted">{es.community.withApproval}</span>
               ) : (
