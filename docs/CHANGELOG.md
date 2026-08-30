@@ -239,6 +239,26 @@ lista del día, horario silencioso, conexión recíproca y moderación previa de
 chat), y CI ahora aplica migraciones, **comprueba que no haya deriva de esquema**,
 compila la API, la arranca y corre esa suite.
 
+### Los adaptadores sin proveedor ahora fallan cerrado
+Al revisar qué queda en manos de terceros apareció un patrón peligroso: dos
+adaptadores **aprobaban** cuando no había proveedor configurado, en vez de
+esperar a una persona.
+
+- **Comparación facial (RF-VER-01).** El comparador estaba fijado al stub, sin
+  forma de conectar un proveedor real: en producción la verificación de
+  identidad se resolvía con un puntaje inventado. Ahora se elige por
+  `FACE_MATCH_URL`, el stub devuelve 0.5 (por debajo del umbral de 0.93, así que
+  nunca aprueba) y un fallo del proveedor deja la similitud desconocida en lugar
+  de asumir un pase. La regla se extrajo a `shouldAutoApprove()` con 5 pruebas
+  que la fijan.
+- **Moderación de imágenes (RF-SEG-02).** Sin proveedor, el stub aprobaba todas
+  las fotos — también en producción. Ahora el stub queda para desarrollo y una
+  producción sin configurar retiene cada foto para revisión humana: más lento,
+  nunca inseguro.
+
+La moderación de texto ya fallaba cerrado (retiene cuando el clasificador cae) y
+se dejó igual.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de

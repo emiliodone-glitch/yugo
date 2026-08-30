@@ -7,10 +7,24 @@ export interface ImageClassifier {
   classify(storageKey: string): Promise<{ risk: number; categories: string[] }>;
 }
 
-/** Dev stub: approves everything with negligible risk. */
+/**
+ * Dev stub: approves everything with negligible risk, so the local upload flow
+ * works without a vendor. Never selected in production — see the constructor.
+ */
 class StubImageClassifier implements ImageClassifier {
   async classify(): Promise<{ risk: number; categories: string[] }> {
     return { risk: 0.01, categories: [] };
+  }
+}
+
+/**
+ * Production without a configured vendor. Prior moderation of every image is
+ * non-negotiable, so instead of approving blindly this holds each photo for a
+ * person to review. Slower, never unsafe.
+ */
+class HoldEverythingClassifier implements ImageClassifier {
+  async classify(): Promise<{ risk: number; categories: string[] }> {
+    return { risk: 1, categories: ['no_classifier_configured'] };
   }
 }
 
@@ -34,10 +48,21 @@ class ExternalImageClassifier implements ImageClassifier {
 @Injectable()
 export class ImageModerationService implements OnModuleInit {
   private readonly logger = new Logger(ImageModerationService.name);
-  private readonly classifier: ImageClassifier =
-    process.env.IMAGE_MODERATION_PROVIDER === 'external' && process.env.IMAGE_MODERATION_URL
-      ? new ExternalImageClassifier()
+  private readonly classifier: ImageClassifier = ImageModerationService.pickClassifier();
+
+  /**
+   * The vendor when configured; otherwise the stub in development and
+   * hold-everything in production. An unconfigured production deployment must
+   * not publish photos nobody looked at.
+   */
+  private static pickClassifier(): ImageClassifier {
+    if (process.env.IMAGE_MODERATION_PROVIDER === 'external' && process.env.IMAGE_MODERATION_URL) {
+      return new ExternalImageClassifier();
+    }
+    return process.env.NODE_ENV === 'production'
+      ? new HoldEverythingClassifier()
       : new StubImageClassifier();
+  }
 
   constructor(
     private readonly prisma: PrismaService,
