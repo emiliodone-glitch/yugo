@@ -6,6 +6,8 @@
  */
 import { affinityReason } from '../affinity/reason';
 import { relativeDayLabel } from '../events/when';
+import type { DevotionalToday } from '../api/client';
+import type { PrayerRequestItem } from '../prayer/wall';
 import type {
   AffinityBreakdown,
   ConnectionSummary,
@@ -896,3 +898,112 @@ export const demoChurch = {
     { id: 'er-2', name: 'Raúl Féliz', gender: 'MALE' as const, attendsSince: 2024, leader: null },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Devocional del día y muro de oración
+// ---------------------------------------------------------------------------
+
+/**
+ * El devocional de hoy, tal como lo devuelve la API.
+ *
+ * `churchReadCount` es el número que da sentido a todo lo demás: no es que
+ * alguien leyó un texto, es que su congregación leyó el mismo texto y el
+ * domingo pueden hablar de eso.
+ */
+export const demoDevotional: DevotionalToday = {
+  id: 'dev-hoy',
+  publishOn: new Date().toISOString().slice(0, 10),
+  isToday: true,
+  reference: 'Proverbios 4:23',
+  title: 'Guarda tu corazón',
+  body:
+    'Sobre toda cosa guardada, guarda tu corazón, porque de él mana la vida. ' +
+    'Guardar no es cerrar: es saber a quién le abres, y en qué orden.',
+  question: '¿A quién le has abierto el corazón esta semana, y por qué a esa persona?',
+  myReflection: null,
+  myReflectionStatus: null,
+  readByMe: false,
+  readCount: 312,
+  churchReadCount: 27,
+  reflections: [
+    {
+      userId: 'u-lucia',
+      name: 'Lucía',
+      reflection: 'Me pegó lo del orden. Yo abro primero y pienso después.',
+      readAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+    },
+    {
+      userId: 'u-jonathan',
+      name: 'Jonathan',
+      reflection: 'Lo leí camino al trabajo y lo volví a leer de noche.',
+      readAt: new Date(Date.now() - 6 * 3600000).toISOString(),
+    },
+  ],
+  constancy: { daysRead: 9, windowDays: 30, readToday: false },
+};
+
+/**
+ * El muro, ya ordenado como lo ordena `rankPrayerRequests`.
+ *
+ * Trae a propósito una petición anónima en cero: es la que el orden tiene que
+ * subir, y es la que prueba que el anonimato es real — no llega ni el nombre
+ * ni la iglesia de quien la escribió.
+ */
+export const demoPrayerRequests: PrayerRequestItem[] = [
+  {
+    id: 'pr-contestada',
+    body: 'Llevaba cuatro meses sin trabajo y ya se me estaba acabando la fe.',
+    anonymous: true,
+    authorName: null,
+    authorId: null,
+    churchName: null,
+    sameChurch: false,
+    intercessions: 14,
+    iPrayed: true,
+    answeredAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+    answeredNote: 'Salió el trabajo. Empiezo el lunes. Gracias a los que oraron.',
+    createdAt: new Date(Date.now() - 6 * 86400000).toISOString(),
+  },
+  {
+    id: 'pr-sola',
+    body: 'Empiezo la universidad a los 34 y me da vergüenza. Por valor.',
+    anonymous: true,
+    authorName: null,
+    authorId: null,
+    churchName: null,
+    sameChurch: false,
+    intercessions: 0,
+    iPrayed: false,
+    answeredAt: null,
+    answeredNote: null,
+    createdAt: new Date(Date.now() - 9 * 3600000).toISOString(),
+  },
+  {
+    id: 'pr-mama',
+    body: 'Por mi mamá, que la operan el jueves. Que las manos del médico estén firmes.',
+    anonymous: false,
+    authorName: 'Mariel',
+    authorId: 'u-mariel',
+    churchName: 'Iglesia Monte de Sion',
+    sameChurch: true,
+    intercessions: 11,
+    iPrayed: false,
+    answeredAt: null,
+    answeredNote: null,
+    createdAt: new Date(Date.now() - 20 * 3600000).toISOString(),
+  },
+  {
+    id: 'pr-hija',
+    body: 'Por mi hija de 7 años, que le cuesta dormir desde que nos mudamos.',
+    anonymous: false,
+    authorName: 'Jonathan',
+    authorId: 'u-jonathan',
+    churchName: 'Iglesia Bíblica Emanuel',
+    sameChurch: false,
+    intercessions: 9,
+    iPrayed: false,
+    answeredAt: null,
+    answeredNote: null,
+    createdAt: new Date(Date.now() - 30 * 3600000).toISOString(),
+  },
+];

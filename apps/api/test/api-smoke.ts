@@ -94,6 +94,32 @@ async function seedEmailOf(userId: string): Promise<string | null> {
 }
 
 /**
+ * Peticiones de oración que esta persona ya publicó hoy.
+ *
+ * La suite no puede asumir que empieza en cero: la semilla reparte peticiones
+ * entre los miembros, y quien la corre puede ser uno de ellos. Leer el punto
+ * de partida es lo que hace que la comprobación del límite diario diga algo
+ * en vez de depender de la suerte.
+ */
+async function todaysPrayerCount(email: string): Promise<number> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const day = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    return prisma.prayerRequest.count({
+      where: { user: { email }, createdAt: { gte: new Date(`${day}T04:00:00.000Z`) } },
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
  * A seeded member with a level-3 endorsement who is not in the bond under
  * test — the only kind of person who can act as a padrino.
  */
@@ -805,6 +831,200 @@ async function main() {
       const mine = (promoted.body ?? []).find((e: { id: string }) => e.id === eventId);
       check('al cancelar, el primero de la lista entra', mine?.myStatus === 'GOING', mine?.myStatus);
     }
+  }
+
+  console.log('\nDevocional del día — el mismo texto para todos');
+  {
+    const devotional = await call('GET', '/devocional/hoy', { token });
+    check('hay un devocional publicado', !!devotional.body?.id, devotional.body);
+
+    if (devotional.body?.id) {
+      const id = devotional.body.id as string;
+      check('trae su referencia bíblica', !!devotional.body.reference, devotional.body.reference);
+      check('trae una pregunta para pensar', !!devotional.body.question, devotional.body.question);
+      check(
+        'la constancia cuenta días, no rachas',
+        devotional.body.constancy?.windowDays === 30,
+        devotional.body.constancy,
+      );
+      // Nada en la respuesta puede llamarse racha: la ausencia es la decisión.
+      check(
+        'la API no manda ningún campo de racha',
+        !JSON.stringify(devotional.body).match(/streak|racha/i),
+        Object.keys(devotional.body),
+      );
+
+      // Es el mismo devocional para otra persona: sin eso, «142 de tu iglesia
+      // lo leyeron hoy» no significaría nada.
+      if (theirTokenForStages) {
+        const theirs = await call('GET', '/devocional/hoy', { token: theirTokenForStages });
+        check('la otra persona recibe el mismo devocional', theirs.body?.id === id, {
+          mine: id,
+          theirs: theirs.body?.id,
+        });
+      }
+
+      const before = devotional.body.readCount as number;
+      const wasRead = devotional.body.readByMe === true;
+      const read = await call('POST', `/devocional/${id}/leido`, {
+        token,
+        body: { reflection: 'Lo leí en la mañana y me quedé pensándolo.' },
+      });
+      check('marcar leído funciona', read.body?.readByMe === true, read.body);
+      check('la reflexión limpia se publica', read.body?.published === true, read.body);
+
+      const after = await call('GET', '/devocional/hoy', { token });
+      check('marca que ya lo leí', after.body?.readByMe === true, after.body?.readByMe);
+
+      // Quien ya lo había leído no vuelve a sumar. Es la invariante que hace
+      // creíble el número de la congregación: si volver a abrirlo lo inflara,
+      // «27 de tu iglesia lo leyeron hoy» dejaría de significar 27 personas.
+      const now = after.body?.readCount ?? 0;
+      check(
+        wasRead ? 'volver a abrirlo no infla el conteo' : 'sube el conteo de lectores',
+        wasRead ? now === before : now === before + 1,
+        { before, after: now, wasRead },
+      );
+
+      // Y explícitamente: marcar leído dos veces seguidas no mueve el número.
+      await call('POST', `/devocional/${id}/leido`, { token, body: {} });
+      const twice = await call('GET', '/devocional/hoy', { token });
+      check('marcarlo dos veces no cuenta dos', twice.body?.readCount === now, {
+        expected: now,
+        got: twice.body?.readCount,
+      });
+
+      // Una reflexión que la moderación retiene no se le muestra a la iglesia.
+      const held = await call('POST', `/devocional/${id}/leido`, {
+        token,
+        body: { reflection: 'Escríbeme por whatsapp para seguir hablando de esto.' },
+      });
+      check('una reflexión retenida no se publica', held.body?.published === false, held.body);
+    }
+  }
+
+  console.log('\nMuro de oración — anonimato real y nadie en cero');
+  {
+    const wall = await call('GET', '/oracion', { token });
+    check('el muro responde', Array.isArray(wall.body), wall.body);
+
+    const anonymous = (wall.body ?? []).filter((p: { anonymous: boolean }) => p.anonymous);
+    check('hay peticiones anónimas sembradas', anonymous.length > 0, anonymous.length);
+
+    // La invariante que sostiene el anonimato: de una petición anónima no
+    // sale del servidor ni el nombre, ni el id, ni la iglesia. No se oculta
+    // en la pantalla — no viaja.
+    const leaks = anonymous.filter(
+      (p: { authorName: string | null; authorId: string | null; churchName: string | null }) =>
+        p.authorName !== null || p.authorId !== null || p.churchName !== null,
+    );
+    check('ninguna anónima trae autor ni iglesia', leaks.length === 0, leaks);
+
+    // La regla del orden: si hay alguna sin acompañar, va antes que las
+    // acompañadas que no fueron contestadas hace poco.
+    const items = wall.body ?? [];
+    const firstUnaccompanied = items.findIndex(
+      (p: { intercessions: number }) => p.intercessions === 0,
+    );
+    const lastAccompaniedOpen = items.reduce(
+      (acc: number, p: { intercessions: number; answeredAt: string | null }, i: number) =>
+        p.intercessions > 0 && !p.answeredAt ? i : acc,
+      -1,
+    );
+    if (firstUnaccompanied >= 0 && lastAccompaniedOpen >= 0) {
+      check(
+        'la petición que nadie acompañó va por encima',
+        firstUnaccompanied < lastAccompaniedOpen,
+        { firstUnaccompanied, lastAccompaniedOpen },
+      );
+    }
+
+    // El límite diario es de 3 y cuenta también las retenidas (si no, llenar
+    // la cola de moderación sería gratis), así que la suite mide desde dónde
+    // arranca esta cuenta antes de gastarlo.
+    const writerToken = token;
+    const startingToday = await todaysPrayerCount(me.body.email);
+
+    // Crear una anónima y comprobar que otra persona no puede saber de quién es.
+    const created = await call('POST', '/oracion', {
+      token: writerToken,
+      body: { body: 'Tengo una deuda que no he podido contarle a nadie en mi casa.', anonymous: true },
+    });
+    check('se puede pedir oración en anónimo', created.body?.published === true, created.body);
+
+    if (theirTokenForStages && created.body?.id) {
+      const theirWall = await call('GET', '/oracion', { token: theirTokenForStages });
+      const seen = (theirWall.body ?? []).find(
+        (p: { id: string }) => p.id === created.body.id,
+      );
+      check('la otra persona sí la ve', !!seen, seen);
+      check(
+        'pero no sabe quién la escribió',
+        seen?.authorId === null && seen?.authorName === null,
+        seen,
+      );
+
+      // Y no aparece filtrando por congregación: churchId se guarda en null.
+      const theirChurchWall = await call('GET', '/oracion', {
+        token: theirTokenForStages,
+        query: { scope: 'church' },
+      });
+      const inChurch = (theirChurchWall.body ?? []).find(
+        (p: { id: string }) => p.id === created.body.id,
+      );
+      check('una anónima nunca sale en la vista de la iglesia', !inChurch, inChurch);
+
+      // Interceder, y que el conteo suba de verdad.
+      const prayed = await call('POST', `/oracion/${created.body.id}/oro`, {
+        token: theirTokenForStages,
+      });
+      check('«estoy orando» cuenta', prayed.body?.intercessions === 1, prayed.body);
+
+      // Nadie más puede cerrar una petición ajena.
+      const notMine = await call('POST', `/oracion/${created.body.id}/contestada`, {
+        token: theirTokenForStages,
+        body: {},
+      });
+      check('nadie cierra la petición de otro', notMine.status === 403, notMine.status);
+
+      // Quien la escribió sí, y se avisa a quienes oraron.
+      const closed = await call('POST', `/oracion/${created.body.id}/contestada`, {
+        token: writerToken,
+        body: { note: 'Se resolvió. Gracias a los que oraron conmigo.' },
+      });
+      check('quien la escribió sí la cierra', !!closed.body?.answeredAt, closed.body);
+    }
+
+    // La moderación previa: pedir dinero no se publica.
+    const scam = await call('POST', '/oracion', {
+      token: writerToken,
+      body: { body: 'Necesito que me deposites dinero por transferencia para la operación.', anonymous: false },
+    });
+    check('una petición con pedido de dinero no se publica', scam.body?.published === false, scam.body);
+
+    // Van dos gastadas en este bloque (la anónima y la del dinero). La
+    // retenida sí ocupó su lugar, que es la parte que importa: si no contara,
+    // llenar la cola de moderación sería gratis.
+    let spent = startingToday + 2;
+    let limitHit: { status: number; body: { message?: string } } | null = null;
+    while (spent < 3 + startingToday && !limitHit) {
+      const extra = await call('POST', '/oracion', {
+        token: writerToken,
+        body: { body: 'Por mi trabajo, que ha estado difícil este mes.', anonymous: false },
+      });
+      if (extra.status === 400) limitHit = extra;
+      spent += 1;
+    }
+    const overLimit = limitHit ?? (await call('POST', '/oracion', {
+      token: writerToken,
+      body: { body: 'Por mi vecina, que está pasando por algo duro.', anonymous: false },
+    }));
+    check('pasado el límite del día, se rechaza', overLimit.status === 400, overLimit.body);
+    check(
+      'y el motivo es el límite, no otra cosa',
+      overLimit.body?.message === 'prayer_daily_limit',
+      overLimit.body,
+    );
   }
 
   console.log('\nRF-CON-05 — moderación previa del chat');

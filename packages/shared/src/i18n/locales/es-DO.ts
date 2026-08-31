@@ -361,6 +361,78 @@ export const es = {
     read: 'Leído',
   },
 
+  /**
+   * Devocional del día.
+   *
+   * Ni una sola cadena habla de rachas, de días perdidos ni de haber fallado:
+   * es una disciplina espiritual, y convertirla en un marcador le añade culpa
+   * a quien faltó, que es justo a quien más falta hace que vuelva.
+   */
+  devotional: {
+    title: 'Devocional de hoy',
+    todayShort: 'Devocional',
+    notTodayYet: 'El de hoy todavía no está publicado. Este es el último.',
+    readIt: 'Ya lo leí',
+    readByMe: 'Leído hoy',
+    toThink: 'Para pensarlo',
+    reflectionLabel: 'Si quieres, déjalo escrito',
+    reflectionPlaceholder: 'Una frase basta.',
+    reflectionHelp: 'Lo verá tu congregación. Pasa por revisión antes de publicarse.',
+    reflectionHeld: 'Quedó en revisión. Se publica cuando alguien la apruebe.',
+    save: 'Guardar',
+    churchRead: (n: number) =>
+      n === 0
+        ? 'Todavía nadie de tu iglesia lo ha leído hoy.'
+        : n === 1
+          ? '1 persona de tu iglesia lo leyó hoy.'
+          : `${n} personas de tu iglesia lo leyeron hoy.`,
+    fromYourChurch: 'De tu congregación',
+    noReflectionsYet: 'Nadie ha escrito todavía. Puedes ser el primero.',
+    seeDevotional: 'Leer el devocional',
+  },
+
+  /**
+   * Muro de oración.
+   *
+   * `intercessionCount` nunca imprime un cero: «0 personas orando» es una
+   * humillación impresa, y quien la lee es la persona que peor la está pasando.
+   */
+  prayer: {
+    title: 'Muro de oración',
+    tabAll: 'Toda la comunidad',
+    tabChurch: 'Mi iglesia',
+    write: 'Pedir oración',
+    bodyLabel: '¿Por qué quieres que oren?',
+    bodyPlaceholder: 'Cuéntalo como se lo contarías a alguien de confianza.',
+    anonymous: 'Publicarla sin mi nombre',
+    anonymousHelp:
+      'Nadie verá quién la escribió, ni tu congregación. Tú sí la vas a ver como tuya.',
+    publish: 'Publicar',
+    held: 'Quedó en revisión. Se publica cuando alguien la apruebe.',
+    dailyLimit: 'Ya publicaste tus peticiones de hoy.',
+    anonymousAuthor: 'Alguien de la comunidad',
+    mineAnonymous: 'Tu petición (anónima)',
+    mine: 'Tu petición',
+    praying: 'Estoy orando',
+    prayingDone: 'Estás orando',
+    intercessionCount: (n: number) =>
+      n === 0
+        ? 'Sé el primero en acompañar'
+        : n === 1
+          ? '1 persona está orando'
+          : `${n} personas están orando`,
+    answered: 'Contestada',
+    markAnswered: 'Fue contestada',
+    answeredNoteLabel: '¿Qué pasó?',
+    answeredNotePlaceholder: 'Cuéntalo. Es lo que sostiene este muro.',
+    answeredNoteHeld: 'Tu testimonio quedó en revisión. La petición ya está marcada.',
+    empty: 'Todavía no hay peticiones. La primera puede ser la tuya.',
+    emptyChurch: 'Nadie de tu congregación ha pedido oración todavía.',
+    myRequests: 'Mis peticiones',
+    inReview: 'En revisión',
+    remove: 'Borrar',
+  },
+
   community: {
     title: 'Comunidad',
     createGroup: '+ Crear grupo',

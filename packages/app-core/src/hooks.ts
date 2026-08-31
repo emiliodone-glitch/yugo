@@ -26,6 +26,8 @@ import {
   SAFETY_TIPS_V1,
   isExclusive,
   nextStage,
+  rankPrayerRequests,
+  type PrayerScope,
   type ChatMessage,
   type AccompaniedBond,
   type MentorProfile,
@@ -1349,5 +1351,103 @@ export function useAnswerStageQuestion(matchId: string) {
       return api().connections.answerQuestion(matchId, questionId, answer);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stage-questions', matchId] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Devocional del día
+// ---------------------------------------------------------------------------
+
+/**
+ * El devocional de hoy.
+ *
+ * Devuelve `churchReadCount` porque es lo que convierte una lectura solitaria
+ * en algo compartido: no importa que 312 personas lo leyeran, importa que 27
+ * de tu congregación leyeron lo mismo que tú.
+ */
+export function useDevotional() {
+  const demo = useDemoStore((s) => s.devotional);
+  const live = useQuery({
+    queryKey: ['devotional'],
+    enabled: !isDemoMode(),
+    queryFn: () => api().devotional.today(),
+  });
+
+  if (!isDemoMode()) return live;
+  return { ...live, data: demo, isLoading: false } as typeof live;
+}
+
+export function useReadDevotional() {
+  const queryClient = useQueryClient();
+  const readDemo = useDemoStore((s) => s.readDevotional);
+  return useMutation({
+    mutationFn: async ({ id, reflection }: { id: string; reflection?: string }) => {
+      if (isDemoMode()) return readDemo(reflection);
+      return api().devotional.read(id, reflection);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['devotional'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Muro de oración
+// ---------------------------------------------------------------------------
+
+/**
+ * El muro.
+ *
+ * El orden lo decide el servidor con `rankPrayerRequests` para que la regla de
+ * «nadie se queda en cero» no dependa de qué pantalla lo esté pintando. En
+ * demo se aplica la misma función sobre las mismas fixtures.
+ */
+export function usePrayerWall(scope: PrayerScope = 'community') {
+  const demo = useDemoStore((s) => s.prayers);
+  const live = useQuery({
+    queryKey: ['prayer-wall', scope],
+    enabled: !isDemoMode(),
+    queryFn: () => api().prayer.wall(scope),
+  });
+
+  if (!isDemoMode()) return live;
+  const filtered = scope === 'church' ? demo.filter((item) => item.sameChurch) : demo;
+  return { ...live, data: rankPrayerRequests(filtered), isLoading: false } as typeof live;
+}
+
+export function useIntercede() {
+  const queryClient = useQueryClient();
+  const intercedeDemo = useDemoStore((s) => s.intercede);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (isDemoMode()) return intercedeDemo(id);
+      return api().prayer.intercede(id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['prayer-wall'] }),
+  });
+}
+
+export function useCreatePrayer() {
+  const queryClient = useQueryClient();
+  const createDemo = useDemoStore((s) => s.createPrayer);
+  return useMutation({
+    mutationFn: async ({ body, anonymous }: { body: string; anonymous: boolean }) => {
+      if (isDemoMode()) return createDemo(body, anonymous);
+      return api().prayer.create(body, anonymous);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['prayer-wall'] }),
+  });
+}
+
+export function useMarkPrayerAnswered() {
+  const queryClient = useQueryClient();
+  const markDemo = useDemoStore((s) => s.markPrayerAnswered);
+  return useMutation({
+    mutationFn: async ({ id, note }: { id: string; note?: string }) => {
+      if (isDemoMode()) {
+        markDemo(id, note);
+        return { id, answeredAt: new Date().toISOString(), answeredNote: note ?? null, noteHeld: false };
+      }
+      return api().prayer.markAnswered(id, note);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['prayer-wall'] }),
   });
 }

@@ -2,8 +2,9 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es } from '@yugo/shared';
-import { useHomeSummary, useSession, useSetAttendance } from '@yugo/app-core';
+import { useHomeSummary, usePrayerWall, useSession, useSetAttendance } from '@yugo/app-core';
 import { AffinityRing, AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
+import { DevotionalCard } from '../../components/devotional';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
@@ -35,6 +36,17 @@ export default function HomeScreen() {
             <AvatarCircle name={displayName || 'Y'} size={34} />
           </Pressable>
         </View>
+
+        {/*
+          El devocional y el muro son la razón para volver mañana. Van arriba
+          de las sugerencias a propósito: cuando alguien termina su lista del
+          día, estas dos cosas siguen aquí, y sirven aunque nunca conozca a
+          nadie.
+        */}
+        <Pressable onPress={() => router.push('/devocional')}>
+          <DevotionalCard compact />
+        </Pressable>
+        <PrayerPeek />
 
         {/* Administrable banners (RF-ADM-10) */}
         {data?.banners?.map((banner) => (
@@ -164,6 +176,41 @@ export default function HomeScreen() {
   );
 }
 
+/**
+ * Un vistazo al muro, no el muro entero.
+ *
+ * Muestra dos peticiones y una de ellas es, por el orden del servidor, la que
+ * nadie ha acompañado todavía: es la que de verdad necesita que alguien pase
+ * por aquí hoy.
+ */
+function PrayerPeek() {
+  const { data } = usePrayerWall();
+  const items = (data ?? []).slice(0, 2);
+  if (items.length === 0) return null;
+
+  return (
+    <View>
+      <View style={styles.sectionRow}>
+        <H size={15}>{es.prayer.title}</H>
+        <Pressable onPress={() => router.push('/oracion')}>
+          <Sub>{es.common.seeAll}</Sub>
+        </Pressable>
+      </View>
+      {items.map((item) => (
+        <Pressable key={item.id} onPress={() => router.push('/oracion')}>
+          <Card>
+            {item.answeredAt ? <Chip label={es.prayer.answered} tone="olive" /> : null}
+            <Text style={styles.prayerBody}>{item.body}</Text>
+            <Sub style={{ fontSize: 11, marginTop: 8 }}>
+              {es.prayer.intercessionCount(item.intercessions)}
+            </Sub>
+          </Card>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8 },
   headerRow: {
@@ -187,4 +234,5 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eventBanner: { height: 92, backgroundColor: colors.wine },
   suggestionCard: { minWidth: 130, marginBottom: 0, padding: 10 },
+  prayerBody: { fontFamily: fonts.body, fontSize: 13, color: colors.ink, marginTop: 8, lineHeight: 19 },
 });

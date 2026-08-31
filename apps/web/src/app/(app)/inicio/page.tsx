@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { es } from '@yugo/shared';
 import { useHomeSummary, useSession, useSetAttendance } from '@/lib/hooks';
 import { Avatar, AffinityRing } from '@/components/ui';
+import { DevotionalCard } from '@/components/devotional';
+import { usePrayerWall } from '@/lib/hooks';
 import { CalendarIcon, PinIcon } from '@/components/icons';
 
 function formatDate(date: Date): string {
@@ -13,6 +15,45 @@ function formatDate(date: Date): string {
     month: 'long',
     timeZone: 'America/Santo_Domingo',
   }).format(date);
+}
+
+/**
+ * Un vistazo al muro, no el muro entero.
+ *
+ * Muestra dos peticiones y una de ellas es, por el orden del servidor, la que
+ * nadie ha acompañado todavía: es la que de verdad necesita que alguien pase
+ * por aquí hoy.
+ */
+function PrayerPeek() {
+  const { data } = usePrayerWall();
+  const items = (data ?? []).slice(0, 2);
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-3" aria-label={es.prayer.title}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="h-display text-[15px]">{es.prayer.title}</h2>
+        <Link href="/oracion" className="text-xs text-muted">
+          {es.common.seeAll}
+        </Link>
+      </div>
+      <ul className="space-y-2.5">
+        {items.map((item) => (
+          <li key={item.id} className="card m-0">
+            {item.answeredAt ? (
+              <span className="chip chip-olive">{es.prayer.answered}</span>
+            ) : null}
+            <p className={`text-[13px] leading-relaxed ${item.answeredAt ? 'mt-1.5' : ''}`}>
+              {item.body}
+            </p>
+            <div className="mt-2 text-[11px] text-muted">
+              {es.prayer.intercessionCount(item.intercessions)}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function formatEventDay(iso: string): string {
@@ -76,6 +117,16 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/*
+        El devocional y el muro son la razón para volver mañana. Van arriba de
+        las sugerencias a propósito: cuando alguien termina su lista del día,
+        estas dos cosas siguen aquí, y sirven aunque nunca conozca a nadie.
+      */}
+      <div className="mt-3">
+        <DevotionalCard compact />
+      </div>
+      <PrayerPeek />
 
       {/* Administrable home banners (RF-ADM-10) */}
       {banners.map((banner) => (

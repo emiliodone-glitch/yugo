@@ -8,7 +8,9 @@ import { create } from 'zustand';
 import {
   demoCurrentUser,
   demoDailySummary,
+  demoDevotional,
   demoEvents,
+  demoPrayerRequests,
   demoMessages,
   seatFor,
   LIMITS,
@@ -17,6 +19,9 @@ import {
   type ChatMessage,
   type CoupleAccompaniment,
   type CoupleStory,
+  type DevotionalToday,
+  type DevotionalReadResult,
+  type PrayerRequestItem,
   type StageQuestionsView,
   canReveal,
   questionsFor,
@@ -100,6 +105,16 @@ interface DemoState {
   saveMeetingPlan: (matchId: string, input: MeetingPlanInput) => MeetingPlan;
   updateMeetingPlan: (matchId: string, patch: Partial<MeetingPlan>) => MeetingPlan;
   cancelMeetingPlan: (matchId: string) => void;
+
+  /** Devocional del día: lo leído y lo escrito, en esta sesión de demo. */
+  devotional: DevotionalToday;
+  readDevotional: (reflection?: string) => DevotionalReadResult;
+
+  /** Muro de oración. */
+  prayers: PrayerRequestItem[];
+  intercede: (id: string) => { iPrayed: boolean; intercessions: number };
+  createPrayer: (body: string, anonymous: boolean) => { id: string; published: boolean };
+  markPrayerAnswered: (id: string, note?: string) => void;
 }
 
 /**
@@ -402,6 +417,94 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       },
     }));
     return 'ok';
+  },
+
+  devotional: demoDevotional,
+
+  /**
+   * Marcar leído. La constancia sube un día, nunca baja de golpe y no existe
+   * un momento «perdiste la racha»: la demo tiene que enseñar exactamente esa
+   * ausencia, porque es una decisión de producto, no un olvido.
+   */
+  readDevotional: (reflection) => {
+    const current = get().devotional;
+    const text = reflection?.trim();
+    // Imita el clasificador de la API para que la demo enseñe la moderación
+    // previa tal como se siente de verdad.
+    const status = text ? (demoModerationStatus(text) === 'APPROVED' ? 'APPROVED' : 'HELD') : null;
+    const next: DevotionalToday = {
+      ...current,
+      readByMe: true,
+      myReflection: text ?? current.myReflection,
+      myReflectionStatus: status ?? current.myReflectionStatus,
+      readCount: current.readByMe ? current.readCount : current.readCount + 1,
+      churchReadCount: current.readByMe ? current.churchReadCount : current.churchReadCount + 1,
+      constancy: current.constancy.readToday
+        ? current.constancy
+        : { ...current.constancy, daysRead: current.constancy.daysRead + 1, readToday: true },
+    };
+    set({ devotional: next });
+    return {
+      readByMe: true,
+      reflection: next.myReflection,
+      reflectionStatus: next.myReflectionStatus,
+      published: next.myReflectionStatus === 'APPROVED',
+    };
+  },
+
+  prayers: demoPrayerRequests,
+
+  intercede: (id) => {
+    const list = get().prayers;
+    const item = list.find((p) => p.id === id);
+    if (!item) return { iPrayed: false, intercessions: 0 };
+    const iPrayed = !item.iPrayed;
+    const intercessions = item.intercessions + (iPrayed ? 1 : -1);
+    set({
+      prayers: list.map((p) => (p.id === id ? { ...p, iPrayed, intercessions } : p)),
+    });
+    return { iPrayed, intercessions };
+  },
+
+  createPrayer: (body, anonymous) => {
+    const held = demoModerationStatus(body) !== 'APPROVED';
+    const id = `pr-${Date.now()}`;
+    // Lo retenido no aparece en el muro: la demo no debe enseñar una publicación
+    // que la API no haría.
+    if (!held) {
+      set((state) => ({
+        prayers: [
+          {
+            id,
+            body,
+            anonymous,
+            // Ni el nombre ni la iglesia viajan cuando es anónima, igual que
+            // en la API. Quien la escribió sí la reconoce como suya.
+            authorName: anonymous ? null : demoCurrentUser.displayName,
+            authorId: demoCurrentUser.userId,
+            churchName: null,
+            sameChurch: false,
+            intercessions: 0,
+            iPrayed: false,
+            answeredAt: null,
+            answeredNote: null,
+            createdAt: new Date().toISOString(),
+          },
+          ...state.prayers,
+        ],
+      }));
+    }
+    return { id, published: !held };
+  },
+
+  markPrayerAnswered: (id, note) => {
+    set((state) => ({
+      prayers: state.prayers.map((p) =>
+        p.id === id
+          ? { ...p, answeredAt: new Date().toISOString(), answeredNote: note?.trim() || null }
+          : p,
+      ),
+    }));
   },
 
   accompaniment: demoAccompaniment,
