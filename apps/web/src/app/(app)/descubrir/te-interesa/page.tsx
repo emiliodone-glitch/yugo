@@ -42,7 +42,7 @@ export default function InterestedInYouPage() {
               href={`/descubrir/${profile.userId}`}
               className="card flex items-center gap-3"
             >
-              <Avatar name={profile.displayName} size="m" />
+              <Avatar name={profile.displayName} size="m" photoUrl={(profile as { photoUrl?: string }).photoUrl} />
               <div className="min-w-0 flex-1">
                 <b className="text-[12.5px]">
                   {profile.displayName}, {profile.age}

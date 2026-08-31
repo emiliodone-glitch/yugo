@@ -115,7 +115,11 @@ export default function ChatScreen() {
         <Pressable onPress={() => router.back()} style={{ padding: 4 }}>
           <Text style={{ fontSize: 22, color: colors.ink }}>‹</Text>
         </Pressable>
-        <AvatarCircle name={connection.otherUser.displayName} size={34} />
+        <AvatarCircle
+          name={connection.otherUser.displayName}
+          size={34}
+          photoUrl={connection.otherUser.photoUrl}
+        />
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{connection.otherUser.displayName}</Text>
           {connection.otherUser.churchName ? (

@@ -6,9 +6,10 @@ import { IcebreakersService } from './icebreakers.service';
 import { ModerationModule } from '../moderation/moderation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { MediaModule } from '../media/media.module';
 
 @Module({
-  imports: [ModerationModule, NotificationsModule, SubscriptionsModule],
+  imports: [ModerationModule, NotificationsModule, SubscriptionsModule, MediaModule],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway, IcebreakersService],
   exports: [ChatService],

@@ -45,7 +45,12 @@ export default function ConnectionsScreen() {
                   style={{ alignItems: 'center' }}
                   onPress={() => openChat(connection.conversationId ?? connection.matchId)}
                 >
-                  <AvatarCircle name={connection.otherUser.displayName} size={46} highlight />
+                  <AvatarCircle
+                    name={connection.otherUser.displayName}
+                    size={46}
+                    highlight
+                    photoUrl={connection.otherUser.photoUrl}
+                  />
                   <Sub style={{ marginTop: 4, fontSize: 11 }}>
                     {connection.otherUser.displayName}
                   </Sub>
@@ -64,7 +69,11 @@ export default function ConnectionsScreen() {
             style={styles.row}
             onPress={() => openChat(connection.conversationId ?? connection.matchId)}
           >
-            <AvatarCircle name={connection.otherUser.displayName} size={46} />
+            <AvatarCircle
+              name={connection.otherUser.displayName}
+              size={46}
+              photoUrl={connection.otherUser.photoUrl}
+            />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.name}>{connection.otherUser.displayName}</Text>
               <Sub numberOfLines={1}>

@@ -554,6 +554,70 @@ export function useMyProfile() {
   });
 }
 
+/**
+ * RF-PER-02: the member's own photos, with their moderation state. A photo is
+ * only visible to other people once it is APPROVED, so the manager has to show
+ * PENDING and REJECTED explicitly instead of pretending everything is live.
+ */
+export function useMyPhotos() {
+  return useQuery({
+    queryKey: ['my-photos'],
+    queryFn: async () => {
+      if (isDemoMode()) {
+        return [] as Array<{ id: string; url: string; position: number; moderationStatus: string }>;
+      }
+      return api().photos.mine();
+    },
+  });
+}
+
+/**
+ * Uploads one photo: asks for a signed URL, PUTs the bytes straight to
+ * storage, then registers it so it enters the moderation queue. The bytes
+ * never travel through the API.
+ */
+export function useUploadPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      blob,
+      contentType,
+      position,
+    }: {
+      blob: Blob;
+      contentType: string;
+      position: number;
+    }) => {
+      if (isDemoMode()) {
+        return { id: `demo-${Date.now()}`, moderationStatus: 'PENDING' };
+      }
+      const { key, uploadUrl } = await api().photos.signUpload(contentType);
+      const upload = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': contentType },
+        body: blob,
+      });
+      if (!upload.ok) throw new Error('upload_failed');
+      return api().photos.confirm(key, position);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-photos'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
+export function useDeletePhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (photoId: string) => {
+      if (isDemoMode()) return { ok: true };
+      return api().photos.remove(photoId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-photos'] }),
+  });
+}
+
 export function useSubscriptionState() {
   const invisibleMode = useDemoStore((s) => s.invisibleMode);
   const showOroBadge = useDemoStore((s) => s.showOroBadge);

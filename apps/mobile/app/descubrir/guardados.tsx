@@ -33,7 +33,7 @@ export default function SavedProfilesScreen() {
               }
             >
               <Card style={styles.row}>
-                <AvatarCircle name={profile.displayName} size={46} />
+                <AvatarCircle name={profile.displayName} size={46} photoUrl={profile.photoUrl} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.name}>
                     {profile.displayName}, {profile.age}

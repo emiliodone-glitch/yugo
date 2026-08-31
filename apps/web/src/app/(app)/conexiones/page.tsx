@@ -58,7 +58,12 @@ export default function ConnectionsPage() {
             href={`/conexiones/${connection.matchId}`}
             className="text-center"
           >
-            <Avatar name={connection.otherUser.displayName} size="m" highlight />
+            <Avatar
+              name={connection.otherUser.displayName}
+              size="m"
+              highlight
+              photoUrl={connection.otherUser.photoUrl}
+            />
             <div className="mt-1 text-[11px] text-muted">{connection.otherUser.displayName}</div>
           </Link>
         ))}
@@ -71,7 +76,11 @@ export default function ConnectionsPage() {
       <div>
         {conversations.map((connection) => (
           <Link key={connection.matchId} href={`/conexiones/${connection.matchId}`} className="list-row">
-            <Avatar name={connection.otherUser.displayName} size="m" />
+            <Avatar
+              name={connection.otherUser.displayName}
+              size="m"
+              photoUrl={connection.otherUser.photoUrl}
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
                 <b className="text-[12.5px]">{connection.otherUser.displayName}</b>

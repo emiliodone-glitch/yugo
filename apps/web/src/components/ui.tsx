@@ -9,11 +9,14 @@ export function Avatar({
   size = 'm',
   highlight,
   square,
+  photoUrl,
 }: {
   name: string;
   size?: 's' | 'm' | 'l' | 'xs';
   highlight?: boolean;
   square?: boolean;
+  /** Approved photo, when the member has one. Falls back to the initial. */
+  photoUrl?: string;
 }) {
   const dimensions = {
     xs: 'h-[22px] w-[22px] text-[9px]',
@@ -21,11 +24,28 @@ export function Avatar({
     m: 'h-[46px] w-[46px] text-[17px]',
     l: 'h-16 w-16 text-[22px]',
   }[size];
+  const shape = `${square ? 'rounded-[10px]' : 'rounded-full'} ${
+    highlight ? 'ring-[3px] ring-wheat' : ''
+  }`;
+
+  if (photoUrl) {
+    return (
+      // Signed URLs from our own storage; next/image would need the host
+      // allow-listed and buys nothing for an avatar this small.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        className={`flex-none object-cover ${dimensions} ${shape}`}
+      />
+    );
+  }
+
   return (
     <span
-      className={`flex flex-none items-center justify-center font-display font-semibold text-white ${dimensions} ${
-        square ? 'rounded-[10px]' : 'rounded-full'
-      } ${highlight ? 'ring-[3px] ring-wheat' : ''}`}
+      className={`flex flex-none items-center justify-center font-display font-semibold text-white ${dimensions} ${shape}`}
       style={{ backgroundColor: avatarColor(name) }}
       aria-hidden
     >
@@ -158,17 +178,30 @@ export function PhotoPlaceholder({
   className = '',
   children,
   gradient = 'linear-gradient(160deg,#C9C1B1,#8E8A80)',
+  photoUrl,
+  alt = '',
 }: {
   className?: string;
   children?: React.ReactNode;
   gradient?: string;
+  /** Approved photo. Without one the surface keeps the neutral gradient. */
+  photoUrl?: string;
+  alt?: string;
 }) {
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ background: gradient }}>
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.35), transparent 50%)' }}
-      />
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.35), transparent 50%)',
+          }}
+        />
+      )}
       {children}
     </div>
   );

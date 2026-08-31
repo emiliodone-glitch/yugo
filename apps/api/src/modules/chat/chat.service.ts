@@ -10,6 +10,7 @@ import { SanctionsService } from '../moderation/sanctions.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ChatGateway } from './chat.gateway';
+import { StorageService } from '../media/storage.service';
 
 @Injectable()
 export class ChatService {
@@ -20,6 +21,7 @@ export class ChatService {
     private readonly notifications: NotificationsService,
     private readonly subscriptions: SubscriptionsService,
     private readonly gateway: ChatGateway,
+    private readonly storage: StorageService,
   ) {}
 
   /** RF-CON-02: connection list with last message, unread count, badges. */
@@ -36,8 +38,28 @@ export class ChatService {
             },
           },
         },
-        userA: { include: { profile: { include: { church: true } }, verifications: { where: { status: 'APPROVED' }, include: { church: true } } } },
-        userB: { include: { profile: { include: { church: true } }, verifications: { where: { status: 'APPROVED' }, include: { church: true } } } },
+        userA: {
+          include: {
+            profile: { include: { church: true } },
+            verifications: { where: { status: 'APPROVED' }, include: { church: true } },
+            photos: {
+              where: { moderationStatus: 'APPROVED' },
+              orderBy: { position: 'asc' },
+              take: 1,
+            },
+          },
+        },
+        userB: {
+          include: {
+            profile: { include: { church: true } },
+            verifications: { where: { status: 'APPROVED' }, include: { church: true } },
+            photos: {
+              where: { moderationStatus: 'APPROVED' },
+              orderBy: { position: 'asc' },
+              take: 1,
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -65,6 +87,9 @@ export class ChatService {
             userId: other.id,
             displayName: other.profile?.displayName ?? 'Miembro',
             churchName: other.profile?.church?.name ?? undefined,
+            photoUrl: other.photos[0]
+              ? await this.storage.signDownload(other.photos[0].storageKey)
+              : undefined,
             badges: {
               contact: true,
               identity: other.verifications.some((v) => v.level === 2),

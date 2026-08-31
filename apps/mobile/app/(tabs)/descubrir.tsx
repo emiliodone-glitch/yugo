@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, LIMITS, type ProfileCard } from '@yugo/shared';
 import {
@@ -52,6 +52,13 @@ export default function DiscoverScreen() {
     return (
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={styles.photo}>
+          {profile.photoUrl ? (
+            <Image
+              source={{ uri: profile.photoUrl }}
+              style={StyleSheet.absoluteFill}
+              accessibilityLabel={`Foto de ${profile.displayName}`}
+            />
+          ) : null}
           {profile.badges.endorsedBy ? (
             <View style={styles.badge}>
               <CheckMark size={11} />

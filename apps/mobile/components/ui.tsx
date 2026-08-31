@@ -1,6 +1,7 @@
 import React from 'react';
 import { router } from 'expo-router';
 import {
+  Image,
   Pressable,
   StyleSheet,
   Switch,
@@ -43,24 +44,32 @@ export function AvatarCircle({
   name,
   size = 46,
   highlight,
+  photoUrl,
 }: {
   name: string;
   size?: number;
   highlight?: boolean;
+  /** Approved photo, when the member has one. Falls back to the initial. */
+  photoUrl?: string;
 }) {
+  const frame = [
+    styles.avatar,
+    { width: size, height: size, borderRadius: size / 2 },
+    highlight ? { borderWidth: 3, borderColor: colors.wheat } : null,
+  ];
+
+  if (photoUrl) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={[frame, { backgroundColor: colors.linen2 }]}
+        accessibilityIgnoresInvertColors
+      />
+    );
+  }
+
   return (
-    <View
-      style={[
-        styles.avatar,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: avatarColor(name),
-        },
-        highlight ? { borderWidth: 3, borderColor: colors.wheat } : null,
-      ]}
-    >
+    <View style={[frame, { backgroundColor: avatarColor(name) }]}>
       <Text style={[styles.avatarText, { fontSize: size * 0.38 }]}>
         {name.charAt(0).toUpperCase()}
       </Text>

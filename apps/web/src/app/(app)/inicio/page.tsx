@@ -163,7 +163,7 @@ export default function HomePage() {
             className="card m-0 min-w-[130px] p-2.5"
           >
             <div className="flex items-center justify-between">
-              <Avatar name={profile.displayName} size="s" />
+              <Avatar name={profile.displayName} size="s" photoUrl={profile.photoUrl} />
               <AffinityRing value={profile.affinity.total} size={34} />
             </div>
             <div className="h-display mt-2 text-[13px]">

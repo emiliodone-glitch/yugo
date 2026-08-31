@@ -20,7 +20,17 @@
         "backgroundColor": "#22315C"
       }
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Yugo usa tus fotos para que elijas las de tu perfil.",
+          "cameraPermission": "Yugo usa la cámara para tu foto de perfil y la selfie de verificación."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": false
     }

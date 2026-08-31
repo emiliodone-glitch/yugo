@@ -102,6 +102,8 @@ export default function DiscoverPage() {
             <article key={profile.userId} className="card mb-3 overflow-hidden p-0">
               <Link href={`/descubrir/${profile.userId}`} className="block">
                 <PhotoPlaceholder
+                  photoUrl={profile.photoUrl}
+                  alt={`Foto de ${profile.displayName}`}
                   className="h-[250px]"
                   gradient={CARD_GRADIENTS[index % CARD_GRADIENTS.length]}
                 >

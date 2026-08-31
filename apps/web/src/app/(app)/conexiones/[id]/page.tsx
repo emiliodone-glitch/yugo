@@ -71,7 +71,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           <Link href="/conexiones" aria-label={es.common.back} className="p-1">
             <ChevronLeft className="h-5 w-5 text-ink" />
           </Link>
-          <Avatar name={connection.otherUser.displayName} size="s" />
+          <Avatar
+            name={connection.otherUser.displayName}
+            size="s"
+            photoUrl={connection.otherUser.photoUrl}
+          />
           <div>
             <b className="text-[12.5px]">{connection.otherUser.displayName}</b>
             {connection.otherUser.churchName ? (

@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { demoCurrentUser, es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
-import { useLogout, useSubscriptionState, useVerificationStatus } from '@/lib/hooks';
+import {
+  useLogout,
+  useMyPhotos,
+  useSubscriptionState,
+  useVerificationStatus,
+} from '@/lib/hooks';
 import { Avatar, Toggle } from '@/components/ui';
 import { CheckIcon } from '@/components/icons';
 
 export default function ProfilePage() {
   const { pausedProfile, setPausedProfile } = useDemoStore();
   const { data: verification } = useVerificationStatus();
+  const { data: myPhotos = [] } = useMyPhotos();
+  const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
   const { data: subscription } = useSubscriptionState();
   const logout = useLogout();
   const user = demoCurrentUser;
@@ -21,7 +28,7 @@ export default function ProfilePage() {
     <div className="px-4 pt-4">
       {/* Header */}
       <div className="flex items-center gap-3.5">
-        <Avatar name={user.displayName} size="l" />
+        <Avatar name={user.displayName} size="l" photoUrl={myPhotoUrl} />
         <div>
           <h1 className="h-display text-[19px]">
             {user.displayName}, {user.age}
@@ -110,6 +117,10 @@ export default function ProfilePage() {
 
       {/* Settings rows */}
       <div className="mt-1.5">
+        <Link href="/perfil/fotos" className="list-row text-[12.5px]">
+          <span>{es.onboarding.photosTitle}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
         <Link href="/perfil/preferencias" className="list-row text-[12.5px]">
           <span>{es.profile.searchPreferences}</span>
           <span className="ml-auto text-muted">›</span>

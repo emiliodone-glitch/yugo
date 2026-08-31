@@ -139,7 +139,7 @@ export default function HomeScreen() {
             >
               <Card style={styles.suggestionCard}>
                 <View style={styles.rowBetween}>
-                  <AvatarCircle name={profile.displayName} size={34} />
+                  <AvatarCircle name={profile.displayName} size={34} photoUrl={profile.photoUrl} />
                   <AffinityRing value={profile.affinity.total} size={34} />
                 </View>
                 <H size={13} style={{ marginTop: 8 }}>

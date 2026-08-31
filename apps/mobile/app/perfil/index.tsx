@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { demoCurrentUser, es } from '@yugo/shared';
-import { useDemoStore, useSession, useVerificationStatus } from '@yugo/app-core';
+import { useDemoStore, useMyPhotos, useSession, useVerificationStatus } from '@yugo/app-core';
 import {
   AvatarCircle,
   Button,
@@ -22,6 +22,8 @@ const { colors, fonts } = theme;
 export default function ProfileScreen() {
   const { data: session } = useSession();
   const { data: verification } = useVerificationStatus();
+  const { data: myPhotos = [] } = useMyPhotos();
+  const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
   const paused = useDemoStore((s) => s.pausedProfile);
   const setPaused = useDemoStore((s) => s.setPausedProfile);
 
@@ -34,7 +36,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-          <AvatarCircle name={displayName} size={64} />
+          <AvatarCircle name={displayName} size={64} photoUrl={myPhotoUrl} />
           <View style={{ flex: 1 }}>
             <H>
               {displayName}, {user.age}
@@ -116,6 +118,11 @@ export default function ProfileScreen() {
           </Card>
         </Pressable>
 
+        <ListRow
+          label={es.onboarding.photosTitle}
+          hint="Entre 2 y 6 fotos, todas moderadas antes de publicarse"
+          onPress={() => router.push('/perfil/fotos')}
+        />
         <ListRow
           label={es.discover.savedProfiles}
           hint="Perfiles que guardaste para volver a verlos"
