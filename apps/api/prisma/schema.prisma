@@ -144,6 +144,85 @@ model MeetingPlan {
   @@index([status, meetsAt])
 }
 
+/// Devocional del día.
+///
+/// La misma lectura para todo el mundo el mismo día, en hora de Santo Domingo.
+/// Esa decisión es la que hace posible lo comunal: «142 personas de tu iglesia
+/// lo leyeron hoy» solo significa algo si todos leyeron lo mismo. Un plan
+/// personalizado por usuario daría un número vacío.
+model Devotional {
+  id        String   @id @default(cuid())
+  /// Día en que se publica. Único: un devocional por día, para todos.
+  publishOn DateTime @unique @db.Date
+  reference String
+  title     String
+  body      String
+  /// Para responderse por dentro, no para contestar en público.
+  question  String
+  createdAt DateTime @default(now())
+
+  reads DevotionalRead[]
+}
+
+/// Que alguien leyó el devocional, y lo que quiso decir al respecto.
+model DevotionalRead {
+  devotionalId String
+  devotional   Devotional @relation(fields: [devotionalId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt       DateTime   @default(now())
+
+  /// Reflexión opcional que comparte con su congregación. Es texto de una
+  /// persona, así que pasa por moderación previa como todo lo demás; el
+  /// estado es nulo cuando no hay nada que moderar.
+  reflection       String?
+  reflectionStatus ModerationStatus?
+
+  @@id([devotionalId, userId])
+  @@index([devotionalId, reflectionStatus])
+}
+
+/// Petición de oración de la comunidad.
+///
+/// Las peticiones vivían enterradas dentro de un grupo, así que solo oraba por
+/// ellas quien ya estaba en ese grupo. Aquí son de toda la comunidad.
+///
+/// `anonymous` importa más de lo que parece: muchas peticiones —una enfermedad,
+/// una vergüenza familiar, una deuda— no se hacen si hay que firmarlas, y son
+/// justo las que más falta hacen.
+model PrayerRequest {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body     String
+  anonymous Boolean @default(false)
+  /// La congregación de quien pide, para poder mirar la de uno primero.
+  churchId String?
+  church   Church? @relation(fields: [churchId], references: [id], onDelete: SetNull)
+
+  moderationStatus ModerationStatus @default(PENDING)
+  /// Cuando Dios contestó. Se celebra: es lo que sostiene el muro.
+  answeredAt   DateTime?
+  answeredNote String?
+  createdAt    DateTime  @default(now())
+
+  intercessions PrayerIntercession[]
+
+  @@index([moderationStatus, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// «Estoy orando por ti». Una por persona y petición.
+model PrayerIntercession {
+  requestId String
+  request   PrayerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@id([requestId, userId])
+}
+
 /// Respuesta de una persona a una de las conversaciones que importan.
 ///
 /// La regla que hace que esto sirva: una respuesta solo se revela cuando
@@ -506,6 +585,9 @@ model User {
   accompanying         Accompaniment[]      @relation("Mentor")
   meetingPlans         MeetingPlan[]
   questionAnswers      StageQuestionAnswer[]
+  devotionalReads      DevotionalRead[]
+  prayerRequests       PrayerRequest[]
+  intercessions        PrayerIntercession[]
   messages             Message[]
   groupMemberships     GroupMember[]
   groupJoinRequests    GroupJoinRequest[]
@@ -717,6 +799,7 @@ model Church {
   endorsementRequests EndorsementRequest[]
   verifications     Verification[]
   profiles          Profile[]
+  prayerRequests    PrayerRequest[]
 }
 
 model ChurchUser {

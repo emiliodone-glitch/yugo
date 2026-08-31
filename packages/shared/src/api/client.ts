@@ -19,6 +19,8 @@ import type {
 } from '../types/domain';
 import type { RelationshipStage } from '../relationship/stages';
 import type { QuestionTopic } from '../relationship/questions';
+import type { ReadingConstancy } from '../devotional/reading';
+import type { PrayerRequestItem, PrayerScope } from '../prayer/wall';
 import type { DiscoverFilters } from '../validators/discover';
 import type { CreateEventInput, CreateGroupInput, ReportInput } from '../validators/community';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '../validators/profile';
@@ -105,6 +107,45 @@ export interface StageQuestionsView {
   total: number;
   /** Cuántas se abrirían al avanzar, para que avanzar signifique algo. */
   lockedAhead: number;
+}
+
+/** El devocional del día, con lo que la persona ya hizo con él. */
+export interface DevotionalToday {
+  id: string;
+  publishOn: string;
+  /** Falso cuando hoy no hay ninguno y se está mostrando el anterior. */
+  isToday: boolean;
+  reference: string;
+  title: string;
+  body: string;
+  question: string;
+  myReflection: string | null;
+  myReflectionStatus: string | null;
+  readByMe: boolean;
+  readCount: number;
+  /** Lo que lo hace comunal: cuántos de la propia congregación lo leyeron. */
+  churchReadCount: number;
+  reflections: Array<{ userId: string; name: string; reflection: string; readAt: string }>;
+  constancy: ReadingConstancy;
+}
+
+export interface DevotionalReadResult {
+  readByMe: boolean;
+  reflection: string | null;
+  reflectionStatus: string | null;
+  published: boolean;
+}
+
+/** Una petición propia, incluidas las que siguen en revisión. */
+export interface MyPrayerRequest {
+  id: string;
+  body: string;
+  anonymous: boolean;
+  moderationStatus: string;
+  intercessions: number;
+  answeredAt: string | null;
+  answeredNote: string | null;
+  createdAt: string;
 }
 
 export type StoryStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'REJECTED';
@@ -717,6 +758,35 @@ export class YugoApiClient {
       this.http.post<{ going: boolean }>(`/community/activities/${activityId}/attend`),
     manageMember: (groupId: string, userId: string, action: 'EXPEL' | 'MUTE' | 'UNMUTE' | 'PROMOTE_MODERATOR') =>
       this.http.post<{ done: boolean }>(`/community/groups/${groupId}/members/manage`, { userId, action }),
+  };
+
+  // ---- Devocional del día --------------------------------------------------
+  readonly devotional = {
+    today: () => this.http.get<DevotionalToday | null>('/devocional/hoy'),
+    read: (id: string, reflection?: string) =>
+      this.http.post<DevotionalReadResult>(`/devocional/${id}/leido`, { reflection }),
+  };
+
+  // ---- Muro de oración -----------------------------------------------------
+  readonly prayer = {
+    wall: (scope: PrayerScope = 'community') =>
+      this.http.get<PrayerRequestItem[]>('/oracion', { query: { scope } }),
+    mine: () => this.http.get<MyPrayerRequest[]>('/oracion/mias'),
+    create: (body: string, anonymous: boolean) =>
+      this.http.post<{ id: string; moderationStatus: string; published: boolean }>('/oracion', {
+        body,
+        anonymous,
+      }),
+    intercede: (id: string) =>
+      this.http.post<{ iPrayed: boolean; intercessions: number }>(`/oracion/${id}/oro`, {}),
+    markAnswered: (id: string, note?: string) =>
+      this.http.post<{
+        id: string;
+        answeredAt: string | null;
+        answeredNote: string | null;
+        noteHeld: boolean;
+      }>(`/oracion/${id}/contestada`, { note }),
+    remove: (id: string) => this.http.delete<{ deleted: boolean }>(`/oracion/${id}`),
   };
 
   // ---- Events (RF-EVE-01..08) ---------------------------------------------

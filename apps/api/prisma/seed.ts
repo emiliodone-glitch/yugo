@@ -522,6 +522,116 @@ async function main() {
     });
   }
 
+  // --- Devocionales: catorce días, uno por día ------------------------------------
+  // Un devocional por día para todos: es lo que hace que «142 personas de tu
+  // iglesia lo leyeron hoy» signifique algo. Se siembran hacia atrás desde hoy
+  // para que la constancia tenga historia que contar.
+  const DEVOTIONALS = [
+    { reference: 'Proverbios 4:23', title: 'Guarda tu corazón', body: 'Sobre toda cosa guardada, guarda tu corazón, porque de él mana la vida. Guardar no es cerrar: es saber a quién le abres, y en qué orden.', question: '¿A quién le has abierto el corazón esta semana, y por qué a esa persona?' },
+    { reference: 'Rut 1:16', title: 'Donde tú vayas', body: 'Rut no eligió un país: eligió una lealtad. Antes de que existiera un futuro claro, hubo alguien dispuesto a quedarse.', question: '¿Con quién te has quedado cuando no era conveniente?' },
+    { reference: '1 Corintios 13:4', title: 'El amor es paciente', body: 'La paciencia es la única virtud que no se puede demostrar rápido. Es la prueba de que lo demás es cierto.', question: '¿En qué se te nota a ti la prisa?' },
+    { reference: 'Eclesiastés 4:9', title: 'Mejores son dos', body: 'Mejores son dos que uno, porque tienen mejor paga de su trabajo. No dice que sea más fácil: dice que rinde más.', question: '¿Qué cosa estás cargando solo que no tendrías que cargar solo?' },
+    { reference: 'Salmo 37:4', title: 'Deléitate', body: 'Los deseos del corazón cambian cuando cambia de qué se deleita el corazón. Ese es el orden, y casi siempre lo invertimos.', question: '¿Qué deseo tuyo ha cambiado en el último año?' },
+    { reference: 'Filipenses 2:3', title: 'Estimando al otro', body: 'Nada por contienda ni por vanagloria. En una relación, la vanagloria se ve en quién cuenta la historia y cómo queda cada quien en ella.', question: '¿Cómo cuentas tú la última discusión que tuviste?' },
+    { reference: 'Génesis 2:18', title: 'No es bueno que esté solo', body: 'Lo primero que Dios llamó «no bueno» no fue un pecado: fue una soledad. Buscar compañía no es debilidad.', question: '¿Qué te ha costado más de estar solo?' },
+    { reference: 'Santiago 1:19', title: 'Pronto para oír', body: 'Pronto para oír, tardo para hablar, tardo para airarse. En ese orden, y el orden es el consejo entero.', question: '¿Cuándo fue la última vez que oíste sin estar preparando tu respuesta?' },
+    { reference: 'Colosenses 3:13', title: 'Soportándoos', body: 'Perdonar no es olvidar lo que pasó: es decidir que eso ya no va a decidir cómo te trato.', question: '¿Hay algo que sigues cobrando en silencio?' },
+    { reference: 'Proverbios 27:17', title: 'Hierro con hierro', body: 'Hierro con hierro se aguza. La fricción que afila no es la que hiere: es la de alguien que te quiere y te dice la verdad.', question: '¿Quién te dice la verdad aunque te incomode?' },
+    { reference: 'Mateo 6:33', title: 'Buscad primero', body: 'Primero no significa únicamente. Significa que hay un orden, y que lo demás llega en su lugar.', question: '¿Qué has puesto primero este mes, si lo miras por tu calendario y no por tus intenciones?' },
+    { reference: 'Cantares 8:4', title: 'No despertéis el amor', body: 'Que no despertéis al amor hasta que quiera. Hay un tiempo, y forzarlo cuesta más de lo que ahorra.', question: '¿Qué estás apurando?' },
+    { reference: 'Romanos 12:10', title: 'Amaos con afecto', body: 'Con afecto fraternal, prefiriéndoos los unos a los otros. Preferir es un verbo activo: se hace, no se siente.', question: '¿A quién preferiste esta semana con un acto concreto?' },
+    { reference: 'Salmo 139:14', title: 'Formidables tus obras', body: 'Antes de que alguien te vea con ojos de querer conocerte, ya fuiste visto y llamado bueno. Eso no lo otorga ni lo quita una relación.', question: '¿Qué le pides a otra persona que ya tienes?' },
+  ];
+  if ((await prisma.devotional.count()) === 0) {
+    const midnight = (daysAgo: number) => {
+      const d = new Date(Date.now() - daysAgo * 86400000);
+      return new Date(`${d.toISOString().slice(0, 10)}T00:00:00.000Z`);
+    };
+    for (let i = 0; i < DEVOTIONALS.length; i += 1) {
+      const devotional = await prisma.devotional.create({
+        data: { ...DEVOTIONALS[i], publishOn: midnight(i) },
+      });
+      // Lecturas de otros, para que el número de la congregación no salga en
+      // cero el primer día: un muro vacío no invita a nadie.
+      const readers = pickMany(memberIds, 6 + Math.floor(rand() * 14));
+      await prisma.devotionalRead.createMany({
+        data: readers.map((userId, index) => ({
+          devotionalId: devotional.id,
+          userId,
+          readAt: new Date(midnight(i).getTime() + (7 + index) * 3600000),
+          reflection:
+            index < 3
+              ? pick([
+                  'Me pegó lo del orden. Yo pido primero y ordeno después.',
+                  'Lo leí camino al trabajo y lo volví a leer de noche.',
+                  'Esta semana la necesitaba, de verdad.',
+                  'Se lo mandé a mi hermana.',
+                ])
+              : null,
+          reflectionStatus: index < 3 ? ('APPROVED' as const) : null,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  // --- Muro de oración -----------------------------------------------------------
+  // Una de cada tres es anónima, porque son justo las que no se escriben si hay
+  // que firmarlas. Una viene contestada: sin respuestas visibles el muro se
+  // convierte en una lista de desgracias.
+  if ((await prisma.prayerRequest.count()) === 0) {
+    const PRAYERS = [
+      { body: 'Por mi mamá, que la operan el jueves. Que las manos del médico estén firmes.', anonymous: false, intercessors: 11 },
+      { body: 'Llevo cuatro meses sin trabajo y ya se me está acabando la fe de que va a salir algo. Oren por mí.', anonymous: true, intercessors: 7 },
+      { body: 'Por mi hermano, que hace dos años no habla con mi papá.', anonymous: false, intercessors: 5 },
+      { body: 'Tengo una deuda que no he podido decirle a nadie de mi casa. Necesito sabiduría antes que dinero.', anonymous: true, intercessors: 0 },
+      { body: 'Empiezo la universidad a los 34 y me da vergüenza. Por valor.', anonymous: true, intercessors: 0 },
+      { body: 'Por mi congregación, que estamos buscando local nuevo.', anonymous: false, intercessors: 4 },
+      { body: 'Por mi hija de 7 años, que le cuesta dormir desde que nos mudamos.', anonymous: false, intercessors: 9 },
+    ];
+    for (let i = 0; i < PRAYERS.length; i += 1) {
+      const prayer = PRAYERS[i];
+      const authorId = memberIds[(i * 5) % memberIds.length];
+      const author = await prisma.profile.findUnique({
+        where: { userId: authorId },
+        select: { churchId: true },
+      });
+      const created = await prisma.prayerRequest.create({
+        data: {
+          userId: authorId,
+          body: prayer.body,
+          anonymous: prayer.anonymous,
+          // Una anónima no guarda iglesia: ver «invariante 1» en PrayerService.
+          churchId: prayer.anonymous ? null : (author?.churchId ?? null),
+          moderationStatus: 'APPROVED',
+          createdAt: new Date(Date.now() - (i + 1) * 9 * 3600000),
+        },
+      });
+      if (prayer.intercessors > 0) {
+        await prisma.prayerIntercession.createMany({
+          data: pickMany(
+            memberIds.filter((id) => id !== authorId),
+            prayer.intercessors,
+          ).map((userId) => ({ requestId: created.id, userId })),
+          skipDuplicates: true,
+        });
+      }
+    }
+    // Una contestada, y reciente, para que encabece el muro.
+    const first = await prisma.prayerRequest.findFirst({ orderBy: { createdAt: 'desc' } });
+    if (first) {
+      await prisma.prayerRequest.update({
+        where: { id: first.id },
+        data: {
+          answeredAt: new Date(Date.now() - 3 * 3600000),
+          answeredNote: 'Salió el trabajo. Empiezo el lunes. Gracias a los que oraron.',
+        },
+      });
+    }
+  }
+
+  console.log(`Devocionales: ${await prisma.devotional.count()}`);
+  console.log(`Peticiones de oración: ${await prisma.prayerRequest.count()}`);
   console.log(`Encuentros de solteros: ${await prisma.event.count({ where: { audience: 'SINGLES' } })}`);
   console.log(`Historias publicadas: ${await prisma.story.count({ where: { status: 'PUBLISHED' } })}`);
   console.log('Seed complete.');

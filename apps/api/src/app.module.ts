@@ -15,6 +15,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { DiscoverModule } from './modules/discover/discover.module';
 import { InterestsModule } from './modules/interests/interests.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { DevotionalModule } from './modules/devotional/devotional.module';
 import { CommunityModule } from './modules/community/community.module';
 import { EventsModule } from './modules/events/events.module';
 import { VerificationModule } from './modules/verification/verification.module';
@@ -42,6 +43,7 @@ import { HealthModule } from './modules/health/health.module';
     InterestsModule,
     ChatModule,
     CommunityModule,
+    DevotionalModule,
     EventsModule,
     VerificationModule,
     ChurchesModule,

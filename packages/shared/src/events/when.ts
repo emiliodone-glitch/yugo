@@ -9,8 +9,14 @@
  */
 const TZ = 'America/Santo_Domingo';
 
-/** Local calendar day as YYYY-MM-DD, so "tomorrow" means the day, not 24 h. */
-function localDay(date: Date): string {
+/**
+ * Local calendar day as YYYY-MM-DD, so "tomorrow" means the day, not 24 h.
+ *
+ * Exported because "qué día es hoy en la República Dominicana" has to have one
+ * answer en todo el producto: el devocional del día y la etiqueta «hoy» de un
+ * encuentro no pueden discrepar a las once de la noche.
+ */
+export function localDay(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: TZ,
     year: 'numeric',

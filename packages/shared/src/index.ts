@@ -11,6 +11,8 @@ export * from './purpose/signals';
 export * from './relationship/questions';
 export * from './events/capacity';
 export * from './events/when';
+export * from './devotional/reading';
+export * from './prayer/wall';
 export * from './affinity/affinity';
 export * from './affinity/reason';
 export * from './api/http';
