@@ -12,6 +12,7 @@ import { ChatService } from './chat.service';
 import { IcebreakersService } from './icebreakers.service';
 import { RelationshipService } from './relationship.service';
 import { AccompanimentService } from './accompaniment.service';
+import { MeetingPlanService } from './meeting-plan.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
@@ -21,6 +22,12 @@ const inviteSchema = z.object({ eventId: z.string().min(1) });
 const stageProposalSchema = z.object({ stage: z.enum(RELATIONSHIP_STAGES) });
 const mentorCodeSchema = z.object({ code: z.string().min(4).max(40) });
 const consentSchema = z.object({ agree: z.boolean() });
+const meetingPlanSchema = z.object({
+  place: z.string().trim().min(3).max(200),
+  meetsAt: z.coerce.date(),
+  notes: z.string().trim().max(300).optional(),
+  trustedContactLabel: z.string().trim().max(80).optional(),
+});
 
 @Controller('connections')
 export class ChatController {
@@ -29,6 +36,7 @@ export class ChatController {
     private readonly icebreakers: IcebreakersService,
     private readonly relationship: RelationshipService,
     private readonly accompaniment: AccompanimentService,
+    private readonly meetingPlan: MeetingPlanService,
   ) {}
 
   @Get()
@@ -147,5 +155,39 @@ export class ChatController {
     @Body(new ZodPipe(consentSchema)) body: { agree: boolean },
   ) {
     return this.accompaniment.consent(matchId, user.id, body.agree);
+  }
+
+  // --- Plan del primer encuentro (RF-SEG-06) ------------------------------
+  // Cada plan es de quien lo escribe. La otra persona nunca lo ve ni se
+  // entera de que existe.
+
+  @Get(':matchId/plan')
+  myMeetingPlan(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.meetingPlan.mine(matchId, user.id);
+  }
+
+  @Post(':matchId/plan')
+  createMeetingPlan(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(meetingPlanSchema))
+    body: { place: string; meetsAt: Date; notes?: string; trustedContactLabel?: string },
+  ) {
+    return this.meetingPlan.create(matchId, user.id, body);
+  }
+
+  @Post('plan/:planId/shared')
+  markPlanShared(@CurrentUser() user: AuthUser, @Param('planId') planId: string) {
+    return this.meetingPlan.markShared(planId, user.id);
+  }
+
+  @Post('plan/:planId/check-in')
+  planCheckIn(@CurrentUser() user: AuthUser, @Param('planId') planId: string) {
+    return this.meetingPlan.checkIn(planId, user.id);
+  }
+
+  @Delete('plan/:planId')
+  cancelPlan(@CurrentUser() user: AuthUser, @Param('planId') planId: string) {
+    return this.meetingPlan.cancel(planId, user.id);
   }
 }

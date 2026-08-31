@@ -5,15 +5,20 @@
  * proposed by one person and only takes effect when the other agrees.
  */
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { es, isExclusive, type RelationshipStage } from '@yugo/shared';
 import {
   useAccompaniment,
   useConsentToMentor,
   useEndAccompaniment,
   useInviteMentor,
+  useCancelMeetingPlan,
   useConsentToStory,
+  useMarkPlanShared,
+  useMeetingPlan,
   useOurStory,
+  usePlanCheckIn,
+  useSaveMeetingPlan,
   useProposeStage,
   useRelationship,
   useRespondToStage,
@@ -202,6 +207,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: colors.text,
     marginTop: 6,
+  },
+  planCard: {
+    backgroundColor: colors.wineSoft,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+  },
+  shareText: {
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: colors.text,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+  },
+  wineBody: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 17,
+    marginTop: 4,
   },
   oliveBody: {
     fontFamily: fonts.body,
@@ -466,6 +494,151 @@ export function OurStoryCard({ matchId }: { matchId: string }) {
             label={es.stories.tellOurs}
             style={{ marginTop: 10 }}
             onPress={() => setWriting(true)}
+          />
+        </>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Plan del primer encuentro (RF-SEG-06).
+ *
+ * Dos cosas que esta tarjeta dice en voz alta, porque son la razón por la
+ * que se puede confiar en ella: el plan es tuyo y la otra persona no lo ve,
+ * y Yugo nunca pide ni guarda el teléfono de tu contacto de confianza. El
+ * mensaje está escrito; lo mandas tú.
+ */
+export function MeetingPlanCard({ matchId }: { matchId: string }) {
+  const { data } = useMeetingPlan(matchId);
+  const save = useSaveMeetingPlan(matchId);
+  const markShared = useMarkPlanShared(matchId);
+  const checkIn = usePlanCheckIn(matchId);
+  const cancel = useCancelMeetingPlan(matchId);
+
+  const plan = data?.plan ?? null;
+  const [editing, setEditing] = useState(false);
+  const [place, setPlace] = useState('');
+  const [meetsAt, setMeetsAt] = useState('');
+  const [contact, setContact] = useState('');
+
+  return (
+    <View style={styles.planCard} accessibilityLabel={es.meetingPlan.title}>
+      <Text style={[styles.eyebrow, { color: colors.wine }]}>{es.meetingPlan.title}</Text>
+
+      {plan ? (
+        <>
+          <Text style={styles.stage}>{plan.place}</Text>
+          <Sub style={{ fontSize: 11 }}>
+            {new Date(plan.meetsAt).toLocaleString('es-DO', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </Sub>
+
+          {plan.status === 'CHECKED_IN' ? (
+            <Sub style={{ fontSize: 11.5, marginTop: 8 }}>{es.meetingPlan.checkedIn}</Sub>
+          ) : plan.awaitingCheckIn ? (
+            <View style={styles.panel}>
+              <Text style={styles.panelText}>{es.meetingPlan.checkInBody}</Text>
+              <Button
+                label={es.meetingPlan.checkIn}
+                style={{ marginTop: 10 }}
+                onPress={() => checkIn.mutate(plan.id)}
+              />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.shareText}>{plan.shareText}</Text>
+              <View style={styles.actions}>
+                <Button
+                  label={plan.status === 'SHARED' ? es.meetingPlan.shared : es.meetingPlan.share}
+                  style={{ flex: 1 }}
+                  onPress={async () => {
+                    // Lo manda la persona desde su propio teléfono: Yugo no
+                    // escribe a nadie que no aceptó estar aquí.
+                    await Share.share({ message: plan.shareText });
+                    markShared.mutate(plan.id);
+                  }}
+                />
+                <Button
+                  label={es.meetingPlan.cancel}
+                  tone="ghost"
+                  style={{ flex: 1 }}
+                  onPress={() => cancel.mutate(plan.id)}
+                />
+              </View>
+              <Sub style={{ fontSize: 11, marginTop: 6 }}>
+                {plan.status === 'SHARED'
+                  ? plan.trustedContactLabel
+                    ? es.meetingPlan.sharedAt(plan.trustedContactLabel)
+                    : es.meetingPlan.shared
+                  : es.meetingPlan.pendingShare}
+              </Sub>
+            </>
+          )}
+          <Sub style={{ fontSize: 11, marginTop: 8 }}>{es.meetingPlan.privateNotice}</Sub>
+        </>
+      ) : editing ? (
+        <>
+          <Sub style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>
+            {es.meetingPlan.placeLabel}
+          </Sub>
+          <Field value={place} onChangeText={setPlace} placeholder={es.meetingPlan.placePlaceholder} />
+          <Sub style={{ fontSize: 11, marginTop: 4 }}>{es.meetingPlan.placeHint}</Sub>
+
+          <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+            {es.meetingPlan.whenLabel}
+          </Sub>
+          <Field value={meetsAt} onChangeText={setMeetsAt} placeholder="2026-09-06 19:00" />
+
+          <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+            {es.meetingPlan.contactLabel}
+          </Sub>
+          <Field
+            value={contact}
+            onChangeText={setContact}
+            placeholder={es.meetingPlan.contactPlaceholder}
+          />
+          <Sub style={{ fontSize: 11, marginTop: 4 }}>{es.meetingPlan.contactHint}</Sub>
+
+          <View style={styles.actions}>
+            <Button
+              label={es.meetingPlan.save}
+              style={{ flex: 1 }}
+              disabled={save.isPending}
+              onPress={() => {
+                const when = new Date(meetsAt.replace(' ', 'T'));
+                if (Number.isNaN(when.getTime())) return;
+                save.mutate(
+                  {
+                    place,
+                    meetsAt: when.toISOString(),
+                    trustedContactLabel: contact || undefined,
+                  },
+                  { onSuccess: () => setEditing(false) },
+                );
+              }}
+            />
+            <Button
+              label={es.common.cancel}
+              tone="ghost"
+              style={{ flex: 1 }}
+              onPress={() => setEditing(false)}
+            />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.wineBody}>{es.meetingPlan.intro}</Text>
+          <Button
+            label={es.meetingPlan.title}
+            tone="ghost"
+            style={{ marginTop: 10 }}
+            onPress={() => setEditing(true)}
           />
         </>
       )}

@@ -17,6 +17,8 @@ import {
   type ChatMessage,
   type CoupleAccompaniment,
   type CoupleStory,
+  type MeetingPlan,
+  type MeetingPlanInput,
   type RelationshipStage,
   type StoryDraftInput,
 } from '@yugo/shared';
@@ -82,6 +84,38 @@ interface DemoState {
   storyDrafts: Record<string, NonNullable<CoupleStory['story']>>;
   submitStory: (matchId: string, input: StoryDraftInput) => void;
   consentToStory: (matchId: string, agree: boolean) => void;
+  /** Plan del primer encuentro, por matchId. Es de quien lo escribe. */
+  meetingPlans: Record<string, MeetingPlan>;
+  saveMeetingPlan: (matchId: string, input: MeetingPlanInput) => MeetingPlan;
+  updateMeetingPlan: (matchId: string, patch: Partial<MeetingPlan>) => MeetingPlan;
+  cancelMeetingPlan: (matchId: string) => void;
+}
+
+/**
+ * El mensaje que la persona manda desde su propio teléfono.
+ *
+ * Se arma aquí para que la demo diga exactamente lo mismo que la API, y
+ * porque un texto completo escrito con calma es mejor que lo que uno teclea
+ * con nervios.
+ */
+function demoShareText(input: MeetingPlanInput): string {
+  const when = new Intl.DateTimeFormat('es-DO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Santo_Domingo',
+  }).format(new Date(input.meetsAt));
+  const lines = [
+    'Voy a conocer en persona a alguien que conocí en Yugo.',
+    `Dónde: ${input.place}`,
+    `Cuándo: ${when}`,
+  ];
+  if (input.notes) lines.push(`Nota: ${input.notes}`);
+  lines.push('Te aviso cuando llegue a casa.');
+  return lines.join('\n');
 }
 
 const DAY = 24 * 3600_000;
@@ -312,6 +346,36 @@ export const useDemoStore = create<DemoState>((set, get) => ({
 
   accompaniment: demoAccompaniment,
   storyDrafts: {},
+  meetingPlans: {},
+
+  saveMeetingPlan: (matchId, input) => {
+    const plan: MeetingPlan = {
+      id: `plan-${matchId}`,
+      place: input.place,
+      meetsAt: input.meetsAt,
+      notes: input.notes ?? null,
+      trustedContactLabel: input.trustedContactLabel ?? null,
+      status: 'PLANNED',
+      sharedAt: null,
+      checkInAt: null,
+      shareText: demoShareText(input),
+      awaitingCheckIn: false,
+    };
+    set((state) => ({ meetingPlans: { ...state.meetingPlans, [matchId]: plan } }));
+    return plan;
+  },
+
+  updateMeetingPlan: (matchId, patch) => {
+    const current = get().meetingPlans[matchId];
+    const next = { ...current, ...patch };
+    set((state) => ({ meetingPlans: { ...state.meetingPlans, [matchId]: next } }));
+    return next;
+  },
+
+  cancelMeetingPlan: (matchId) => {
+    const { [matchId]: _removed, ...rest } = get().meetingPlans;
+    set({ meetingPlans: rest });
+  },
 
   submitStory: (matchId, input) =>
     set((state) => ({

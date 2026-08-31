@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { relativeDayLabel } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { ContentService, type IcebreakerTemplates } from '../../common/content.service';
 
@@ -46,6 +47,10 @@ export class IcebreakersService {
       .filter((sa) => viewerSlugs.has(sa.serviceArea.slug))
       .map((sa) => sa.serviceArea.name);
 
+    // Coincidir en un evento próximo es el mejor rompehielos que existe: no
+    // hay que inventar un tema, ya van a estar en el mismo lugar.
+    const sharedEvent = await this.sharedUpcomingEvent(requesterId, otherId);
+
     return buildIcebreakers(
       {
         practices: other.serviceAreas.map((sa) => sa.serviceArea.name),
@@ -62,8 +67,36 @@ export class IcebreakersService {
         sameChurch: !!viewer?.churchId && viewer.churchId === other.churchId,
         sameDenomination:
           !!viewer?.denominationId && viewer.denominationId === other.denominationId,
+        event: sharedEvent,
       },
     );
+  }
+
+  /** The soonest upcoming event both of them said they are going to. */
+  private async sharedUpcomingEvent(
+    viewerId: string,
+    otherId: string,
+  ): Promise<{ title: string; whenLabel: string } | undefined> {
+    const rows = await this.prisma.eventAttendance.findMany({
+      where: {
+        userId: { in: [viewerId, otherId] },
+        status: 'GOING',
+        event: { status: 'PUBLISHED', startsAt: { gt: new Date() } },
+      },
+      include: { event: { select: { id: true, title: true, startsAt: true } } },
+      orderBy: { event: { startsAt: 'asc' } },
+    });
+
+    const byEvent = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const set = byEvent.get(row.eventId) ?? new Set<string>();
+      set.add(row.userId);
+      byEvent.set(row.eventId, set);
+    }
+    const match = rows.find((row) => (byEvent.get(row.eventId)?.size ?? 0) === 2);
+    return match
+      ? { title: match.event.title, whenLabel: relativeDayLabel(match.event.startsAt) }
+      : undefined;
   }
 }
 
@@ -84,6 +117,8 @@ export interface SharedGround {
   practices?: string[];
   sameChurch?: boolean;
   sameDenomination?: boolean;
+  /** An upcoming event both of them said they are going to. */
+  event?: { title: string; whenLabel: string };
 }
 
 const DEFAULT_TEMPLATES: IcebreakerTemplates = {
@@ -119,6 +154,13 @@ export function buildIcebreakers(
   shared: SharedGround = {},
 ): string[] {
   const pool: string[] = [];
+
+  // Un evento compartido va primero: no hay que inventar un tema cuando ya
+  // van a estar en el mismo lugar, y verse entre gente conocida es más
+  // seguro que cualquier primera cita armada desde cero.
+  if (shared.event) {
+    pool.push(`Vi que vas a «${shared.event.title}» ${shared.event.whenLabel}, ¿nos saludamos allá?`);
+  }
 
   const sharedPractices = (shared.practices ?? []).filter(Boolean);
   if (sharedPractices.length > 0) {

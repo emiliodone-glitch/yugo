@@ -86,3 +86,30 @@ describe('rompehielos desde el terreno común (RF-CON-04)', () => {
     expect(new Set(questions).size).toBe(3);
   });
 });
+
+describe('coincidir en un evento (RF-EVE-05 / RF-CON-04)', () => {
+  it('propone verse allá, y lo pone primero', () => {
+    // No hay mejor rompehielos que uno que no hay que inventar: ya van a
+    // estar en el mismo lugar.
+    const questions = buildIcebreakers(
+      { practices: ['Alabanza'], practiceSlugs: ['alabanza'], answers: [] },
+      undefined,
+      {
+        practices: ['Alabanza'],
+        sameChurch: true,
+        event: { title: 'Vigilia de jóvenes', whenLabel: 'el viernes' },
+      },
+    );
+    expect(questions[0]).toBe('Vi que vas a «Vigilia de jóvenes» el viernes, ¿nos saludamos allá?');
+    expect(questions).toHaveLength(3);
+  });
+
+  it('sin evento compartido no lo menciona', () => {
+    const questions = buildIcebreakers(
+      { practices: ['Alabanza'], practiceSlugs: ['alabanza'], answers: [] },
+      undefined,
+      { practices: ['Alabanza'] },
+    );
+    expect(questions.join(' ')).not.toContain('nos saludamos allá');
+  });
+});

@@ -99,6 +99,51 @@ enum RelationshipStage {
   MARRIED
 }
 
+enum MeetingPlanStatus {
+  PLANNED
+  /// The member told someone they trust. We only record that they did.
+  SHARED
+  /// They said afterwards that they are fine.
+  CHECKED_IN
+  CANCELED
+}
+
+/// Plan del primer encuentro (RF-SEG-06).
+///
+/// A plan belongs to the person who wrote it and to nobody else — not to the
+/// other person in the bond, who never sees it. Telling your sister where you
+/// are going is not something you should have to negotiate with your date.
+///
+/// The one thing this model deliberately does NOT hold is the trusted
+/// contact's phone number or e-mail. Storing it would mean keeping personal
+/// data about someone who never agreed to be in Yugo (Ley 172-13), and it is
+/// not needed: the app writes the message and the member sends it themselves,
+/// through their own WhatsApp or SMS. `trustedContactLabel` is free text like
+/// "mi hermana Rosa", so the reminder afterwards can name a person.
+model MeetingPlan {
+  id      String @id @default(cuid())
+  matchId String
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  /// Whose plan this is. The other person never sees it.
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  place   String
+  meetsAt DateTime
+  notes   String?
+  trustedContactLabel String?
+
+  status      MeetingPlanStatus @default(PLANNED)
+  sharedAt    DateTime?
+  checkInAt   DateTime?
+  /// Set once the "are you alright?" reminder went out, so it goes out once.
+  remindedAt  DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([userId, meetsAt])
+  @@index([status, meetsAt])
+}
+
 enum StoryStatus {
   DRAFT
   IN_REVIEW
@@ -432,6 +477,7 @@ model User {
   matchesB             Match[]              @relation("MatchB")
   mentorProfile        MentorProfile?
   accompanying         Accompaniment[]      @relation("Mentor")
+  meetingPlans         MeetingPlan[]
   messages             Message[]
   groupMemberships     GroupMember[]
   groupJoinRequests    GroupJoinRequest[]
@@ -782,6 +828,7 @@ model Match {
   stageHistory    RelationshipStageChange[]
   accompaniments  Accompaniment[]
   story           Story?
+  meetingPlans    MeetingPlan[]
 
   @@unique([userAId, userBId])
   @@index([userAId, status])

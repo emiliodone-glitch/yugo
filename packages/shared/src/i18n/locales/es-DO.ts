@@ -196,6 +196,33 @@ export const es = {
     demoRespondForThem: 'Demo: responder como la otra persona',
   },
 
+  meetingPlan: {
+    title: 'Plan del primer encuentro',
+    intro:
+      'Antes de verse en persona, deja dicho dónde y cuándo. Es tuyo: la otra persona no lo ve ni sabe que existe.',
+    placeLabel: '¿Dónde se van a ver?',
+    placePlaceholder: 'Café Mamá Chila, Naco',
+    placeHint: 'Un lugar público, con gente alrededor.',
+    whenLabel: '¿Cuándo?',
+    notesLabel: 'Algo más que quieras dejar dicho',
+    contactLabel: '¿A quién le vas a avisar?',
+    contactPlaceholder: 'Mi hermana Rosa',
+    contactHint:
+      'Solo guardamos cómo le dices. Nunca pedimos ni guardamos su teléfono, y Yugo no le escribe: el mensaje lo mandas tú.',
+    save: 'Guardar el plan',
+    share: 'Enviar el mensaje',
+    shared: 'Ya avisaste',
+    sharedAt: (label: string) => `Le avisaste a ${label}.`,
+    pendingShare: 'Todavía no le has avisado a nadie.',
+    checkInPrompt: '¿Todo bien?',
+    checkInBody:
+      'Cuéntanos cómo te fue. Si algo no estuvo bien, puedes reportarlo o bloquear desde la conversación.',
+    checkIn: 'Todo bien',
+    checkedIn: 'Nos dijiste que todo estuvo bien.',
+    cancel: 'Cancelar el plan',
+    privateNotice: 'Este plan es solo tuyo. La otra persona no lo ve.',
+  },
+
   stories: {
     title: 'Historias',
     subtitle: 'Parejas que se conocieron aquí y se casaron, con su iglesia por testigo.',

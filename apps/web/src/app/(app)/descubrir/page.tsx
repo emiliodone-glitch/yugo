@@ -178,11 +178,19 @@ export default function DiscoverPage() {
                     <span className="chip chip-wheat">{es.discover.purposeMarriage}</span>
                   ) : null}
                 </div>
-                {/* RF-DES-02: por qué esta persona, en la tarjeta misma */}
+                {/* RF-DES-02: por qué esta persona, en la tarjeta misma.
+                    Si el motivo es que coinciden en un evento, el motivo es
+                    además un plan: por eso lleva enlace. */}
                 {profile.affinityReason ? (
                   <p className="mt-2.5 flex items-start gap-1.5 rounded-field bg-olive-soft px-2.5 py-1.5 text-[11.5px] leading-snug text-olive-text">
                     <span aria-hidden>✦</span>
-                    <span>{profile.affinityReason}</span>
+                    {profile.sharedEvent ? (
+                      <Link href={`/eventos/${profile.sharedEvent.id}`} className="underline">
+                        {profile.affinityReason}
+                      </Link>
+                    ) : (
+                      <span>{profile.affinityReason}</span>
+                    )}
                   </p>
                 ) : null}
                 {profile.testimony ? (

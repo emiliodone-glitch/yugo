@@ -19,6 +19,7 @@ import {
 import { Avatar } from '@/components/ui';
 import {
   AccompanimentCard,
+  MeetingPlanCard,
   OurStoryCard,
   RelationshipStageCard,
 } from '@/components/relationship';
@@ -164,6 +165,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         />
         <AccompanimentCard matchId={connection.matchId} />
         <OurStoryCard matchId={connection.matchId} />
+        <MeetingPlanCard matchId={connection.matchId} />
 
         {isNew || messages.length <= 3 ? (
           <div className="card mb-3 border-0 bg-wheat-soft">

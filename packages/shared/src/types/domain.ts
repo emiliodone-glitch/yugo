@@ -133,6 +133,14 @@ export interface ProfileCard {
   /** Oro badge shown only if the member opted in (showOroBadge). */
   oroBadge?: boolean;
   inCommon?: string[];
+  /**
+   * Un evento próximo al que van los dos.
+   *
+   * Solo aparece si esa persona permite que se vea su asistencia
+   * (RF-EVE-05): honrar esa preferencia con las conexiones e ignorarla con
+   * desconocidos sería indefendible.
+   */
+  sharedEvent?: { id: string; title: string; startsAt: string; whenLabel: string };
 }
 
 export interface ConnectionSummary {

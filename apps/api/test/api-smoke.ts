@@ -143,7 +143,7 @@ async function reportRows(kind: string): Promise<Array<Record<string, string | n
  * "cupo" means nothing. It is created here rather than seeded because the
  * suite fills it, and a re-run needs an empty one.
  */
-async function seedFullEncuentro(): Promise<string | null> {
+async function seedFullEncuentro(capacity = 1): Promise<string | null> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   try {
@@ -161,7 +161,7 @@ async function seedFullEncuentro(): Promise<string | null> {
         startsAt: new Date(Date.now() + 30 * 24 * 3600_000),
         address: 'Calle Principal 1',
         city: 'Santo Domingo',
-        capacity: 1,
+        capacity,
         status: 'PUBLISHED',
         publishedAt: new Date(),
       },
@@ -581,6 +581,70 @@ async function main() {
         token: mentorToken,
       });
       check('terminado, deja de ver', afterEnd.status === 403, afterEnd.status);
+    }
+  }
+
+  console.log('\nRF-SEG-06 — plan del primer encuentro');
+  if (matchId && theirTokenForStages) {
+    const created = await call('POST', `/connections/${matchId}/plan`, {
+      token,
+      body: {
+        place: 'Café Mamá Chila, Naco',
+        meetsAt: new Date(Date.now() + 2 * 86400_000).toISOString(),
+        trustedContactLabel: 'mi hermana Rosa',
+      },
+    });
+    check('crear el plan responde 201', created.status === 201, created.body);
+    check(
+      'la app escribe el mensaje para que lo mande la persona',
+      typeof created.body?.shareText === 'string' &&
+        created.body.shareText.includes('Café Mamá Chila'),
+      created.body?.shareText,
+    );
+    // Lo que no puede aparecer: el teléfono de un tercero que nunca aceptó
+    // estar en Yugo (Ley 172-13).
+    check(
+      'no se guarda ningún teléfono de terceros',
+      !/\+?\d{7,}/.test(JSON.stringify(created.body ?? {})),
+      created.body,
+    );
+
+    const theirs = await call('GET', `/connections/${matchId}/plan`, {
+      token: theirTokenForStages,
+    });
+    check('la otra persona no ve el plan', theirs.body?.plan === null, theirs.body);
+
+    const stolen = await call('POST', `/connections/plan/${created.body.id}/check-in`, {
+      token: theirTokenForStages,
+    });
+    check('ni puede tocarlo', stolen.status === 404, stolen.status);
+
+    const shared = await call('POST', `/connections/plan/${created.body.id}/shared`, { token });
+    check('marcar como avisado funciona', shared.body?.status === 'SHARED', shared.body);
+  }
+
+  console.log('\nRF-EVE-05 — coincidir en un evento');
+  if (theirTokenForStages) {
+    // Los dos se apuntan al mismo encuentro: la sugerencia deja de ser una
+    // etiqueta compartida y pasa a ser una presentación posible.
+    const eventId = await seedFullEncuentro(40);
+    if (eventId) {
+      await call('POST', `/events/${eventId}/attendance`, { token, body: { status: 'GOING' } });
+      await call('POST', `/events/${eventId}/attendance`, {
+        token: theirTokenForStages,
+        body: { status: 'GOING' },
+      });
+
+      const icebreakers = await call(
+        'GET',
+        `/connections/conversations/${conversationId}/icebreakers`,
+        { token },
+      );
+      check(
+        'el rompehielos propone verse allá',
+        (icebreakers.body ?? []).some((q: string) => q.includes('nos saludamos allá')),
+        icebreakers.body,
+      );
     }
   }
 

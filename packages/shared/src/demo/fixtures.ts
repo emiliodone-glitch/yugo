@@ -5,6 +5,7 @@
  * mirrors the reference mockups.
  */
 import { affinityReason } from '../affinity/reason';
+import { relativeDayLabel } from '../events/when';
 import type {
   AffinityBreakdown,
   ConnectionSummary,
@@ -197,16 +198,42 @@ const discoverBase: ProfileCard[] = [
  * function — hardcoding the copy here would let the preview drift from what
  * members actually read.
  */
-export const demoDiscover: ProfileCard[] = discoverBase.map((profile) => ({
-  ...profile,
-  affinityReason: affinityReason({
-    affinity: profile.affinity,
-    inCommon: profile.inCommon,
-    sameDenomination: profile.denomination === demoCurrentUser.denomination,
-    bothSeekMarriage: profile.intention === 'MARRIAGE',
-    endorsedBy: profile.badges.endorsedBy,
-  }),
-}));
+/**
+ * Coincidencias en eventos, en modo demo.
+ *
+ * Mariel va a la misma vigilia que el usuario de la demo. Es el caso que hay
+ * que enseñar: una sugerencia que además es una presentación posible entre
+ * gente conocida, que es más segura que cualquier primera cita armada desde
+ * cero.
+ */
+const demoSharedEvents: Record<string, { id: string; title: string; startsAt: string }> = {
+  'u-mariel': {
+    id: 'ev-vigilia',
+    title: 'Vigilia de jóvenes adultos',
+    startsAt: '2026-09-04T20:00:00-04:00',
+  },
+};
+
+export const demoDiscover: ProfileCard[] = discoverBase.map((profile) => {
+  const event = demoSharedEvents[profile.userId];
+  const sharedEvent = event
+    ? { ...event, whenLabel: relativeDayLabel(new Date(event.startsAt)) }
+    : undefined;
+  return {
+    ...profile,
+    sharedEvent,
+    affinityReason: affinityReason({
+      affinity: profile.affinity,
+      inCommon: profile.inCommon,
+      sameDenomination: profile.denomination === demoCurrentUser.denomination,
+      bothSeekMarriage: profile.intention === 'MARRIAGE',
+      endorsedBy: profile.badges.endorsedBy,
+      sharedEvent: sharedEvent
+        ? { title: sharedEvent.title, whenLabel: sharedEvent.whenLabel }
+        : undefined,
+    }),
+  };
+});
 
 export const demoDailySummary: DailySummary = {
   interestsUsedToday: 3,

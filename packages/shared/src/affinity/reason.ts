@@ -22,6 +22,16 @@ export interface ReasonInput {
   bothSeekMarriage?: boolean;
   /** Set when the candidate is endorsed by their church (RF-VER-02). */
   endorsedBy?: string;
+  /**
+   * An upcoming event both of them said they are going to.
+   *
+   * This outranks everything else on the card, and deliberately so: a shared
+   * denomination is a label, but "they will both be in the same room on
+   * Friday" is a real, checkable fact — and it turns a profile into a
+   * introduction that can happen among people they know, which is safer than
+   * any first date arranged from scratch.
+   */
+  sharedEvent?: { title: string; whenLabel: string };
 }
 
 /** Joins in Spanish: "a, b y c". */
@@ -36,6 +46,12 @@ function joinEs(items: string[]): string {
  * both beat a shared label.
  */
 export function affinityReason(input: ReasonInput): string {
+  // Coincidir en un evento gana a cualquier otra razón: es lo único que
+  // convierte una sugerencia en una presentación posible.
+  if (input.sharedEvent) {
+    return `Los dos van a «${input.sharedEvent.title}» ${input.sharedEvent.whenLabel}.`;
+  }
+
   const clauses: string[] = [];
   const shared = (input.inCommon ?? []).filter(Boolean);
 

@@ -55,6 +55,34 @@ export interface RelationshipState {
   history: Array<{ toStage: RelationshipStage; createdAt: string }>;
 }
 
+export type MeetingPlanStatus = 'PLANNED' | 'SHARED' | 'CHECKED_IN' | 'CANCELED';
+
+export interface MeetingPlanInput {
+  place: string;
+  meetsAt: string;
+  notes?: string;
+  /**
+   * Free text like "mi hermana Rosa". Deliberately not a phone number: Yugo
+   * never stores or contacts a third party who did not agree to be here.
+   */
+  trustedContactLabel?: string;
+}
+
+export interface MeetingPlan {
+  id: string;
+  place: string;
+  meetsAt: string;
+  notes: string | null;
+  trustedContactLabel: string | null;
+  status: MeetingPlanStatus;
+  sharedAt: string | null;
+  checkInAt: string | null;
+  /** The message the member sends themselves, from their own phone. */
+  shareText: string;
+  /** The meeting has passed and they have not said they are fine. */
+  awaitingCheckIn: boolean;
+}
+
 export type StoryStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'REJECTED';
 
 /**
@@ -575,6 +603,19 @@ export class YugoApiClient {
         `/connections/${matchId}/accompaniment/consent`,
         { agree },
       ),
+
+    // Plan del primer encuentro. Es de quien lo escribe: la otra persona
+    // nunca lo ve ni se entera de que existe.
+    meetingPlan: (matchId: string) =>
+      this.http.get<{ plan: MeetingPlan | null }>(`/connections/${matchId}/plan`),
+    saveMeetingPlan: (matchId: string, input: MeetingPlanInput) =>
+      this.http.post<MeetingPlan>(`/connections/${matchId}/plan`, input),
+    markPlanShared: (planId: string) =>
+      this.http.post<MeetingPlan>(`/connections/plan/${planId}/shared`, {}),
+    planCheckIn: (planId: string) =>
+      this.http.post<MeetingPlan>(`/connections/plan/${planId}/check-in`, {}),
+    cancelPlan: (planId: string) =>
+      this.http.delete<{ canceled: boolean }>(`/connections/plan/${planId}`),
   };
 
   // ---- Historias de parejas que se casaron --------------------------------

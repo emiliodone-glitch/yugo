@@ -15,8 +15,13 @@ import {
   useConsentToMentor,
   useEndAccompaniment,
   useInviteMentor,
+  useCancelMeetingPlan,
   useConsentToStory,
+  useMarkPlanShared,
+  useMeetingPlan,
   useOurStory,
+  usePlanCheckIn,
+  useSaveMeetingPlan,
   useProposeStage,
   useRelationship,
   useRespondToStage,
@@ -473,6 +478,188 @@ export function OurStoryCard({ matchId }: { matchId: string }) {
           <p className="mt-1 text-[11.5px] text-olive-text">{es.stories.tellOursIntro}</p>
           <button type="button" className="btn btn-sm mt-2" onClick={() => setWriting(true)}>
             {es.stories.tellOurs}
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Plan del primer encuentro (RF-SEG-06).
+ *
+ * Two things this card must say out loud, because they are the reason it can
+ * be trusted: the plan is yours alone — the other person never sees it — and
+ * Yugo never asks for, stores, or writes to your trusted contact. The message
+ * is written for you; you send it yourself.
+ */
+export function MeetingPlanCard({ matchId }: { matchId: string }) {
+  const { data } = useMeetingPlan(matchId);
+  const save = useSaveMeetingPlan(matchId);
+  const markShared = useMarkPlanShared(matchId);
+  const checkIn = usePlanCheckIn(matchId);
+  const cancel = useCancelMeetingPlan(matchId);
+
+  const plan = data?.plan ?? null;
+  const [editing, setEditing] = useState(false);
+  const [place, setPlace] = useState('');
+  const [meetsAt, setMeetsAt] = useState('');
+  const [notes, setNotes] = useState('');
+  const [contact, setContact] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await save.mutateAsync({
+      place,
+      meetsAt: new Date(meetsAt).toISOString(),
+      notes: notes || undefined,
+      trustedContactLabel: contact || undefined,
+    });
+    setEditing(false);
+  };
+
+  return (
+    <section className="card mb-3 border-0 bg-wine-soft" aria-label={es.meetingPlan.title}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-wine">
+        {es.meetingPlan.title}
+      </div>
+
+      {plan ? (
+        <>
+          <p className="mt-1 text-[12.5px] text-body">
+            <b>{plan.place}</b>
+            <span className="block text-[11.5px] text-muted">
+              {new Date(plan.meetsAt).toLocaleString('es-DO', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </span>
+          </p>
+
+          {plan.status === 'CHECKED_IN' ? (
+            <p className="mt-2 text-[11.5px] text-olive-text">{es.meetingPlan.checkedIn}</p>
+          ) : plan.awaitingCheckIn ? (
+            <div className="mt-2 rounded-field bg-white px-3 py-2.5">
+              <b className="text-[12.5px]">{es.meetingPlan.checkInPrompt}</b>
+              <p className="mt-0.5 text-[11.5px] text-muted">{es.meetingPlan.checkInBody}</p>
+              <button
+                type="button"
+                className="btn btn-sm mt-2"
+                onClick={() => checkIn.mutate(plan.id)}
+              >
+                {es.meetingPlan.checkIn}
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* El mensaje lo manda la persona, no Yugo: nunca pedimos ni
+                  guardamos el teléfono de un tercero. */}
+              <pre className="mt-2 whitespace-pre-wrap rounded-field bg-white px-3 py-2 font-sans text-[11.5px] text-body">
+                {plan.shareText}
+              </pre>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={async () => {
+                    await navigator.clipboard?.writeText(plan.shareText).catch(() => {});
+                    setCopied(true);
+                    markShared.mutate(plan.id);
+                  }}
+                >
+                  {plan.status === 'SHARED' ? es.meetingPlan.shared : es.meetingPlan.share}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => cancel.mutate(plan.id)}
+                >
+                  {es.meetingPlan.cancel}
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                {copied || plan.status === 'SHARED'
+                  ? plan.trustedContactLabel
+                    ? es.meetingPlan.sharedAt(plan.trustedContactLabel)
+                    : es.meetingPlan.shared
+                  : es.meetingPlan.pendingShare}
+              </p>
+            </>
+          )}
+          <p className="mt-2 text-[11px] text-muted">{es.meetingPlan.privateNotice}</p>
+        </>
+      ) : editing ? (
+        <form className="mt-2" onSubmit={submit}>
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="plan-place">
+            {es.meetingPlan.placeLabel}
+          </label>
+          <input
+            id="plan-place"
+            className="field w-full"
+            placeholder={es.meetingPlan.placePlaceholder}
+            value={place}
+            onChange={(event) => setPlace(event.target.value)}
+            required
+          />
+          <p className="mb-2 mt-1 text-[11px] text-muted">{es.meetingPlan.placeHint}</p>
+
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="plan-when">
+            {es.meetingPlan.whenLabel}
+          </label>
+          <input
+            id="plan-when"
+            type="datetime-local"
+            className="field mb-2 w-full"
+            value={meetsAt}
+            onChange={(event) => setMeetsAt(event.target.value)}
+            required
+          />
+
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="plan-contact">
+            {es.meetingPlan.contactLabel}
+          </label>
+          <input
+            id="plan-contact"
+            className="field w-full"
+            placeholder={es.meetingPlan.contactPlaceholder}
+            value={contact}
+            onChange={(event) => setContact(event.target.value)}
+          />
+          <p className="mb-2 mt-1 text-[11px] text-muted">{es.meetingPlan.contactHint}</p>
+
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="plan-notes">
+            {es.meetingPlan.notesLabel}
+          </label>
+          <input
+            id="plan-notes"
+            className="field mb-2 w-full"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            maxLength={300}
+          />
+
+          <div className="flex gap-2">
+            <button type="submit" className="btn btn-sm" disabled={save.isPending}>
+              {es.meetingPlan.save}
+            </button>
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(false)}>
+              {es.common.cancel}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p className="mt-1 text-[11.5px] text-body">{es.meetingPlan.intro}</p>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost mt-2"
+            onClick={() => setEditing(true)}
+          >
+            {es.meetingPlan.title}
           </button>
         </>
       )}

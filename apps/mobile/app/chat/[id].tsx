@@ -28,6 +28,7 @@ import {
 import { AvatarCircle, Button, CheckMark, Chip, Notice, Sub } from '../../components/ui';
 import {
   AccompanimentCard,
+  MeetingPlanCard,
   OurStoryCard,
   RelationshipStageCard,
 } from '../../components/relationship';
@@ -169,6 +170,7 @@ export default function ChatScreen() {
           />
           <AccompanimentCard matchId={connection.matchId} />
           <OurStoryCard matchId={connection.matchId} />
+          <MeetingPlanCard matchId={connection.matchId} />
 
           {messages.length <= 3 && icebreakers.length > 0 ? (
             <View style={styles.icebreakerCard}>

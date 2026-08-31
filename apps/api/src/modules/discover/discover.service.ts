@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import {
   affinityReason,
   ageFromBirthDate,
+  relativeDayLabel,
   EXCLUSIVE_STAGES,
   DiscoverFilters,
   ProfileCard,
@@ -88,6 +89,61 @@ export class DiscoverService {
     );
     const items = cards.filter((card) => !settled.has(card.userId));
     return { items, total: items.length };
+  }
+
+  /**
+   * Upcoming events the viewer and each candidate are both going to.
+   *
+   * A shared denomination is a label; being in the same room on Friday is a
+   * fact — and it turns a suggestion into an introduction that can happen
+   * among people they both know, which is safer than any first meeting
+   * arranged from nothing.
+   *
+   * The candidate's own privacy setting decides whether this is visible at
+   * all: `allowEventPresenceVisible` already governs who can see that someone
+   * will be at an event (RF-EVE-05), and it would be indefensible to honour it
+   * for connections and quietly ignore it for strangers.
+   */
+  private async sharedUpcomingEvents(
+    viewerId: string,
+    candidateIds: string[],
+  ): Promise<Map<string, { id: string; title: string; startsAt: Date }>> {
+    const result = new Map<string, { id: string; title: string; startsAt: Date }>();
+    if (candidateIds.length === 0) return result;
+
+    const mine = await this.prisma.eventAttendance.findMany({
+      where: {
+        userId: viewerId,
+        status: 'GOING',
+        event: { status: 'PUBLISHED', startsAt: { gt: new Date() } },
+      },
+      select: { eventId: true },
+    });
+    if (mine.length === 0) return result;
+
+    const theirs = await this.prisma.eventAttendance.findMany({
+      where: {
+        userId: { in: candidateIds },
+        eventId: { in: mine.map((row) => row.eventId) },
+        status: 'GOING',
+        user: { profile: { allowEventPresenceVisible: true } },
+      },
+      include: { event: { select: { title: true, startsAt: true } } },
+      orderBy: { event: { startsAt: 'asc' } },
+    });
+
+    // The soonest shared event wins: "this Friday" is a reason to say hello
+    // today in a way that "in three months" is not.
+    for (const row of theirs) {
+      if (!result.has(row.userId)) {
+        result.set(row.userId, {
+          id: row.eventId,
+          title: row.event.title,
+          startsAt: row.event.startsAt,
+        });
+      }
+    }
+    return result;
   }
 
   /** Whether this member declared noviazgo or compromiso with someone. */
@@ -283,6 +339,11 @@ export class DiscoverService {
       filters.maxDistanceKm ?? viewer.profile.maxDistanceKm,
     );
 
+    const sharedEvents = await this.sharedUpcomingEvents(
+      viewer.user.id,
+      candidates.map((candidate) => candidate.id),
+    );
+
     const scored: Array<{
       card: ProfileCard;
       affinityTotal: number;
@@ -312,6 +373,7 @@ export class DiscoverService {
       const identity = candidate.verifications.some((v) => v.level === 2);
       const isOro = candidate.subscriptions.some((s) => s.tier === 'ORO');
 
+      const sharedEvent = sharedEvents.get(candidate.id);
       const viewerPractices = new Set(viewerScorable.practiceSlugs);
       const inCommon = candidate.profile.serviceAreas
         .filter((sa) => viewerPractices.has(sa.serviceArea.slug))
@@ -361,7 +423,18 @@ export class DiscoverService {
               viewer.profile.intention === 'MARRIAGE' &&
               candidate.profile.intention === 'MARRIAGE',
             endorsedBy: level3?.church?.name,
+            sharedEvent: sharedEvent
+              ? { title: sharedEvent.title, whenLabel: relativeDayLabel(sharedEvent.startsAt) }
+              : undefined,
           }),
+          sharedEvent: sharedEvent
+            ? {
+                id: sharedEvent.id,
+                title: sharedEvent.title,
+                startsAt: sharedEvent.startsAt.toISOString(),
+                whenLabel: relativeDayLabel(sharedEvent.startsAt),
+              }
+            : undefined,
           badges: {
             contact: true,
             identity,

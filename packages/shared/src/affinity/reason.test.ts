@@ -66,3 +66,29 @@ describe('motivo de la sugerencia (RF-DES-02/03)', () => {
     );
   });
 });
+
+describe('coincidir en un evento', () => {
+  const base = {
+    affinity: { total: 70, components: [{ key: 'denomination' as const, score: 70 }] },
+  };
+
+  it('gana a cualquier otra razón', () => {
+    // Compartir denominación es una etiqueta; estar en la misma sala el
+    // viernes es un hecho comprobable, y es lo que hace posible una
+    // presentación entre gente conocida en vez de una cita a ciegas.
+    const reason = affinityReason({
+      ...base,
+      inCommon: ['Alabanza', 'Oración'],
+      sameChurch: true,
+      bothSeekMarriage: true,
+      sharedEvent: { title: 'Vigilia de jóvenes', whenLabel: 'el viernes' },
+    });
+    expect(reason).toBe('Los dos van a «Vigilia de jóvenes» el viernes.');
+  });
+
+  it('sin evento compartido, todo sigue igual', () => {
+    expect(affinityReason({ ...base, sameChurch: true })).toBe(
+      'Se congregan en la misma iglesia.',
+    );
+  });
+});

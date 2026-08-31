@@ -33,6 +33,7 @@ import {
   type CoupleStory,
   type PublishedStory,
   type StoryDraftInput,
+  type MeetingPlanInput,
   type RelationshipStage,
   type RelationshipState,
   type DiscoverFilters,
@@ -1224,5 +1225,85 @@ export function useConsentToStory(matchId: string) {
       return api().stories.consent(matchId, agree);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['our-story', matchId] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Plan del primer encuentro (RF-SEG-06)
+// ---------------------------------------------------------------------------
+
+/**
+ * My plan for this bond. There is no hook for anybody else's, because there
+ * is no endpoint: a plan belongs to the person who wrote it.
+ */
+export function useMeetingPlan(matchId: string) {
+  const demo = useDemoStore((s) => s.meetingPlans[matchId] ?? null);
+  const live = useQuery({
+    queryKey: ['meeting-plan', matchId],
+    enabled: !isDemoMode() && !!matchId,
+    queryFn: () => api().connections.meetingPlan(matchId),
+  });
+
+  if (!isDemoMode()) return live;
+  return { ...live, data: { plan: demo }, isLoading: false } as typeof live;
+}
+
+export function useSaveMeetingPlan(matchId: string) {
+  const queryClient = useQueryClient();
+  const saveDemo = useDemoStore((s) => s.saveMeetingPlan);
+  return useMutation({
+    mutationFn: async (input: MeetingPlanInput) => {
+      if (isDemoMode()) return saveDemo(matchId, input);
+      return api().connections.saveMeetingPlan(matchId, input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meeting-plan', matchId] }),
+  });
+}
+
+/** They sent the message themselves; we only record that they did. */
+export function useMarkPlanShared(matchId: string) {
+  const queryClient = useQueryClient();
+  const updateDemo = useDemoStore((s) => s.updateMeetingPlan);
+  return useMutation({
+    mutationFn: async (planId: string) => {
+      if (isDemoMode()) {
+        return updateDemo(matchId, { status: 'SHARED', sharedAt: new Date().toISOString() });
+      }
+      return api().connections.markPlanShared(planId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meeting-plan', matchId] }),
+  });
+}
+
+export function usePlanCheckIn(matchId: string) {
+  const queryClient = useQueryClient();
+  const updateDemo = useDemoStore((s) => s.updateMeetingPlan);
+  return useMutation({
+    mutationFn: async (planId: string) => {
+      if (isDemoMode()) {
+        return updateDemo(matchId, {
+          status: 'CHECKED_IN',
+          checkInAt: new Date().toISOString(),
+          awaitingCheckIn: false,
+        });
+      }
+      return api().connections.planCheckIn(planId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meeting-plan', matchId] }),
+  });
+}
+
+export function useCancelMeetingPlan(matchId: string) {
+  const queryClient = useQueryClient();
+  const cancelDemo = useDemoStore((s) => s.cancelMeetingPlan);
+  return useMutation({
+    mutationFn: async (planId: string) => {
+      if (isDemoMode()) {
+        cancelDemo(matchId);
+        return { canceled: true };
+      }
+      return api().connections.cancelPlan(planId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meeting-plan', matchId] }),
   });
 }
