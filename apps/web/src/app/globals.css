@@ -60,3 +60,21 @@ body {
     @apply block h-full rounded-md bg-olive;
   }
 }
+
+/*
+ * RNF-05: honour "reduce motion". Transitions here are decorative — a button
+ * fading on hover, a panel sliding — so removing them costs nothing and
+ * spares people who get motion sickness or find movement distracting.
+ * Kept to a near-zero duration rather than `none` so transition-end handlers
+ * still fire and nothing gets stuck mid-state.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

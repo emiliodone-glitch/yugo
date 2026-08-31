@@ -16,6 +16,7 @@ import {
 import { CheckIcon, ChevronLeft, PersonSilhouette, YugoMark } from '@/components/icons';
 import { Toggle } from '@/components/ui';
 import { DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
+import { useReach } from '@/lib/hooks';
 
 const TOTAL_STEPS = 8;
 
@@ -78,6 +79,8 @@ export default function OnboardingPage() {
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Prueba de valor en cuanto sabemos lo suficiente para que signifique algo.
+  const { data: reach } = useReach(form.denomination ?? undefined);
 
   const patch = (partial: Partial<FormState>) => {
     setError(null);
@@ -348,6 +351,14 @@ export default function OnboardingPage() {
               value={form.yearsInFaith}
               onChange={(event) => patch({ yearsInFaith: event.target.value })}
             />
+            {reach?.hasPeople ? (
+              <p className="mb-3 rounded-field bg-olive-soft px-3 py-2 text-[12px] text-olive-text">
+                {reach.approximate
+                  ? `Ya hay más de ${reach.approximate} personas de tu denominación con perfil completo en Yugo.`
+                  : 'Ya hay personas de tu denominación con perfil completo en Yugo.'}
+              </p>
+            ) : null}
+
             <div className="mb-2 text-[13px] font-semibold">{es.onboarding.attendance}</div>
             <div className="flex flex-wrap gap-1.5">
               {ATTENDANCE_OPTIONS.map((option) => (

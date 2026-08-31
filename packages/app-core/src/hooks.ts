@@ -630,6 +630,28 @@ export function useMyProfile() {
  * only visible to other people once it is APPROVED, so the manager has to show
  * PENDING and REJECTED explicitly instead of pretending everything is live.
  */
+/**
+ * RF-DES-01: prueba de valor durante el registro. Ocho pasos de formulario
+ * antes de ver una sola señal de que vale la pena es mucho pedir de fe.
+ */
+export function useReach(denomination?: string, province?: string) {
+  return useQuery({
+    queryKey: ['reach', denomination, province],
+    enabled: !!denomination,
+    queryFn: async () => {
+      if (isDemoMode()) {
+        return {
+          approximate: 120,
+          hasPeople: true,
+          denomination: denomination ?? null,
+          province: province ?? null,
+        };
+      }
+      return api().catalog.reach(denomination, province);
+    },
+  });
+}
+
 export function useMyPhotos() {
   return useQuery({
     queryKey: ['my-photos'],

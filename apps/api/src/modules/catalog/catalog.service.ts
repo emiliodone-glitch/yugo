@@ -62,4 +62,41 @@ export class CatalogService {
       orderBy: { activeFrom: 'desc' },
     });
   }
+
+  /**
+   * How many people are already here for someone of this denomination and
+   * province. Shown during onboarding, after the person has given enough to
+   * make it meaningful — eight steps of form before any sign of value is a lot
+   * to ask on faith.
+   *
+   * Deliberately coarse: a count, never a list, and rounded down to a bucket so
+   * it cannot be used to probe who is in a small town. Below a floor it just
+   * says there are people, without a number that would single anyone out.
+   */
+  async reach(denominationSlug?: string, province?: string) {
+    const denomination = denominationSlug
+      ? await this.prisma.denomination.findUnique({ where: { slug: denominationSlug } })
+      : null;
+
+    const total = await this.prisma.user.count({
+      where: {
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        deletedAt: null,
+        profile: {
+          completeness: { gte: 60 },
+          ...(denomination ? { denominationId: denomination.id } : {}),
+          ...(province ? { province } : {}),
+        },
+      },
+    });
+
+    return {
+      /** Rounded down to the nearest ten; null when too few to report. */
+      approximate: total >= 10 ? Math.floor(total / 10) * 10 : null,
+      hasPeople: total > 0,
+      denomination: denomination?.name ?? null,
+      province: province ?? null,
+    };
+  }
 }

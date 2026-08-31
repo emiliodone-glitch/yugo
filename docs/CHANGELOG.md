@@ -259,6 +259,57 @@ esperar a una persona.
 La moderación de texto ya fallaba cerrado (retiene cuando el clasificador cae) y
 se dejó igual.
 
+## v0.2.0 — De maqueta funcional a producto usable
+
+Tres cosas impedían que un usuario real evaluara Yugo, y ninguna se notaba
+porque el modo demo las disimulaba.
+
+### Fotos reales (RF-PER-02)
+El backend estaba completo desde el principio — URL firmadas, moderación previa
+por cola, `/discover` ya devolvía `photoUrl` — pero **ningún cliente subía ni
+mostraba una imagen**: 22 siluetas y cero `<img>`. Ahora se suben desde cámara o
+galería, recortadas al cuadrado en el dispositivo (todas las superficies muestran
+la foto en cuadrado o círculo: sin recortar, la persona nunca vería el encuadre
+que ven los demás), con el estado de moderación visible foto por foto.
+
+### Chat en vivo (RF-CON-03)
+El `ChatGateway` de Socket.IO existía y nunca se conectó nadie: los mensajes solo
+aparecían al recargar. Se añadió el cliente compartido, el indicador de
+«escribiendo…» y los acuses de entrega y lectura, que ya estaban en el modelo de
+datos sin usar. La persistencia y la moderación siguen en HTTP, así que una caída
+del socket degrada al comportamiento anterior en vez de perder un mensaje.
+
+### Notificaciones que llegan (RF-NOT-01/03)
+El endpoint de token existía y la app nunca lo llamaba: toda la infraestructura
+de notificaciones no alcanzaba ningún teléfono. Ahora se registra el token y un
+toque abre la pantalla correspondiente, con `destinationFor()` probado en
+`@yugo/shared`.
+
+### La afinidad y el respaldo, aprovechados
+- **El porqué, en la tarjeta** (RF-DES-02): `affinityReason()` convierte el
+  desglose en una frase corta y concreta. Es lo que justifica una lista de seis
+  personas frente al scroll infinito. Conservador a propósito: cuando no hay nada
+  específico dice el puntaje en vez de inventar una conexión.
+- **Rompehielos del cruce real** (RF-CON-04): antes salían solo del perfil ajeno,
+  lo que se lee como entrevista; ahora lo compartido va primero.
+- **Filtro «solo respaldados»** (RF-VER-02), gratuito a propósito: cobrar por
+  filtrar la señal de confianza empujaría a la gente hacia perfiles menos
+  verificados.
+- **Métricas de iglesia** (RF-IGL-06) con tasa de canje de códigos, y una
+  explicación de qué **no** se muestra: el respaldo descansa sobre esa separación.
+
+### Menos fricción
+- Prueba de valor durante el registro: cuánta gente de tu denominación ya está
+  aquí. Redondeado a la decena y sin número por debajo de un piso, para que no
+  sirva para sondear quién hay en un pueblo pequeño.
+- La lista vacía de Descubrir dejó de ser un callejón: ofrece comunidad, eventos,
+  ampliar la búsqueda y quitar el filtro.
+- Móvil sin señal: caché persistida por 24 h y un aviso explícito, en vez de
+  pantallas vacías. Solo se restauran lecturas — reproducir una mutación vieja al
+  reconectar es como las apps mandan cosas dos veces.
+- Tipografía del sistema respetada hasta 1.6× (más allá la pantalla deja de ser
+  usable y conviene el zoom del sistema), y `prefers-reduced-motion` en la web.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de

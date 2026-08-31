@@ -13,6 +13,7 @@ import {
   type ProfileUpdateInput,
 } from '@yugo/shared';
 import { Button, CheckMark, Chip, Field, H, Notice, ProgressBar, Sub, YugoMark } from '../components/ui';
+import { useReach } from '@yugo/app-core';
 import { DEMO_MODE, errorMessage, getApiClient } from '../lib/api';
 import { theme } from '../lib/theme';
 
@@ -47,6 +48,8 @@ export default function OnboardingScreen() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Prueba de valor en cuanto sabemos lo suficiente para que signifique algo.
+  const { data: reach } = useReach(denomination ?? undefined);
 
   const parsedBirth = useMemo(() => {
     const match = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -259,6 +262,16 @@ export default function OnboardingScreen() {
                 </Pressable>
               ))}
             </View>
+            {reach?.hasPeople ? (
+              <Notice
+                text={
+                  reach.approximate
+                    ? `Ya hay más de ${reach.approximate} personas de tu denominación con perfil completo en Yugo.`
+                    : 'Ya hay personas de tu denominación con perfil completo en Yugo.'
+                }
+              />
+            ) : null}
+
             <Text style={styles.fieldTitle}>{es.onboarding.attendance}</Text>
             <View style={styles.chipWrap}>
               {ATTENDANCE_OPTIONS.map((option) => (

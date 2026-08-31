@@ -309,6 +309,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  offlineBanner: {
+    backgroundColor: colors.wheatSoft,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  offlineText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.wheatText,
+    textAlign: 'center',
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -584,5 +596,22 @@ export function ListRow({
       </View>
       {right ?? <Text style={{ color: colors.muted, fontSize: 16 }}>›</Text>}
     </Pressable>
+  );
+}
+
+/**
+ * Persistent banner while the device has no usable connection.
+ *
+ * Being explicit beats a screen that silently stops updating: the member knows
+ * what they are looking at and why the button did nothing.
+ */
+export function OfflineBanner({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <View style={styles.offlineBanner} accessibilityRole="alert">
+      <Text style={styles.offlineText}>
+        Sin conexión. Ves lo último que se descargó; se actualiza al volver la señal.
+      </Text>
+    </View>
   );
 }

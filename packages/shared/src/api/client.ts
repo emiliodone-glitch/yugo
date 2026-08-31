@@ -326,6 +326,14 @@ export class YugoApiClient {
         anonymous: true,
         query: { q: query },
       }),
+    /** Cuánta gente ya está aquí para alguien así (prueba de valor). */
+    reach: (denomination?: string, province?: string) =>
+      this.http.get<{
+        approximate: number | null;
+        hasPeople: boolean;
+        denomination: string | null;
+        province: string | null;
+      }>('/catalog/reach', { anonymous: true, query: { denomination, province } }),
     covenant: () =>
       this.http.get<{ version: string; body: { points: string[] } }>('/catalog/covenant', {
         anonymous: true,

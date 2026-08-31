@@ -12,6 +12,7 @@ import {
 } from '@yugo/app-core';
 import { AffinityRing, Button, Card, CheckMark, Chip, H, Notice, Sub } from '../../components/ui';
 import { errorMessage } from '../../lib/api';
+import { scaled, useFontScale } from '../../lib/a11y';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
@@ -29,6 +30,9 @@ export default function DiscoverScreen() {
   const sentInterests = useDemoStore((s) => s.sentInterests);
   const savedProfiles = useDemoStore((s) => s.savedProfiles);
   const [error, setError] = useState<string | null>(null);
+  // RNF-05: la foto crece con el tamaño de letra del sistema; una altura fija
+  // recortaría el nombre y la distancia en vez de acomodarlos.
+  const fontScale = useFontScale();
 
   const profiles = data?.items ?? [];
   const limit = data?.limit ?? LIMITS.DAILY_INTERESTS_FREE;
@@ -52,7 +56,7 @@ export default function DiscoverScreen() {
     const sent = sentInterests[profile.userId];
     return (
       <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <View style={styles.photo}>
+        <View style={[styles.photo, { height: scaled(250, fontScale) }]}>
           {profile.photoUrl ? (
             <Image
               source={{ uri: profile.photoUrl }}

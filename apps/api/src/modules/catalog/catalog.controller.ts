@@ -23,6 +23,17 @@ export class CatalogController {
     return this.content.safetyTips();
   }
 
+  /**
+   * Prueba de valor durante el registro: cuánta gente ya está aquí para
+   * alguien como quien se está registrando. Público porque se muestra antes
+   * de tener cuenta.
+   */
+  @Public()
+  @Get('reach')
+  reach(@Query('denomination') denomination?: string, @Query('province') province?: string) {
+    return this.catalog.reach(denomination, province);
+  }
+
   @Public()
   @Get('denominations')
   denominations() {

@@ -40,7 +40,7 @@ pnpm build       # dist api + .next + packages
 pnpm --filter @yugo/api build && node apps/api/dist/main.js &
 pnpm --filter @yugo/api test:smoke   # 21 comprobaciones por HTTP
 
-# E2E web/admin/portal — 130 pruebas en móvil y escritorio
+# E2E web/admin/portal — 136 pruebas en móvil y escritorio
 # (incluye 42 de accesibilidad: axe contra WCAG 2.1 AA en 21 superficies)
 pnpm --filter @yugo/web build
 pnpm --filter @yugo/web e2e

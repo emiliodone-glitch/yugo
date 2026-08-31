@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { theme } from '../../lib/theme';
+import { scaled, useFontScale } from '../../lib/a11y';
 
 const { colors, fonts } = theme;
 
@@ -50,6 +51,9 @@ function CalendarIcon({ color }: { color: string }) {
 }
 
 export default function TabsLayout() {
+  // RNF-05: la barra crece con el texto del sistema en vez de recortar las
+  // etiquetas.
+  const fontScale = useFontScale();
   return (
     <Tabs
       screenOptions={{
@@ -57,7 +61,12 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: 10 },
-        tabBarStyle: { backgroundColor: '#fff', borderTopColor: colors.line, height: 64, paddingBottom: 6 },
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopColor: colors.line,
+          height: scaled(64, fontScale),
+          paddingBottom: 6,
+        },
       }}
     >
       <Tabs.Screen
