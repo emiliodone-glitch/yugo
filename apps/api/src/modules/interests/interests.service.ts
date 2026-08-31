@@ -66,9 +66,25 @@ export class InterestsService {
           create: { userAId, userBId, conversation: { create: {} } },
           include: { conversation: true },
         });
+        // Con el id de la conversación, tocar la notificación abre el chat.
+        const conversationData = match.conversation
+          ? { conversationId: match.conversation.id }
+          : undefined;
         await Promise.all([
-          this.notifications.notify(fromUserId, 'CONNECTION', 'Nueva conexión', 'Se marcaron interés mutuamente. ¡Ya pueden conversar!'),
-          this.notifications.notify(toUserId, 'CONNECTION', 'Nueva conexión', 'Se marcaron interés mutuamente. ¡Ya pueden conversar!'),
+          this.notifications.notify(
+            fromUserId,
+            'CONNECTION',
+            'Nueva conexión',
+            'Se marcaron interés mutuamente. ¡Ya pueden conversar!',
+            conversationData,
+          ),
+          this.notifications.notify(
+            toUserId,
+            'CONNECTION',
+            'Nueva conexión',
+            'Se marcaron interés mutuamente. ¡Ya pueden conversar!',
+            conversationData,
+          ),
         ]);
         return { interest, match, remaining: quota.limit === null ? null : quota.limit - quota.used };
       }

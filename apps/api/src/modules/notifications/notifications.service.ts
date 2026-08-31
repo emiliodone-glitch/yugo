@@ -95,7 +95,13 @@ export class NotificationsService implements OnModuleInit {
       // request that triggered the notification, and quiet hours postpone it
       // instead of losing it (RF-NOT-02).
       const delay = quietHoursDelayMs(quiet ?? DEFAULT_QUIET_HOURS, new Date());
-      await this.queues.add('push', { userId, title, body, data }, delay);
+      // The category always travels, so a tapped notification always has a
+      // destination even when the caller passed no specific id (RF-NOT-03).
+      await this.queues.add(
+        'push',
+        { userId, title, body, data: { ...(data ?? {}), category } },
+        delay,
+      );
     }
     return notification;
   }

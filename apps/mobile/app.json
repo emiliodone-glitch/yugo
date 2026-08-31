@@ -29,10 +29,20 @@
           "photosPermission": "Yugo usa tus fotos para que elijas las de tu perfil.",
           "cameraPermission": "Yugo usa la cámara para tu foto de perfil y la selfie de verificación."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#22315C"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": false
+    },
+    "notification": {
+      "iosDisplayInForeground": true,
+      "color": "#22315C"
     }
   }
 }
