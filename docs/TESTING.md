@@ -38,7 +38,7 @@ pnpm build       # dist api + .next + packages
 
 # Humo contra la API viva (requiere base sembrada y la API escuchando)
 pnpm --filter @yugo/api build && node apps/api/dist/main.js &
-pnpm --filter @yugo/api test:smoke   # 21 comprobaciones por HTTP
+pnpm --filter @yugo/api test:smoke   # 34 comprobaciones por HTTP y socket
 
 # E2E web/admin/portal — 136 pruebas en móvil y escritorio
 # (incluye 42 de accesibilidad: axe contra WCAG 2.1 AA en 21 superficies)

@@ -35,13 +35,14 @@ interface Json {
 async function call(
   method: string,
   path: string,
-  options: { token?: string; body?: unknown } = {},
+  options: { token?: string; body?: unknown; query?: Record<string, string> } = {},
 ): Promise<Json> {
   const headers: Record<string, string> = { accept: 'application/json' };
   if (options.body !== undefined) headers['content-type'] = 'application/json';
   if (options.token) headers.authorization = `Bearer ${options.token}`;
 
-  const response = await fetch(`${BASE}${path}`, {
+  const query = options.query ? `?${new URLSearchParams(options.query)}` : '';
+  const response = await fetch(`${BASE}${path}${query}`, {
     method,
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
@@ -100,6 +101,51 @@ async function firstViewerWithCandidates(): Promise<{
     if (items.length > 0) return { token, me, items };
   }
   return null;
+}
+
+/**
+ * The Socket.IO gateway shipped long before anything connected to it, so it
+ * could break without a single test noticing. This connects the way the apps
+ * do — JWT in the handshake, join the room — and proves that a message sent
+ * over HTTP actually arrives over the socket.
+ */
+async function checkRealtime(conversationId: string, token: string): Promise<void> {
+  const { io } = await import('socket.io-client');
+  const socket = io(`${BASE.replace(/\/v1$/, '')}/chat`, {
+    transports: ['websocket'],
+    auth: { token },
+  });
+
+  try {
+    const connected = await new Promise<boolean>((resolve) => {
+      socket.on('connect', () => resolve(true));
+      socket.on('connect_error', () => resolve(false));
+      setTimeout(() => resolve(false), 8000);
+    });
+    check('el socket conecta y autentica', connected);
+    if (!connected) return;
+
+    const ack = (await socket.emitWithAck('conversation:join', { conversationId })) as {
+      ok?: boolean;
+    };
+    check('se une a la sala de la conversación', ack?.ok === true, ack);
+
+    const delivered = new Promise<boolean>((resolve) => {
+      socket.on('message:new', (message: { conversationId: string }) =>
+        resolve(message.conversationId === conversationId),
+      );
+      setTimeout(() => resolve(false), 5000);
+    });
+
+    await call('POST', `/connections/conversations/${conversationId}/messages`, {
+      token,
+      body: { body: 'Probando el tiempo real desde la suite de humo.' },
+    });
+
+    check('un mensaje enviado por HTTP llega por el socket', await delivered);
+  } finally {
+    socket.disconnect();
+  }
 }
 
 async function waitForApi(): Promise<void> {
@@ -163,6 +209,56 @@ async function main() {
     (item, index) => index === 0 || items[index - 1].affinity.total >= item.affinity.total,
   );
   check('vienen ordenados por afinidad', sortedByAffinity, items.map((p) => p.affinity.total));
+
+  // RF-DES-02: el porqué se calcula en el servidor, no en la pantalla.
+  const withoutReason = items.filter((p) => !p.affinityReason);
+  check('cada tarjeta trae su motivo', withoutReason.length === 0, withoutReason.map((p) => p.userId));
+
+  console.log('\nRF-VER-02 — filtro de respaldo de iglesia');
+  const endorsed = await call('GET', '/discover', {
+    token,
+    query: { filters: JSON.stringify({ endorsedOnly: true }) },
+  });
+  check('el filtro responde 200', endorsed.status === 200, endorsed.body);
+  const notEndorsed = (endorsed.body?.items ?? []).filter((p: any) => !p.badges?.endorsedBy);
+  check(
+    'con el filtro puesto, todas llevan respaldo',
+    notEndorsed.length === 0,
+    notEndorsed.map((p: any) => p.userId),
+  );
+  check(
+    'filtrar nunca amplía la lista',
+    (endorsed.body?.items?.length ?? 0) <= items.length,
+    { filtrada: endorsed.body?.items?.length, completa: items.length },
+  );
+
+  console.log('\nPrueba de valor del registro');
+  const reach = await call('GET', '/catalog/reach', { query: { denomination: 'evangelica' } });
+  check('/catalog/reach es público', reach.status === 200, reach);
+  check(
+    'devuelve un conteo redondeado, nunca personas',
+    reach.body?.approximate === null || reach.body.approximate % 10 === 0,
+    reach.body,
+  );
+  check(
+    'no filtra identidades',
+    !JSON.stringify(reach.body).includes('@'),
+    reach.body,
+  );
+
+  console.log('\nRF-PER-02 — fotos');
+  const myPhotos = await call('GET', '/photos/mine', { token });
+  check('la lista de fotos responde', myPhotos.status === 200, myPhotos.body);
+  const signed = await call('POST', '/photos/sign-upload', {
+    token,
+    body: { contentType: 'image/jpeg' },
+  });
+  check('firma una subida', !!signed.body?.uploadUrl && !!signed.body?.key, signed.body);
+  const badType = await call('POST', '/photos/sign-upload', {
+    token,
+    body: { contentType: 'application/pdf' },
+  });
+  check('rechaza un tipo que no es imagen', badType.status === 400, badType);
 
   console.log('\nRF-DES-05 — interés y lista del día');
   const first = items[0];
@@ -256,6 +352,11 @@ async function main() {
     check('y no lleva fecha de entrega', !scam.body?.deliveredAt, scam.body);
   } else {
     check('hay una conversación que moderar', false, 'no se pudo crear la conexión');
+  }
+
+  console.log('\nRF-CON-03 — chat en tiempo real');
+  if (conversationId) {
+    await checkRealtime(conversationId, token);
   }
 
   console.log(`\n${checks - failures}/${checks} comprobaciones correctas`);

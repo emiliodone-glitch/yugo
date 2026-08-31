@@ -310,6 +310,20 @@ toque abre la pantalla correspondiente, con `destinationFor()` probado en
 - Tipografía del sistema respetada hasta 1.6× (más allá la pantalla deja de ser
   usable y conviene el zoom del sistema), y `prefers-reduced-motion` en la web.
 
+### La suite de humo cubre también lo nuevo
+Las cinco fases de la v0.2.0 se habían verificado con typecheck, build y E2E en
+modo demo — es decir, contra fixtures. Ahora `test:smoke` las ejerce contra una
+base real y suma 13 comprobaciones: que el motivo de la sugerencia lo calcula el
+servidor y viaja en cada tarjeta, que el filtro de respaldo nunca amplía la lista
+ni deja pasar a quien no lo tiene, que `/catalog/reach` es público y redondea sin
+filtrar identidades, que la firma de subida rechaza lo que no es imagen, y que el
+**gateway de tiempo real** funciona de punta a punta: autentica con el JWT, se
+une a la sala y un mensaje enviado por HTTP llega por el socket.
+
+Ese último bloque importa especialmente: el gateway existía desde el principio
+sin que nada se conectara, así que podía romperse sin que ninguna prueba se
+enterara.
+
 ### Pendiente para siguientes iteraciones
 - Proveedor real de comparación facial y de moderación de imágenes (hoy adaptadores con
   stub), pasarela Azul en producción (interfaz documentada, implementación pendiente de
