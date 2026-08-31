@@ -58,7 +58,10 @@ export type EventType =
   | 'SERVICIO_COMUNITARIO';
 
 export type EventStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'FINISHED' | 'REJECTED';
-export type EventAttendanceStatus = 'GOING' | 'INTERESTED';
+export type EventAttendanceStatus = 'GOING' | 'INTERESTED' | 'WAITLIST';
+
+/** Para quién convoca la congregación un encuentro. */
+export type EventAudience = 'CONGREGATION' | 'SINGLES';
 
 export type ReportCategory =
   | 'INAPPROPRIATE'
@@ -180,6 +183,15 @@ export interface EventSummary {
   connectionsGoing: Array<{ userId: string; displayName: string }>;
   lat?: number;
   lng?: number;
+  audience?: EventAudience;
+  capacity?: number;
+  /**
+   * Plazas que quedan realmente para quien no tiene Oro: la reserva de Oro ya
+   * viene descontada, porque decir "quedan 10" cuando 10 están apartadas es
+   * mentir con la verdad.
+   */
+  openSeats?: number;
+  waitlistCount?: number;
 }
 
 export interface GroupSummary {

@@ -55,6 +55,32 @@ export interface RelationshipState {
   history: Array<{ toStage: RelationshipStage; createdAt: string }>;
 }
 
+/**
+ * Lo que ve el ministerio de solteros de una congregación.
+ *
+ * Counts and rates only. No names, no attendee lists, nothing about who is
+ * talking to whom — the same line the rest of the church portal holds, and
+ * the reason a church can lend its name to any of this.
+ */
+export interface SinglesMinistry {
+  endorsedSingles: number;
+  pastEncounters: number;
+  going: number;
+  /** People who wanted in and did not fit: the number that says "book a bigger room". */
+  waitlisted: number;
+  checkIns: number;
+  checkInRate: number;
+  upcoming: Array<{
+    id: string;
+    title: string;
+    startsAt: string;
+    capacity: number | null;
+    going: number;
+    waitlisted: number;
+  }>;
+  privacyNote: string;
+}
+
 export type AccompanimentStatus = 'INVITED' | 'ACTIVE' | 'DECLINED' | 'ENDED';
 
 /** What the couple sees about who accompanies them. */
@@ -708,6 +734,8 @@ export class YugoApiClient {
         codeRedemptionRate: number;
         checkInRate: number;
       }>('/church-portal/metrics'),
+    /** Ministerio de solteros: totales, nunca nombres. */
+    singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
   };
 
   // ---- Admin panel (RF-ADM-01..12) ----------------------------------------

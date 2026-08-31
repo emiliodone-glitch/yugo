@@ -18,6 +18,7 @@ import {
   demoReports,
   demoAccompaniedBonds,
   demoMentorProfile,
+  demoSinglesMinistry,
   DEFAULT_PRICES,
   LIMITS,
   NOTIFICATION_CATEGORIES,
@@ -27,6 +28,7 @@ import {
   type ChatMessage,
   type AccompaniedBond,
   type MentorProfile,
+  type SinglesMinistry,
   type RelationshipStage,
   type RelationshipState,
   type DiscoverFilters,
@@ -684,8 +686,9 @@ export function useSetAttendance() {
       status: 'GOING' | 'INTERESTED' | null;
     }) => {
       if (isDemoMode()) {
-        setDemo(eventId, status ?? undefined);
-        return { status };
+        // Devuelve lo que realmente quedó, no lo que se pidió: un encuentro
+        // lleno convierte «Asistiré» en lista de espera.
+        return { status: setDemo(eventId, status ?? undefined) ?? null };
       }
       return api().events.setAttendance(eventId, status);
     },
@@ -1135,5 +1138,23 @@ export function useEnableMentor() {
       return api().accompaniment.enableMentor(input);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mentor-profile'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ministerio de solteros (portal de iglesias)
+// ---------------------------------------------------------------------------
+
+/**
+ * Totals for the encuentros a congregation convokes. Counts and rates only —
+ * the church portal never sees who attends or who connects with whom.
+ */
+export function useSinglesMinistry() {
+  return useQuery({
+    queryKey: ['singles-ministry'],
+    queryFn: async (): Promise<SinglesMinistry> => {
+      if (isDemoMode()) return demoSinglesMinistry;
+      return api().church.singlesMinistry();
+    },
   });
 }

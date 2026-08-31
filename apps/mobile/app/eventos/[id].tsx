@@ -48,8 +48,14 @@ export default function EventDetailScreen() {
     timeZone: 'America/Santo_Domingo',
   }).format(new Date(event.startsAt));
 
+  // Lleno es lleno: ningún plan agranda el salón.
+  const full = event.capacity !== undefined && (event.openSeats ?? 0) === 0;
+
   const setStatus = (status: 'GOING' | 'INTERESTED') =>
-    setAttendance.mutate({ eventId: event.id, status: mine === status ? null : status });
+    setAttendance.mutate({
+      eventId: event.id,
+      status: mine === status || (status === 'GOING' && mine === 'WAITLIST') ? null : status,
+    });
 
   /** RF-EVE-08: the device opens the .ics the API serves. */
   const addToCalendar = () => {
@@ -80,6 +86,20 @@ export default function EventDetailScreen() {
               {event.distanceKm !== undefined ? ` · ${event.distanceKm} km` : ''}
             </Sub>
 
+            {event.audience === 'SINGLES' ? (
+              <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                <Chip label={es.events.singlesBadge} tone="wheat" />
+              </View>
+            ) : null}
+
+            {/* El cupo, con honestidad: lo que queda ya descuenta lo reservado. */}
+            {event.capacity !== undefined ? (
+              <Sub style={{ fontSize: 11.5, marginTop: 8 }}>
+                {full ? es.events.full : es.events.seatsLeft(event.openSeats ?? 0)}
+                {event.waitlistCount ? ` · ${es.events.waitlistCount(event.waitlistCount)}` : ''}
+              </Sub>
+            ) : null}
+
             <View style={[styles.row, { marginTop: 14 }]}>
               <Button
                 label={es.events.interested}
@@ -88,13 +108,23 @@ export default function EventDetailScreen() {
                 onPress={() => setStatus('INTERESTED')}
               />
               <Button
-                label={mine === 'GOING' ? es.events.goingMarked : es.events.going}
+                label={
+                  mine === 'GOING'
+                    ? es.events.goingMarked
+                    : full && mine !== 'WAITLIST'
+                      ? es.events.joinWaitlist
+                      : es.events.going
+                }
                 tone="olive"
                 style={{ flex: 1 }}
                 onPress={() => setStatus('GOING')}
               />
             </View>
-            {mine === 'GOING' ? (
+            {mine === 'WAITLIST' ? (
+              <Sub style={{ textAlign: 'center', fontSize: 11, marginTop: 8 }}>
+                {es.events.waitlistExplained}
+              </Sub>
+            ) : mine === 'GOING' ? (
               <Sub style={{ textAlign: 'center', fontSize: 11, marginTop: 8 }}>
                 {es.events.reminder}
               </Sub>

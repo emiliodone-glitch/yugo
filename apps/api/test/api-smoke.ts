@@ -117,6 +117,42 @@ async function seedEmailOfEndorsedOutsider(exclude: string[]): Promise<string | 
 }
 
 /**
+ * A published encuentro with exactly one seat, created fresh for this run.
+ *
+ * One seat is the most honest test of the rule: if a second person gets in,
+ * "cupo" means nothing. It is created here rather than seeded because the
+ * suite fills it, and a re-run needs an empty one.
+ */
+async function seedFullEncuentro(): Promise<string | null> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const church = await prisma.church.findFirst({ where: { status: 'APPROVED' } });
+    if (!church) return null;
+    const event = await prisma.event.create({
+      data: {
+        churchId: church.id,
+        title: `Encuentro de prueba ${Date.now()}`,
+        description: 'Encuentro creado por la suite de humo para probar el cupo.',
+        type: 'ACTIVIDAD_SOCIAL',
+        audience: 'SINGLES',
+        // Lejos en el tiempo: dentro de las 48 h la reserva de Oro se disuelve
+        // y la prueba dejaría de comprobar lo que quiere comprobar.
+        startsAt: new Date(Date.now() + 30 * 24 * 3600_000),
+        address: 'Calle Principal 1',
+        city: 'Santo Domingo',
+        capacity: 1,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+      },
+    });
+    return event.id;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
  * The first seeded member who still has people to see. Running the suite marks
  * interests, and those people correctly stop appearing, so a second run on the
  * same database needs a different viewer — or a reseed.
@@ -525,6 +561,39 @@ async function main() {
         token: mentorToken,
       });
       check('terminado, deja de ver', afterEnd.status === 403, afterEnd.status);
+    }
+  }
+
+  console.log('\nRF-EVE-04 — cupo real y lista de espera');
+  {
+    // Un encuentro con un solo lugar es la prueba más honesta de la regla: si
+    // alguien entra en segundo lugar, el cupo no significa nada.
+    const eventId = await seedFullEncuentro();
+    check('hay un encuentro con cupo de 1', eventId !== null);
+
+    if (eventId) {
+      const first = await call('POST', `/events/${eventId}/attendance`, {
+        token,
+        body: { status: 'GOING' },
+      });
+      check('la primera persona entra', first.body?.status === 'GOING', first.body);
+
+      const second = await call('POST', `/events/${eventId}/attendance`, {
+        token: theirTokenForStages ?? token,
+        body: { status: 'GOING' },
+      });
+      check(
+        'la segunda va a lista de espera, no adentro',
+        second.body?.status === 'WAITLIST',
+        second.body,
+      );
+      check('y se le dice en qué lugar está', second.body?.position === 1, second.body);
+
+      // Cancelar libera la silla y la lista de espera avanza sola.
+      await call('POST', `/events/${eventId}/attendance`, { token, body: { status: null } });
+      const promoted = await call('GET', '/events', { token: theirTokenForStages ?? token });
+      const mine = (promoted.body ?? []).find((e: { id: string }) => e.id === eventId);
+      check('al cancelar, el primero de la lista entra', mine?.myStatus === 'GOING', mine?.myStatus);
     }
   }
 

@@ -12,6 +12,8 @@ export default function NewEventPage() {
   const [start, setStart] = useState('2026-09-04T20:00');
   const [end, setEnd] = useState('2026-09-04T23:00');
   const [place, setPlace] = useState('Av. San Vicente de Paúl 45, Santo Domingo Este');
+  const [audience, setAudience] = useState<'CONGREGATION' | 'SINGLES'>('CONGREGATION');
+  const [capacity, setCapacity] = useState('');
   const [description, setDescription] = useState(
     'Una noche de alabanza dirigida por el ministerio de jóvenes adultos. Trae a un amigo…',
   );
@@ -86,6 +88,33 @@ export default function NewEventPage() {
                   value={end}
                   onChange={(e) => setEnd(e.target.value)}
                 />
+              </div>
+            </div>
+
+            {/* Convocar es distinto de publicar: un encuentro del ministerio
+                de solteros se mide aparte, con su propio cupo. */}
+            <div className="mb-3 flex gap-2.5">
+              <div className="flex-1">
+                <FieldLabel>Convoca para</FieldLabel>
+                <select
+                  className="field"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value as 'CONGREGATION' | 'SINGLES')}
+                >
+                  <option value="CONGREGATION">Toda la congregación</option>
+                  <option value="SINGLES">{es.events.singlesBadge}</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <FieldLabel>Cupo</FieldLabel>
+                <input
+                  className="field"
+                  inputMode="numeric"
+                  placeholder="Sin límite"
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value.replace(/\D/g, ''))}
+                />
+                <p className="mt-1 text-[11px] text-muted">{es.events.capacityHonest}</p>
               </div>
             </div>
 

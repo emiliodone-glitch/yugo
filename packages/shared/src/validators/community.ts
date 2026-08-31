@@ -46,6 +46,12 @@ export const createEventSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   capacity: z.number().int().positive().optional(),
+  /**
+   * Para quién convoca la congregación. Un encuentro del ministerio de
+   * solteros no es un culto: separarlos es lo que permite al ministerio ver
+   * si su propio trabajo está llegando a alguien.
+   */
+  audience: z.enum(['CONGREGATION', 'SINGLES']).default('CONGREGATION'),
   costAmount: z.number().nonnegative().optional(),
   costCurrency: z.enum(['DOP', 'USD']).optional(),
   externalUrl: z.string().url().optional(),

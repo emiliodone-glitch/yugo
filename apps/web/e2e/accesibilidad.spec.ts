@@ -31,6 +31,7 @@ const SURFACES = [
   { name: 'panel admin', path: '/admin' },
   { name: 'moderación', path: '/admin/moderacion' },
   { name: 'portal de iglesias', path: '/iglesias' },
+  { name: 'ministerio de solteros', path: '/iglesias/solteros' },
 ];
 
 for (const surface of SURFACES) {

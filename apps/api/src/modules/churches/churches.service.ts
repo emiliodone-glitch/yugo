@@ -95,6 +95,7 @@ export class ChurchesService {
         lat: input.lat,
         lng: input.lng,
         capacity: input.capacity,
+        audience: input.audience,
         costAmount: input.costAmount != null ? new Prisma.Decimal(input.costAmount) : null,
         costCurrency: input.costAmount != null ? (input.costCurrency ?? 'DOP') : null,
         externalUrl: input.externalUrl,
@@ -279,6 +280,81 @@ export class ChurchesService {
       codeRedemptionRate: codesIssued === 0 ? 0 : Math.round((codesUsed / codesIssued) * 100),
       /** Of those who said they would attend, how many actually showed up. */
       checkInRate: going === 0 ? 0 : Math.round((checkIns / going) * 100),
+    };
+  }
+
+  /**
+   * Ministerio de solteros: cómo van los encuentros que convoca.
+   *
+   * The same privacy line as metrics(), held deliberately: counts and rates,
+   * never a name and never anyone's dating activity. A singles ministry that
+   * could see who is talking to whom would stop being a ministry.
+   *
+   * Waitlist demand is here because it is the one number that tells a church
+   * to book a bigger room — "40 came" and "40 came and 25 could not fit" are
+   * very different facts, and only one of them changes what they do next.
+   */
+  async singlesMinistry(userId: string) {
+    const membership = await this.requireMembership(userId);
+    const churchId = membership.churchId;
+    const now = new Date();
+
+    const [upcoming, past, going, waitlisted, checkIns, endorsedSingles] = await Promise.all([
+      this.prisma.event.findMany({
+        where: { churchId, audience: 'SINGLES', status: 'PUBLISHED', startsAt: { gte: now } },
+        orderBy: { startsAt: 'asc' },
+        take: 10,
+        include: {
+          _count: {
+            select: {
+              attendances: { where: { status: 'GOING' } },
+            },
+          },
+        },
+      }),
+      this.prisma.event.count({
+        where: { churchId, audience: 'SINGLES', status: 'PUBLISHED', startsAt: { lt: now } },
+      }),
+      this.prisma.eventAttendance.count({
+        where: { event: { churchId, audience: 'SINGLES' }, status: 'GOING' },
+      }),
+      this.prisma.eventAttendance.count({
+        where: { event: { churchId, audience: 'SINGLES' }, status: 'WAITLIST' },
+      }),
+      this.prisma.eventAttendance.count({
+        where: { event: { churchId, audience: 'SINGLES' }, checkedInAt: { not: null } },
+      }),
+      this.prisma.verification.count({ where: { churchId, level: 3, status: 'APPROVED' } }),
+    ]);
+
+    // Waitlist counts per event need a second pass because Prisma cannot
+    // aggregate two filtered counts on the same relation in one query.
+    const waitlistByEvent = await this.prisma.eventAttendance.groupBy({
+      by: ['eventId'],
+      where: { eventId: { in: upcoming.map((event) => event.id) }, status: 'WAITLIST' },
+      _count: true,
+    });
+    const waitlistFor = (eventId: string) =>
+      waitlistByEvent.find((row) => row.eventId === eventId)?._count ?? 0;
+
+    return {
+      endorsedSingles,
+      pastEncounters: past,
+      going,
+      waitlisted,
+      checkIns,
+      checkInRate: going === 0 ? 0 : Math.round((checkIns / going) * 100),
+      upcoming: upcoming.map((event) => ({
+        id: event.id,
+        title: event.title,
+        startsAt: event.startsAt,
+        capacity: event.capacity,
+        going: event._count.attendances,
+        waitlisted: waitlistFor(event.id),
+      })),
+      /** Qué no muestra este panel, dicho en la respuesta y no solo en la documentación. */
+      privacyNote:
+        'Este panel muestra totales de los encuentros que convoca tu congregación. Nunca muestra quién asiste, con quién conversa ni con quién conecta.',
     };
   }
 }

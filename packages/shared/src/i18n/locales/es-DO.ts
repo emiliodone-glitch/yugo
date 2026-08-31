@@ -292,6 +292,36 @@ export const es = {
     share: 'Compartir',
     reminder: 'Te recordaremos 24 h antes.',
     freeLabel: 'Gratis',
+
+    /** Encuentros convocados por una congregación, con cupo real. */
+    singlesBadge: 'Encuentro de solteros',
+    convokedBy: (church: string) => `Convoca ${church}`,
+    seatsLeft: (n: number) => (n === 1 ? 'Queda 1 lugar' : `Quedan ${n} lugares`),
+    full: 'Sin cupo',
+    joinWaitlist: 'Anotarme en la lista de espera',
+    onWaitlist: (position: number) => `Estás en la lista de espera, lugar ${position}.`,
+    waitlistCount: (n: number) => `${n} en lista de espera`,
+    waitlistExplained:
+      'Si alguien cancela, el primero de la lista entra y recibe un aviso.',
+    seatFreed: 'Se liberó un cupo',
+    capacityHonest:
+      'El cupo es el que cabe en el salón. Ningún plan lo agranda.',
+  },
+
+  singlesMinistry: {
+    title: 'Ministerio de solteros',
+    intro: 'Cómo van los encuentros que convoca tu congregación.',
+    endorsedSingles: 'Solteros respaldados',
+    pastEncounters: 'Encuentros realizados',
+    going: 'Confirmaciones',
+    waitlisted: 'En lista de espera',
+    checkInRate: 'Asistencia real',
+    upcoming: 'Próximos encuentros',
+    noneUpcoming: 'No hay encuentros convocados todavía.',
+    seatsOf: (going: number, capacity: number) => `${going} de ${capacity} lugares`,
+    demandHint:
+      'Una lista de espera larga es la señal más clara de que hace falta un salón más grande.',
+    convoke: 'Convocar un encuentro',
   },
 
   profile: {

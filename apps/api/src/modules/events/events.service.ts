@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { EVENT_TYPES, LIMITS } from '@yugo/shared';
+import { EVENT_TYPES, LIMITS, openSeats, seatFor } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
@@ -82,12 +82,30 @@ export class EventsService {
           connectionsGoing,
           lat: event.lat ?? undefined,
           lng: event.lng ?? undefined,
+          audience: event.audience,
+          capacity: event.capacity ?? undefined,
+          // Cuántas plazas quedan realmente para quien no paga: decir "quedan
+          // 10" cuando 10 están reservadas sería mentir con la verdad.
+          openSeats:
+            openSeats(
+              event.capacity,
+              going.length,
+              (event.startsAt.getTime() - Date.now()) / 3600_000,
+            ) ?? undefined,
+          waitlistCount: event.attendances.filter((a) => a.status === 'WAITLIST').length,
         };
       })
       .filter((e): e is NonNullable<typeof e> => e !== null);
   }
 
-  /** RF-EVE-04: mark attendance; Oro gets priority reservation with capacity (6.9). */
+  /**
+   * RF-EVE-04: apuntarse a un encuentro.
+   *
+   * Capacity is a room with chairs in it, so nobody is ever seated past it —
+   * not with any plan. Oro's priority is a reserved share *inside* the
+   * capacity (see seatFor in @yugo/shared), and when the room is full the
+   * person joins a waitlist instead of being told no and forgotten.
+   */
   async setAttendance(userId: string, eventId: string, status: 'GOING' | 'INTERESTED' | null) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
@@ -96,14 +114,38 @@ export class EventsService {
     if (!event || event.status !== 'PUBLISHED') throw new NotFoundException();
 
     if (status === null) {
+      const previous = await this.prisma.eventAttendance.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+      });
       await this.prisma.eventAttendance.deleteMany({ where: { eventId, userId } });
+      // Cancelar libera una silla: la siguiente persona de la lista entra.
+      if (previous?.status === 'GOING') await this.promoteFromWaitlist(eventId);
       return { status: null };
     }
 
-    if (status === 'GOING' && event.capacity && event._count.attendances >= event.capacity) {
-      const tier = await this.subscriptions.tierOf(userId);
-      if (tier !== 'ORO') throw new BadRequestException('event_full');
-      // Oro priority reservation: allowed into a small reserved buffer.
+    if (status === 'GOING') {
+      // Someone already seated who taps again keeps their seat instead of
+      // being re-evaluated against a capacity they are part of.
+      const existing = await this.prisma.eventAttendance.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+      });
+      if (existing?.status !== 'GOING') {
+        const tier = await this.subscriptions.tierOf(userId);
+        const outcome = seatFor({
+          capacity: event.capacity,
+          taken: event._count.attendances,
+          tier: tier ?? 'FREE',
+          hoursUntilStart: (event.startsAt.getTime() - Date.now()) / 3600_000,
+        });
+        if (outcome === 'waitlist') {
+          await this.prisma.eventAttendance.upsert({
+            where: { eventId_userId: { eventId, userId } },
+            update: { status: 'WAITLIST' },
+            create: { eventId, userId, status: 'WAITLIST' },
+          });
+          return { status: 'WAITLIST' as const, position: await this.waitlistPosition(eventId, userId) };
+        }
+      }
     }
 
     await this.prisma.eventAttendance.upsert({
@@ -112,6 +154,51 @@ export class EventsService {
       create: { eventId, userId, status },
     });
     return { status };
+  }
+
+  /** Where someone stands in the queue, counting from 1. */
+  private async waitlistPosition(eventId: string, userId: string): Promise<number> {
+    const mine = await this.prisma.eventAttendance.findUnique({
+      where: { eventId_userId: { eventId, userId } },
+      select: { createdAt: true },
+    });
+    if (!mine) return 0;
+    const ahead = await this.prisma.eventAttendance.count({
+      where: { eventId, status: 'WAITLIST', createdAt: { lt: mine.createdAt } },
+    });
+    return ahead + 1;
+  }
+
+  /**
+   * A seat freed up: the person who has waited longest takes it and is told.
+   *
+   * Silence here would be the whole feature failing — a waitlist nobody is
+   * called from is just a politer refusal.
+   */
+  private async promoteFromWaitlist(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { _count: { select: { attendances: { where: { status: 'GOING' } } } } },
+    });
+    if (!event?.capacity || event._count.attendances >= event.capacity) return;
+
+    const next = await this.prisma.eventAttendance.findFirst({
+      where: { eventId, status: 'WAITLIST' },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!next) return;
+
+    await this.prisma.eventAttendance.update({
+      where: { eventId_userId: { eventId, userId: next.userId } },
+      data: { status: 'GOING' },
+    });
+    await this.notifications.notify(
+      next.userId,
+      'EVENT',
+      'Se liberó un cupo',
+      `Ya tienes lugar en «${event.title}».`,
+      { eventId },
+    );
   }
 
   /** RF-EVE-06: QR check-in; feeds portal metrics. */

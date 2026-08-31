@@ -65,6 +65,8 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
   const { eventStatus, setEventStatus } = useDemoStore();
   const [showQr, setShowQr] = useState(false);
   const mine = eventStatus[event.id];
+  // Lleno es lleno: ningún plan agranda el salón.
+  const full = event.capacity !== undefined && (event.openSeats ?? 0) === 0;
 
   const dateLabel = new Intl.DateTimeFormat('es-DO', {
     weekday: 'long',
@@ -102,6 +104,25 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
               </span>
             </div>
 
+            {/* Encuentro convocado por el ministerio de solteros. */}
+            {event.audience === 'SINGLES' ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="chip chip-wheat">{es.events.singlesBadge}</span>
+                <span className="text-[11px] text-muted">
+                  {es.events.convokedBy(event.churchName)}
+                </span>
+              </div>
+            ) : null}
+
+            {/* El cupo, dicho con honestidad: las plazas que quedan ya
+                descuentan las reservadas. */}
+            {event.capacity !== undefined ? (
+              <p className="mt-2 text-[11.5px] text-muted">
+                {full ? es.events.full : es.events.seatsLeft(event.openSeats ?? 0)}
+                {event.waitlistCount ? ` · ${es.events.waitlistCount(event.waitlistCount)}` : ''}
+              </p>
+            ) : null}
+
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
@@ -113,13 +134,27 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
               <button
                 type="button"
                 className={`btn flex-1 ${mine === 'GOING' ? 'bg-olive-text' : 'btn-olive'}`}
-                onClick={() => setEventStatus(event.id, mine === 'GOING' ? undefined : 'GOING')}
+                onClick={() =>
+                  setEventStatus(event.id, mine === 'GOING' || mine === 'WAITLIST' ? undefined : 'GOING')
+                }
               >
-                {mine === 'GOING' ? es.events.goingMarked : es.events.going}
+                {mine === 'GOING'
+                  ? es.events.goingMarked
+                  : full && mine !== 'WAITLIST'
+                    ? es.events.joinWaitlist
+                    : es.events.going}
               </button>
             </div>
             {mine === 'GOING' ? (
               <p className="mt-2 text-center text-[11px] text-muted">{es.events.reminder}</p>
+            ) : mine === 'WAITLIST' ? (
+              <p className="mt-2 text-center text-[11px] text-muted">
+                {es.events.waitlistExplained}
+              </p>
+            ) : full ? (
+              <p className="mt-2 text-center text-[11px] text-muted">
+                {es.events.capacityHonest}
+              </p>
             ) : null}
           </div>
         </div>

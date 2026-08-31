@@ -91,4 +91,10 @@ export class ChurchesController {
   metrics(@CurrentUser() user: AuthUser) {
     return this.churches.metrics(user.id);
   }
+
+  /** Ministerio de solteros: totales de los encuentros que convoca (RF-IGL-06). */
+  @Get('singles-ministry')
+  singlesMinistry(@CurrentUser() user: AuthUser) {
+    return this.churches.singlesMinistry(user.id);
+  }
 }

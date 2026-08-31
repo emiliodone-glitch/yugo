@@ -397,6 +397,13 @@ export const demoEvents: EventSummary[] = [
     connectionsGoing: [],
     lat: 19.4517,
     lng: -70.6970,
+    // Un encuentro convocado por el ministerio de solteros, ya lleno: es el
+    // caso que la demo tiene que enseñar, porque es donde la promesa de "el
+    // cupo es el que cabe en el salón" se pone a prueba.
+    audience: 'SINGLES',
+    capacity: 96,
+    openSeats: 0,
+    waitlistCount: 14,
   },
   {
     id: 'ev-desayuno',
@@ -570,6 +577,46 @@ export const demoAdminKpis = {
   revenueDelta: '▲ 19%',
   weekly: [40, 52, 48, 63, 70, 66, 82, 90],
   weeklyPlus: [14, 18, 22, 30],
+};
+
+// ---------------------------------------------------------------------------
+// Ministerio de solteros
+// ---------------------------------------------------------------------------
+
+/**
+ * Lo que ve el ministerio de solteros, en modo demo.
+ *
+ * Totals only — no names anywhere, because the real endpoint has none either.
+ * The waitlist numbers are the point: 96 confirmed and 14 waiting says
+ * something 96 alone does not.
+ */
+export const demoSinglesMinistry = {
+  endorsedSingles: 142,
+  pastEncounters: 6,
+  going: 268,
+  waitlisted: 31,
+  checkIns: 214,
+  checkInRate: 80,
+  upcoming: [
+    {
+      id: 'ev-congreso',
+      title: 'Congreso de solteros con propósito',
+      startsAt: '2026-09-05T09:00:00-04:00',
+      capacity: 96,
+      going: 96,
+      waitlisted: 14,
+    },
+    {
+      id: 'ev-cafe',
+      title: 'Café y conversación: noviazgo con propósito',
+      startsAt: '2026-09-19T19:00:00-04:00',
+      capacity: 40,
+      going: 23,
+      waitlisted: 0,
+    },
+  ],
+  privacyNote:
+    'Este panel muestra totales de los encuentros que convoca tu congregación. Nunca muestra quién asiste, con quién conversa ni con quién conecta.',
 };
 
 // ---------------------------------------------------------------------------

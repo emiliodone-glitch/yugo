@@ -215,6 +215,18 @@ enum EventStatus {
 enum EventAttendanceStatus {
   GOING
   INTERESTED
+  /// Wants to come to a full encuentro; moves up when somebody cancels.
+  /// Telling a person "no" and forgetting them is how a congregation loses
+  /// them; telling them "you are third" is how it fills a room.
+  WAITLIST
+}
+
+/// Who a church convokes. An encuentro convoked by the singles ministry is a
+/// different thing from a Sunday service, and conflating them means the
+/// ministry cannot see whether its own work is reaching anyone.
+enum EventAudience {
+  CONGREGATION
+  SINGLES
 }
 
 enum ReportTargetType {
@@ -910,6 +922,8 @@ model Event {
   lat         Float?
   lng         Float?
   capacity    Int?
+  /// Convocado por la congregación, y para quién.
+  audience    EventAudience @default(CONGREGATION)
   costAmount  Decimal?    @db.Decimal(10, 2)
   costCurrency String?
   externalUrl String?
@@ -939,6 +953,9 @@ model EventAttendance {
 
   @@id([eventId, userId])
   @@index([userId, status])
+  /// The waitlist is served in the order people joined it, so that ordering
+  /// has to be cheap to read.
+  @@index([eventId, status, createdAt])
 }
 
 // ---------------------------------------------------------------------------

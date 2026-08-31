@@ -8,7 +8,9 @@ import { create } from 'zustand';
 import {
   demoCurrentUser,
   demoDailySummary,
+  demoEvents,
   demoMessages,
+  seatFor,
   LIMITS,
   validateStageProposal,
   hasAdvanced,
@@ -33,7 +35,7 @@ interface DemoState {
   passedProfiles: Record<string, boolean>;
   lastPassed: string | null;
   undosUsed: number;
-  eventStatus: Record<string, 'GOING' | 'INTERESTED' | undefined>;
+  eventStatus: Record<string, 'GOING' | 'INTERESTED' | 'WAITLIST' | undefined>;
   activityJoined: Record<string, boolean>;
   praying: Record<string, boolean>;
   amen: Record<string, boolean>;
@@ -51,7 +53,10 @@ interface DemoState {
   passProfile: (userId: string) => void;
   undoPass: () => string | null;
   saveProfile: (userId: string) => void;
-  setEventStatus: (eventId: string, status: 'GOING' | 'INTERESTED' | undefined) => void;
+  setEventStatus: (
+    eventId: string,
+    status: 'GOING' | 'INTERESTED' | undefined,
+  ) => 'GOING' | 'INTERESTED' | 'WAITLIST' | undefined;
   toggleActivity: (activityId: string) => void;
   togglePraying: (postId: string) => void;
   toggleAmen: (postId: string) => void;
@@ -218,8 +223,25 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   saveProfile: (userId) =>
     set((state) => ({ savedProfiles: { ...state.savedProfiles, [userId]: true } })),
 
-  setEventStatus: (eventId, status) =>
-    set((state) => ({ eventStatus: { ...state.eventStatus, [eventId]: status } })),
+  setEventStatus: (eventId, status) => {
+    // El cupo se respeta también en la demo: enseñar un "Asistiré" que la API
+    // convertiría en lista de espera sería enseñar una promesa falsa.
+    let resolved: 'GOING' | 'INTERESTED' | 'WAITLIST' | undefined = status;
+    if (status === 'GOING') {
+      const event = demoEvents.find((item) => item.id === eventId);
+      const outcome = seatFor({
+        capacity: event?.capacity ?? null,
+        taken: event?.goingCount ?? 0,
+        tier: demoCurrentUser.subscription.tier ?? 'FREE',
+        hoursUntilStart: event
+          ? (new Date(event.startsAt).getTime() - Date.now()) / 3600_000
+          : 1000,
+      });
+      if (outcome === 'waitlist') resolved = 'WAITLIST';
+    }
+    set((state) => ({ eventStatus: { ...state.eventStatus, [eventId]: resolved } }));
+    return resolved;
+  },
 
   toggleActivity: (activityId) =>
     set((state) => ({

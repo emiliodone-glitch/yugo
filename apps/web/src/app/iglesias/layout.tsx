@@ -8,6 +8,7 @@ import { YugoMark } from '@/components/icons';
 const NAV = [
   { href: '/iglesias', label: es.church.home },
   { href: '/iglesias/eventos', label: es.church.events },
+  { href: '/iglesias/solteros', label: es.singlesMinistry.title },
   { href: '/iglesias/grupo', label: es.church.officialGroup },
   { href: '/iglesias/codigos', label: es.church.endorsementCodes },
   { href: '/iglesias/metricas', label: es.church.metrics },
@@ -57,7 +58,9 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
         </span>
       </div>
 
-      <div className="w-full pt-12 lg:ml-[210px] lg:pt-0">{children}</div>
+      {/* Un landmark real: sin <main> el lector de pantalla no tiene
+          dónde saltar y hay que recorrer el menú en cada página. */}
+      <main className="w-full pt-12 lg:ml-[210px] lg:pt-0">{children}</main>
     </div>
   );
 }
