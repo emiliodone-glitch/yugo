@@ -573,9 +573,18 @@ export class YugoApiClient {
     revokeEndorsement: (memberUserId: string, reason: string) =>
       this.http.post<{ revoked: boolean }>('/church-portal/endorsements/revoke', { memberUserId, reason }),
     metrics: () =>
-      this.http.get<{ events: number; going: number; checkIns: number; groupMembers: number; endorsed: number }>(
-        '/church-portal/metrics',
-      ),
+      this.http.get<{
+        events: number;
+        going: number;
+        checkIns: number;
+        groupMembers: number;
+        endorsed: number;
+        endorsedLast30: number;
+        codesIssued: number;
+        codesUsed: number;
+        codeRedemptionRate: number;
+        checkInRate: number;
+      }>('/church-portal/metrics'),
   };
 
   // ---- Admin panel (RF-ADM-01..12) ----------------------------------------

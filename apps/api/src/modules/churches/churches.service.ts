@@ -236,16 +236,49 @@ export class ChurchesService {
   }
 
   /** RF-IGL-06: metrics — attendance, check-ins, group, event reach. */
+  /**
+   * RF-IGL-06: aggregate metrics for an allied congregation.
+   *
+   * The privacy line is the point of this endpoint, not a footnote: a church
+   * sees the reach of what IT publishes — events, groups, endorsements — and
+   * never the dating activity of its members. No connections, no interests, no
+   * names. Adding any of those would break the promise the endorsement rests
+   * on, so they are deliberately absent.
+   */
   async metrics(userId: string) {
     const membership = await this.requireMembership(userId);
     const churchId = membership.churchId;
-    const [events, going, checkIns, groupMembers, endorsed] = await Promise.all([
-      this.prisma.event.count({ where: { churchId, status: 'PUBLISHED' } }),
-      this.prisma.eventAttendance.count({ where: { event: { churchId }, status: 'GOING' } }),
-      this.prisma.eventAttendance.count({ where: { event: { churchId }, checkedInAt: { not: null } } }),
-      this.prisma.groupMember.count({ where: { group: { churchId } } }),
-      this.prisma.verification.count({ where: { churchId, level: 3, status: 'APPROVED' } }),
-    ]);
-    return { events, going, checkIns, groupMembers, endorsed };
+    const since = new Date(Date.now() - 30 * 24 * 3600_000);
+
+    const [events, going, checkIns, groupMembers, endorsed, endorsedLast30, codesIssued, codesUsed] =
+      await Promise.all([
+        this.prisma.event.count({ where: { churchId, status: 'PUBLISHED' } }),
+        this.prisma.eventAttendance.count({ where: { event: { churchId }, status: 'GOING' } }),
+        this.prisma.eventAttendance.count({
+          where: { event: { churchId }, checkedInAt: { not: null } },
+        }),
+        this.prisma.groupMember.count({ where: { group: { churchId } } }),
+        this.prisma.verification.count({ where: { churchId, level: 3, status: 'APPROVED' } }),
+        this.prisma.verification.count({
+          where: { churchId, level: 3, status: 'APPROVED', resolvedAt: { gte: since } },
+        }),
+        this.prisma.endorsementCode.count({ where: { churchId } }),
+        this.prisma.endorsementCode.count({ where: { churchId, usedAt: { not: null } } }),
+      ]);
+
+    return {
+      events,
+      going,
+      checkIns,
+      groupMembers,
+      endorsed,
+      endorsedLast30,
+      codesIssued,
+      codesUsed,
+      /** Share of handed-out codes that became an endorsement. */
+      codeRedemptionRate: codesIssued === 0 ? 0 : Math.round((codesUsed / codesIssued) * 100),
+      /** Of those who said they would attend, how many actually showed up. */
+      checkInRate: going === 0 ? 0 : Math.round((checkIns / going) * 100),
+    };
   }
 }

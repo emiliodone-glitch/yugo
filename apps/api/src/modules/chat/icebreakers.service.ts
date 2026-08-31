@@ -36,6 +36,16 @@ export class IcebreakersService {
     if (!other) return [];
     // Templates are administrable without a deploy (RF-ADM-10).
     const templates = await this.content.icebreakers();
+    // El cruce real entre las dos personas, no solo el perfil ajeno.
+    const viewer = await this.prisma.profile.findUnique({
+      where: { userId: requesterId },
+      include: { serviceAreas: { include: { serviceArea: true } } },
+    });
+    const viewerSlugs = new Set(viewer?.serviceAreas.map((sa) => sa.serviceArea.slug) ?? []);
+    const sharedPractices = other.serviceAreas
+      .filter((sa) => viewerSlugs.has(sa.serviceArea.slug))
+      .map((sa) => sa.serviceArea.name);
+
     return buildIcebreakers(
       {
         practices: other.serviceAreas.map((sa) => sa.serviceArea.name),
@@ -47,6 +57,12 @@ export class IcebreakersService {
         answers: other.answers.map((a) => ({ question: a.question, answer: a.answer })),
       },
       templates,
+      {
+        practices: sharedPractices,
+        sameChurch: !!viewer?.churchId && viewer.churchId === other.churchId,
+        sameDenomination:
+          !!viewer?.denominationId && viewer.denominationId === other.denominationId,
+      },
     );
   }
 }
@@ -60,6 +76,14 @@ export interface IcebreakerProfileFacts {
   churchName?: string | null;
   yearsInFaith?: number | null;
   answers: Array<{ question: string; answer: string }>;
+}
+
+/** What the two people actually have in common. */
+export interface SharedGround {
+  /** Practice names both serve in. */
+  practices?: string[];
+  sameChurch?: boolean;
+  sameDenomination?: boolean;
 }
 
 const DEFAULT_TEMPLATES: IcebreakerTemplates = {
@@ -81,12 +105,32 @@ const DEFAULT_TEMPLATES: IcebreakerTemplates = {
   ],
 };
 
-/** Pure generator — unit-tested; picks the 3 most specific prompts. */
+/**
+ * Pure generator — unit-tested; picks the 3 most specific prompts.
+ *
+ * Shared ground comes first. A question about something *both* people do
+ * ("los dos sirven en alabanza") opens a conversation between equals, while
+ * one drawn only from the other person's profile reads like an interview. The
+ * prompts from their profile follow, and the generic ones are the floor.
+ */
 export function buildIcebreakers(
   facts: IcebreakerProfileFacts,
   templates: IcebreakerTemplates = DEFAULT_TEMPLATES,
+  shared: SharedGround = {},
 ): string[] {
   const pool: string[] = [];
+
+  const sharedPractices = (shared.practices ?? []).filter(Boolean);
+  if (sharedPractices.length > 0) {
+    pool.push(`Los dos sirven en ${sharedPractices[0].toLowerCase()}, ¿cómo llegaste tú?`);
+  }
+  if (shared.sameChurch && facts.churchName) {
+    pool.push(
+      `Nos congregamos en ${facts.churchName} y no nos habíamos cruzado, ¿a qué servicio vas?`,
+    );
+  } else if (shared.sameDenomination && sharedPractices.length === 0) {
+    pool.push('¿Qué es lo que más valoras de la iglesia en la que creciste?');
+  }
 
   for (const slug of facts.practiceSlugs ?? []) {
     const template = templates.byPractice[slug];

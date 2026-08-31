@@ -123,6 +123,8 @@ export interface ProfileCard {
   practices: string[];
   photoUrl?: string;
   affinity: AffinityBreakdown;
+  /** One short sentence saying why we suggest this person (RF-DES-02). */
+  affinityReason?: string;
   badges: VerificationBadges;
   /** Oro badge shown only if the member opted in (showOroBadge). */
   oroBadge?: boolean;

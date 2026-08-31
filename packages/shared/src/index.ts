@@ -7,6 +7,7 @@ export * from './validators/profile';
 export * from './validators/discover';
 export * from './validators/community';
 export * from './affinity/affinity';
+export * from './affinity/reason';
 export * from './api/http';
 export * from './api/client';
 export * from './notifications/routing';

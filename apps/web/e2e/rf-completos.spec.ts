@@ -177,3 +177,35 @@ test.describe('Notificaciones (RF-NOT-01/02)', () => {
     ).toBeVisible();
   });
 });
+
+test.describe('Motivo de la sugerencia y respaldo (RF-DES-02 / RF-VER-02)', () => {
+  test('cada tarjeta dice por qué sugerimos a esa persona', async ({ page }) => {
+    await page.goto('/descubrir');
+    // El motivo nace del cruce real, no de una frase fija.
+    await expect(page.getByText('Coinciden en', { exact: false }).first()).toBeVisible();
+  });
+
+  test('se puede ver solo a quienes respalda su iglesia', async ({ page }) => {
+    await page.goto('/descubrir');
+    await page.getByRole('button', { name: 'Filtros' }).click();
+
+    const toggle = page.getByRole('switch', { name: 'Solo respaldados por su iglesia' });
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+    // Quien queda, lleva su insignia de respaldo.
+    await expect(page.getByText('por su iglesia').first()).toBeVisible();
+  });
+});
+
+test.describe('Portal de iglesias: el límite de lo que ve', () => {
+  test('las métricas explican qué no muestran y por qué', async ({ page }) => {
+    await page.goto('/iglesias/metricas');
+    await expect(page.getByText('Qué no verás aquí, y por qué')).toBeVisible();
+    await expect(
+      page.getByText('Nunca verás con quién conecta un miembro', { exact: false }),
+    ).toBeVisible();
+    await expect(page.getByText('Tasa de canje')).toBeVisible();
+  });
+});

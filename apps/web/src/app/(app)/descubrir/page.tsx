@@ -17,7 +17,8 @@ const CARD_GRADIENTS = [
 
 export default function DiscoverPage() {
   const router = useRouter();
-  const { data, isLoading } = useDiscover();
+  const [endorsedOnly, setEndorsedOnly] = useState(false);
+  const { data, isLoading } = useDiscover({ endorsedOnly: endorsedOnly || undefined });
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
@@ -79,6 +80,17 @@ export default function DiscoverPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
+            {/* RF-VER-02: el respaldo de iglesia es la señal de confianza del
+                producto, así que filtrarlo no cuesta. */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={endorsedOnly}
+              onClick={() => setEndorsedOnly((value) => !value)}
+              className={`chip ${endorsedOnly ? 'chip-olive ring-1 ring-olive' : ''}`}
+            >
+              Solo respaldados por su iglesia
+            </button>
             <span className="chip">Edad 26–38</span>
             <span className="chip">≤ 50 km</span>
             <span className="chip">{es.onboarding.intentionMarriage}</span>
@@ -94,7 +106,30 @@ export default function DiscoverPage() {
       {isLoading ? (
         <div className="card py-10 text-center text-sm text-muted">{es.common.loading}</div>
       ) : items.length === 0 ? (
-        <div className="card py-10 text-center text-sm text-muted">{es.discover.emptyToday}</div>
+        /* La lista vacía no es un callejón: siempre ofrece a dónde ir. */
+        <div className="card py-8 text-center">
+          <p className="text-sm text-muted">
+            {endorsedOnly
+              ? 'Nadie respaldado por su iglesia coincide contigo hoy. Quita el filtro para ver el resto.'
+              : es.discover.emptyToday}
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {endorsedOnly ? (
+              <button type="button" className="btn btn-sm btn-olive" onClick={() => setEndorsedOnly(false)}>
+                Ver a todos
+              </button>
+            ) : null}
+            <Link href="/comunidad" className="btn btn-sm btn-ghost">
+              {es.community.title}
+            </Link>
+            <Link href="/eventos" className="btn btn-sm btn-ghost">
+              {es.events.title}
+            </Link>
+            <Link href="/perfil/preferencias" className="btn btn-sm btn-ghost">
+              Ampliar mi búsqueda
+            </Link>
+          </div>
+        </div>
       ) : (
         items.map((profile, index) => {
           const alreadySent = sent[profile.userId];
@@ -143,6 +178,13 @@ export default function DiscoverPage() {
                     <span className="chip chip-wheat">{es.discover.purposeMarriage}</span>
                   ) : null}
                 </div>
+                {/* RF-DES-02: por qué esta persona, en la tarjeta misma */}
+                {profile.affinityReason ? (
+                  <p className="mt-2.5 flex items-start gap-1.5 rounded-field bg-olive-soft px-2.5 py-1.5 text-[11.5px] leading-snug text-olive-text">
+                    <span aria-hidden>✦</span>
+                    <span>{profile.affinityReason}</span>
+                  </p>
+                ) : null}
                 {profile.testimony ? (
                   <p className="mt-2.5 text-[12.5px] leading-normal">{profile.testimony}</p>
                 ) : null}

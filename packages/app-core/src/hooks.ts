@@ -20,6 +20,7 @@ import {
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
   type ChatMessage,
+  type DiscoverFilters,
   type ConnectionSummary,
   type EventSummary,
   type GroupSummary,
@@ -124,19 +125,24 @@ export function useHomeSummary() {
 // Discover
 // ---------------------------------------------------------------------------
 
-export function useDiscover() {
+export function useDiscover(filters: DiscoverFilters = {}) {
   const passed = useDemoStore((s) => s.passedProfiles);
   return useQuery({
-    queryKey: ['discover'],
+    // The filters are part of the key: changing them regenerates the list
+    // instead of serving yesterday's answer to today's question.
+    queryKey: ['discover', filters],
     queryFn: async (): Promise<{ items: ProfileCard[]; used: number; limit: number | null }> => {
       if (isDemoMode()) {
+        const items = demoDiscover
+          .filter((p) => !passed[p.userId])
+          .filter((p) => !filters.endorsedOnly || !!p.badges.endorsedBy);
         return {
-          items: demoDiscover.filter((p) => !passed[p.userId]),
+          items,
           used: demoDailySummary.interestsUsedToday,
           limit: demoDailySummary.interestsLimit,
         };
       }
-      const response = await api().discover.daily();
+      const response = await api().discover.daily(filters);
       return {
         items: response.items,
         used: response.interests.used,

@@ -50,3 +50,39 @@ describe('buildIcebreakers (RF-CON-04)', () => {
     expect(questions.join(' ')).toContain('La salud de mi mamá');
   });
 });
+
+describe('rompehielos desde el terreno común (RF-CON-04)', () => {
+  const facts = {
+    practices: ['Alabanza', 'Misiones'],
+    practiceSlugs: ['alabanza', 'misiones'],
+    churchName: 'Iglesia Monte de Sion',
+    answers: [],
+  };
+
+  it('lo compartido va primero', () => {
+    const [first] = buildIcebreakers(facts, undefined, { practices: ['Alabanza'] });
+    expect(first).toBe('Los dos sirven en alabanza, ¿cómo llegaste tú?');
+  });
+
+  it('la misma iglesia da una pregunta concreta', () => {
+    const questions = buildIcebreakers(facts, undefined, { sameChurch: true });
+    expect(questions[0]).toContain('Iglesia Monte de Sion');
+  });
+
+  it('sin terreno común se comporta como antes', () => {
+    // Nadie debe quedarse sin rompehielos por no compartir prácticas.
+    const questions = buildIcebreakers(facts);
+    expect(questions).toHaveLength(3);
+    expect(questions[0]).toBe('Vi que sirves en alabanza, ¿cómo llegaste ahí?');
+  });
+
+  it('nunca repite una pregunta ni pasa de tres', () => {
+    const questions = buildIcebreakers(facts, undefined, {
+      practices: ['Alabanza'],
+      sameChurch: true,
+      sameDenomination: true,
+    });
+    expect(questions).toHaveLength(3);
+    expect(new Set(questions).size).toBe(3);
+  });
+});

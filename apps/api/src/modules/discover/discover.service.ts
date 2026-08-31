@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ageFromBirthDate, DiscoverFilters, ProfileCard } from '@yugo/shared';
+import { affinityReason, ageFromBirthDate, DiscoverFilters, ProfileCard } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache.service';
 import { SettingsService } from '../../common/settings.service';
@@ -310,6 +310,21 @@ export class DiscoverService {
             ? await this.storage.signDownload(candidate.photos[0].storageKey)
             : undefined,
           affinity: breakdown,
+          // RF-DES-02: el porqué, en la tarjeta misma. Una lista corta se
+          // sostiene si la persona entiende de dónde sale cada sugerencia.
+          affinityReason: affinityReason({
+            affinity: breakdown,
+            inCommon,
+            sameDenomination:
+              !!viewer.profile.denominationId &&
+              viewer.profile.denominationId === candidate.profile.denominationId,
+            sameChurch:
+              !!viewer.profile.churchId && viewer.profile.churchId === candidate.profile.churchId,
+            bothSeekMarriage:
+              viewer.profile.intention === 'MARRIAGE' &&
+              candidate.profile.intention === 'MARRIAGE',
+            endorsedBy: level3?.church?.name,
+          }),
           badges: {
             contact: true,
             identity,
@@ -378,6 +393,10 @@ export class DiscoverService {
     if (filters.minVerificationLevel) {
       const max = Math.max(1, ...candidate.verifications.map((v) => v.level));
       if (max < filters.minVerificationLevel) return false;
+    }
+    // RF-VER-02: el respaldo de iglesia es nivel 3 y no cuesta filtrarlo.
+    if (filters.endorsedOnly && !candidate.verifications.some((v) => v.level === 3)) {
+      return false;
     }
     if (filters.withChildren === 'WITH' && p.hasChildren !== true) return false;
     if (filters.withChildren === 'WITHOUT' && p.hasChildren === true) return false;

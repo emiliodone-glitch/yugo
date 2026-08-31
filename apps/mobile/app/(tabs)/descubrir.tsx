@@ -21,7 +21,8 @@ const { colors, fonts } = theme;
  * each profile and decides (sección 3 del prompt).
  */
 export default function DiscoverScreen() {
-  const { data, isLoading } = useDiscover();
+  const [endorsedOnly, setEndorsedOnly] = useState(false);
+  const { data, isLoading } = useDiscover({ endorsedOnly: endorsedOnly || undefined });
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
@@ -88,6 +89,12 @@ export default function DiscoverScreen() {
               <Chip label={es.discover.purposeMarriage} tone="wheat" />
             ) : null}
           </View>
+          {/* RF-DES-02: por qué esta persona, en la tarjeta misma */}
+          {profile.affinityReason ? (
+            <View style={styles.reason}>
+              <Text style={styles.reasonText}>✦ {profile.affinityReason}</Text>
+            </View>
+          ) : null}
           {profile.testimony ? <Text style={styles.testimony}>{profile.testimony}</Text> : null}
           <View style={styles.actions}>
             <Button
@@ -137,6 +144,15 @@ export default function DiscoverScreen() {
           }
         />
       </View>
+      {/* RF-VER-02: el respaldo de iglesia es la señal de confianza del
+          producto, así que filtrarlo no cuesta. */}
+      <View style={styles.filterRow}>
+        <Chip
+          label="Solo respaldados por su iglesia"
+          tone={endorsedOnly ? 'olive' : 'default'}
+          onPress={() => setEndorsedOnly((value) => !value)}
+        />
+      </View>
       {error ? (
         <View style={{ paddingHorizontal: 18 }}>
           <Notice tone="wine" text={error} />
@@ -148,9 +164,47 @@ export default function DiscoverScreen() {
         renderItem={renderCard}
         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
         ListEmptyComponent={
-          <Sub style={{ textAlign: 'center', paddingVertical: 40 }}>
-            {isLoading ? es.common.loading : es.discover.emptyToday}
-          </Sub>
+          isLoading ? (
+            <Sub style={{ textAlign: 'center', paddingVertical: 40 }}>{es.common.loading}</Sub>
+          ) : (
+            /* La lista vacía no es un callejón: siempre ofrece a dónde ir. */
+            <Card style={{ paddingVertical: 24 }}>
+              <Sub style={{ textAlign: 'center' }}>
+                {endorsedOnly
+                  ? 'Nadie respaldado por su iglesia coincide contigo hoy. Quita el filtro para ver el resto.'
+                  : es.discover.emptyToday}
+              </Sub>
+              {endorsedOnly ? (
+                <Button
+                  label="Ver a todos"
+                  tone="olive"
+                  small
+                  style={{ alignSelf: 'center', marginTop: 14 }}
+                  onPress={() => setEndorsedOnly(false)}
+                />
+              ) : null}
+              <View style={styles.emptyActions}>
+                <Button
+                  label={es.community.title}
+                  tone="ghost"
+                  small
+                  onPress={() => router.push('/(tabs)/comunidad')}
+                />
+                <Button
+                  label={es.events.title}
+                  tone="ghost"
+                  small
+                  onPress={() => router.push('/(tabs)/eventos')}
+                />
+                <Button
+                  label="Ampliar mi búsqueda"
+                  tone="ghost"
+                  small
+                  onPress={() => router.push('/perfil/preferencias')}
+                />
+              </View>
+            </Card>
+          )
         }
         ListFooterComponent={
           profiles.length > 0 ? (
@@ -172,6 +226,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 8,
   },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 8 },
+  emptyActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
   photo: { height: 250, backgroundColor: '#AFA694' },
   badge: {
     position: 'absolute',
@@ -192,6 +254,14 @@ const styles = StyleSheet.create({
   photoName: { color: '#fff', fontFamily: fonts.display, fontSize: 24 },
   photoMeta: { color: 'rgba(255,255,255,.9)', fontFamily: fonts.body, fontSize: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  reason: {
+    backgroundColor: colors.oliveSoft,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 10,
+  },
+  reasonText: { fontFamily: fonts.body, fontSize: 11.5, lineHeight: 16, color: colors.oliveText },
   testimony: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.text, marginTop: 10 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   secondaryActions: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 6 },

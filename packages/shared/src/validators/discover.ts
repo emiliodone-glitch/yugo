@@ -8,6 +8,12 @@ export const discoverFiltersSchema = z.object({
   denominationIds: z.array(z.string()).optional(),
   intention: z.enum(['MARRIAGE', 'FRIENDSHIP', 'BOTH']).optional(),
   minVerificationLevel: z.number().int().min(1).max(3).optional(),
+  /**
+   * RF-VER-02: solo personas respaldadas por su iglesia. Es gratuito a
+   * propósito: el respaldo es la señal de confianza del producto y cobrar por
+   * filtrarla empujaría a la gente hacia perfiles menos verificados.
+   */
+  endorsedOnly: z.boolean().optional(),
   withChildren: z.enum(['ANY', 'WITH', 'WITHOUT']).optional(),
   city: z.string().optional(),
   // Advanced filters — Plus (RF-DES-06); church/ministry filter — Oro (6.9)
