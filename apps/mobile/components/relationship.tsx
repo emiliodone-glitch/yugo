@@ -23,8 +23,10 @@ import {
   useRelationship,
   useRespondToStage,
   useSubmitStory,
+  useStageQuestions,
+  useAnswerStageQuestion,
 } from '@yugo/app-core';
-import { Button, Field, Sub } from './ui';
+import { Button, Chip, Field, Sub } from './ui';
 import { theme } from '../lib/theme';
 
 const { colors, fonts } = theme;
@@ -231,6 +233,18 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
+  questionsCard: {
+    backgroundColor: colors.linen2,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+  },
+  questionPanel: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginTop: 10 },
+  answerMine: { backgroundColor: colors.linen, borderRadius: 10, padding: 10, marginTop: 8 },
+  answerTheirs: { backgroundColor: colors.oliveSoft, borderRadius: 10, padding: 10, marginTop: 6 },
+  answerLabel: { fontFamily: fonts.bodySemiBold, fontSize: 10.5, color: colors.muted },
+  answerText: { fontFamily: fonts.body, fontSize: 12, color: colors.text, marginTop: 2 },
+  topicRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   oliveBody: {
     fontFamily: fonts.body,
     fontSize: 12,
@@ -642,6 +656,126 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           />
         </>
       )}
+    </View>
+  );
+}
+
+/**
+ * Conversaciones que importan.
+ *
+ * Una pregunta a la vez, no una lista: una lista se abandona en la tercera.
+ * Y dice en pantalla la regla que la hace útil — nadie ve la respuesta del
+ * otro antes de escribir la suya.
+ */
+export function StageQuestionsCard({ matchId }: { matchId: string }) {
+  const { data } = useStageQuestions(matchId);
+  const answer = useAnswerStageQuestion(matchId);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+
+  if (!data) return null;
+
+  if (data.items.length === 0) {
+    return (
+      <View style={styles.questionsCard} accessibilityLabel={es.stageQuestions.title}>
+        <Text style={[styles.eyebrow, { color: colors.muted }]}>{es.stageQuestions.title}</Text>
+        <Sub style={{ fontSize: 11.5, marginTop: 4 }}>{es.stageQuestions.lockedNow}</Sub>
+      </View>
+    );
+  }
+
+  const pending = data.items.filter((item) => !item.myAnswer);
+  const revealed = data.items.filter((item) => item.revealed);
+  const current = data.items.find((item) => item.id === openId) ?? pending[0] ?? null;
+
+  return (
+    <View style={styles.questionsCard} accessibilityLabel={es.stageQuestions.title}>
+      <Text style={[styles.eyebrow, { color: colors.muted }]}>{es.stageQuestions.title}</Text>
+      <Sub style={{ fontSize: 11.5, marginTop: 2 }}>
+        {es.stageQuestions.progress(data.answered, data.total)}
+      </Sub>
+
+      {current ? (
+        <View style={styles.questionPanel}>
+          <Text style={styles.stage}>{current.text}</Text>
+          <Sub style={{ fontSize: 11, marginTop: 4 }}>
+            {es.stageQuestions.whyThis}: {current.why}
+          </Sub>
+
+          {current.revealed ? (
+            <>
+              <View style={styles.answerMine}>
+                <Text style={styles.answerLabel}>{es.stageQuestions.yours}</Text>
+                <Text style={styles.answerText}>{current.myAnswer}</Text>
+              </View>
+              <View style={styles.answerTheirs}>
+                <Text style={[styles.answerLabel, { color: colors.oliveText }]}>
+                  {es.stageQuestions.theirs}
+                </Text>
+                <Text style={[styles.answerText, { color: colors.oliveText }]}>
+                  {current.theirAnswer}
+                </Text>
+              </View>
+            </>
+          ) : current.myAnswer ? (
+            <Sub style={{ fontSize: 11.5, marginTop: 8 }}>{es.stageQuestions.waitingThem}</Sub>
+          ) : (
+            <>
+              {current.theyAnswered ? (
+                <Sub style={{ fontSize: 11.5, marginTop: 8, color: colors.oliveText }}>
+                  {es.stageQuestions.theyAnswered}
+                </Sub>
+              ) : null}
+              <Field
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={es.stageQuestions.answerPlaceholder}
+                multiline
+                maxLength={1500}
+                style={{ marginTop: 8 }}
+              />
+              <Button
+                label={es.stageQuestions.save}
+                style={{ marginTop: 8 }}
+                disabled={answer.isPending || draft.trim().length === 0}
+                onPress={() => {
+                  answer.mutate(
+                    { questionId: current.id, answer: draft },
+                    {
+                      onSuccess: () => {
+                        setDraft('');
+                        // Quedarse aquí: si se revelaron las dos, ese es el
+                        // momento que da sentido a la función.
+                        setOpenId(current.id);
+                      },
+                    },
+                  );
+                }}
+              />
+            </>
+          )}
+        </View>
+      ) : null}
+
+      {revealed.length > 0 ? (
+        <View style={styles.topicRow}>
+          {revealed.map((item) => (
+            <Pressable key={item.id} onPress={() => setOpenId(item.id)}>
+              <Chip
+                label={es.stageQuestions.topics[item.topic]}
+                tone={item.id === current?.id ? 'olive' : 'default'}
+              />
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      <Sub style={{ fontSize: 11, marginTop: 8 }}>{es.stageQuestions.simultaneousNotice}</Sub>
+      {data.lockedAhead > 0 ? (
+        <Sub style={{ fontSize: 11, marginTop: 4 }}>
+          {es.stageQuestions.lockedAhead(data.lockedAhead)}
+        </Sub>
+      ) : null}
     </View>
   );
 }

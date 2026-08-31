@@ -46,7 +46,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation } from './realtime';
-import { demoAccompanimentFor, NEW_RELATIONSHIP, useDemoStore } from './demo-store';
+import {
+  demoAccompanimentFor,
+  demoStageQuestions,
+  NEW_RELATIONSHIP,
+  useDemoStore,
+} from './demo-store';
 
 // ---------------------------------------------------------------------------
 // Session
@@ -1305,5 +1310,44 @@ export function useCancelMeetingPlan(matchId: string) {
       return api().connections.cancelPlan(planId);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meeting-plan', matchId] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Conversaciones que importan
+// ---------------------------------------------------------------------------
+
+/**
+ * Las preguntas abiertas para esta pareja.
+ *
+ * La respuesta ajena llega en null mientras falte la propia — eso lo decide el
+ * servidor, no la pantalla, así que no hay forma de sacarla del payload.
+ */
+export function useStageQuestions(matchId: string) {
+  const stage = useDemoStore((s) => s.relationships[matchId]?.stage ?? 'KNOWING');
+  const demoAnswers = useDemoStore((s) => s.questionAnswers[matchId]);
+  const live = useQuery({
+    queryKey: ['stage-questions', matchId],
+    enabled: !isDemoMode() && !!matchId,
+    queryFn: () => api().connections.questions(matchId),
+  });
+
+  if (!isDemoMode()) return live;
+  return {
+    ...live,
+    data: demoStageQuestions(stage, demoAnswers),
+    isLoading: false,
+  } as typeof live;
+}
+
+export function useAnswerStageQuestion(matchId: string) {
+  const queryClient = useQueryClient();
+  const answerDemo = useDemoStore((s) => s.answerStageQuestion);
+  return useMutation({
+    mutationFn: async ({ questionId, answer }: { questionId: string; answer: string }) => {
+      if (isDemoMode()) return answerDemo(matchId, questionId, answer);
+      return api().connections.answerQuestion(matchId, questionId, answer);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stage-questions', matchId] }),
   });
 }

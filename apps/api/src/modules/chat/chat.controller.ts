@@ -13,6 +13,7 @@ import { IcebreakersService } from './icebreakers.service';
 import { RelationshipService } from './relationship.service';
 import { AccompanimentService } from './accompaniment.service';
 import { MeetingPlanService } from './meeting-plan.service';
+import { StageQuestionsService } from './stage-questions.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
@@ -22,6 +23,10 @@ const inviteSchema = z.object({ eventId: z.string().min(1) });
 const stageProposalSchema = z.object({ stage: z.enum(RELATIONSHIP_STAGES) });
 const mentorCodeSchema = z.object({ code: z.string().min(4).max(40) });
 const consentSchema = z.object({ agree: z.boolean() });
+const answerSchema = z.object({
+  questionId: z.string().min(1).max(60),
+  answer: z.string().trim().min(1).max(1500),
+});
 const meetingPlanSchema = z.object({
   place: z.string().trim().min(3).max(200),
   meetsAt: z.coerce.date(),
@@ -37,6 +42,7 @@ export class ChatController {
     private readonly relationship: RelationshipService,
     private readonly accompaniment: AccompanimentService,
     private readonly meetingPlan: MeetingPlanService,
+    private readonly questions: StageQuestionsService,
   ) {}
 
   @Get()
@@ -189,5 +195,24 @@ export class ChatController {
   @Delete('plan/:planId')
   cancelPlan(@CurrentUser() user: AuthUser, @Param('planId') planId: string) {
     return this.meetingPlan.cancel(planId, user.id);
+  }
+
+  // --- Conversaciones que importan ---------------------------------------
+  // Se abren por etapa, y una respuesta no sale del servidor mientras falte
+  // la otra: si el segundo ve la del primero, contesta a esa respuesta y no
+  // a la pregunta.
+
+  @Get(':matchId/questions')
+  stageQuestions(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.questions.forCouple(matchId, user.id);
+  }
+
+  @Post(':matchId/questions')
+  answerStageQuestion(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(answerSchema)) body: { questionId: string; answer: string },
+  ) {
+    return this.questions.answer(matchId, user.id, body.questionId, body.answer);
   }
 }

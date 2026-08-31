@@ -156,6 +156,21 @@ export default function DiscoverPage() {
                       />
                     </div>
                   ) : null}
+                  {/* Se gana con comportamiento sostenido y no se compra. Es
+                      un booleano: exponer el puntaje que hay detrás lo
+                      volvería un juego de estatus. */}
+                  {profile.badges.purpose ? (
+                    <div
+                      className={`absolute left-3 ${profile.badges.endorsedBy ? 'top-11' : 'top-3'}`}
+                    >
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-olive px-2 py-[3px] text-[10.5px] font-semibold text-white"
+                        title={es.discover.purposeBadgeHelp}
+                      >
+                        {es.discover.purposeBadge}
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="absolute bottom-3 right-3">
                     <AffinityRing value={profile.affinity.total} />
                   </div>

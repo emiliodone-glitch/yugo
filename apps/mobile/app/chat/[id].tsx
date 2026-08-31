@@ -31,6 +31,7 @@ import {
   MeetingPlanCard,
   OurStoryCard,
   RelationshipStageCard,
+  StageQuestionsCard,
 } from '../../components/relationship';
 import { theme } from '../../lib/theme';
 
@@ -168,6 +169,7 @@ export default function ChatScreen() {
             matchId={connection.matchId}
             otherName={connection.otherUser.displayName}
           />
+          <StageQuestionsCard matchId={connection.matchId} />
           <AccompanimentCard matchId={connection.matchId} />
           <OurStoryCard matchId={connection.matchId} />
           <MeetingPlanCard matchId={connection.matchId} />

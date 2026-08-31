@@ -26,6 +26,8 @@ import {
   useRelationship,
   useRespondToStage,
   useSubmitStory,
+  useStageQuestions,
+  useAnswerStageQuestion,
 } from '@/lib/hooks';
 
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
@@ -663,6 +665,139 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           </button>
         </>
       )}
+    </section>
+  );
+}
+
+/**
+ * Conversaciones que importan.
+ *
+ * Muestra una pregunta a la vez, no una lista: una lista se abandona en la
+ * tercera. Y dice en pantalla la regla que la hace útil — nadie ve la
+ * respuesta del otro antes de escribir la suya.
+ */
+export function StageQuestionsCard({ matchId }: { matchId: string }) {
+  const { data } = useStageQuestions(matchId);
+  const answer = useAnswerStageQuestion(matchId);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+
+  if (!data) return null;
+
+  // Nada abierto todavía: se dice qué falta, no se esconde la sección.
+  if (data.items.length === 0) {
+    return (
+      <section className="card mb-3 border-0 bg-linen2" aria-label={es.stageQuestions.title}>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+          {es.stageQuestions.title}
+        </div>
+        <p className="mt-1 text-[11.5px] text-muted">{es.stageQuestions.lockedNow}</p>
+      </section>
+    );
+  }
+
+  const pending = data.items.filter((item) => !item.myAnswer);
+  const revealed = data.items.filter((item) => item.revealed);
+  const current = data.items.find((item) => item.id === openId) ?? pending[0] ?? null;
+
+  return (
+    <section className="card mb-3 border-0 bg-linen2" aria-label={es.stageQuestions.title}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+            {es.stageQuestions.title}
+          </div>
+          <p className="mt-0.5 text-[11.5px] text-muted">
+            {es.stageQuestions.progress(data.answered, data.total)}
+          </p>
+        </div>
+      </div>
+
+      {current ? (
+        <div className="mt-2.5 rounded-field bg-white px-3 py-2.5">
+          <b className="text-[12.5px]">{current.text}</b>
+          <p className="mt-1 text-[11px] text-muted">
+            {es.stageQuestions.whyThis}: {current.why}
+          </p>
+
+          {current.revealed ? (
+            <div className="mt-2 space-y-1.5">
+              <div className="rounded-[10px] bg-linen px-2.5 py-2">
+                <div className="text-[10.5px] font-semibold text-muted">
+                  {es.stageQuestions.yours}
+                </div>
+                <p className="text-[12px]">{current.myAnswer}</p>
+              </div>
+              <div className="rounded-[10px] bg-olive-soft px-2.5 py-2">
+                <div className="text-[10.5px] font-semibold text-olive-text">
+                  {es.stageQuestions.theirs}
+                </div>
+                <p className="text-[12px] text-olive-text">{current.theirAnswer}</p>
+              </div>
+            </div>
+          ) : current.myAnswer ? (
+            <p className="mt-2 text-[11.5px] text-muted">{es.stageQuestions.waitingThem}</p>
+          ) : (
+            <form
+              className="mt-2"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                await answer.mutateAsync({ questionId: current.id, answer: draft });
+                setDraft('');
+                // Quedarse en esta pregunta a propósito: si las dos quedaron
+                // reveladas, ese es el momento que da sentido a la función y
+                // saltar a la siguiente se lo lleva por delante.
+                setOpenId(current.id);
+              }}
+            >
+              {current.theyAnswered ? (
+                <p className="mb-1.5 text-[11.5px] text-olive-text">
+                  {es.stageQuestions.theyAnswered}
+                </p>
+              ) : null}
+              <label className="sr-only" htmlFor={`q-${current.id}`}>
+                {es.stageQuestions.answerLabel}
+              </label>
+              <textarea
+                id={`q-${current.id}`}
+                className="field w-full"
+                rows={3}
+                placeholder={es.stageQuestions.answerPlaceholder}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                maxLength={1500}
+                required
+              />
+              <button type="submit" className="btn btn-sm mt-2" disabled={answer.isPending}>
+                {es.stageQuestions.save}
+              </button>
+            </form>
+          )}
+        </div>
+      ) : null}
+
+      {/* Las ya conversadas, para poder volver a ellas. */}
+      {revealed.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {revealed.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`chip ${item.id === current?.id ? 'chip-olive' : ''}`}
+              onClick={() => setOpenId(item.id)}
+            >
+              {es.stageQuestions.topics[item.topic]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="mt-2 text-[11px] text-muted">{es.stageQuestions.simultaneousNotice}</p>
+      {data.lockedAhead > 0 ? (
+        <p className="mt-1 text-[11px] text-muted">
+          {es.stageQuestions.lockedAhead(data.lockedAhead)}
+        </p>
+      ) : null}
     </section>
   );
 }

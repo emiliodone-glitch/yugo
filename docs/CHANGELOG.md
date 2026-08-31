@@ -3,6 +3,64 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.4.0 — Propósito verificable, y conversaciones que importan
+
+### Validación de propósito
+La moderación leía mensajes, uno por uno. Nadie miraba el **patrón** de una
+persona: alguien podía escribir cien mensajes impecables y estar usando Yugo
+para coleccionar conexiones. El contenido no lo delata; el comportamiento sí.
+
+Ahora hay cinco señales que responden preguntas que un pastor haría sin
+datos: ¿le escribe a la gente que dice que le interesa? ¿alguna de esas
+conversaciones llega a algún lado? ¿en seis meses no hubo un vínculo que
+avanzara? ¿insiste en pedir dinero o en sacar la charla de la app? ¿lo
+reportaron por no buscar lo que dice buscar?
+
+Tres decisiones son el producto entero, no detalles:
+
+1. **Ninguna señal castiga sola.** Lo peor que ocurre automáticamente es
+   fricción y una conversación privada que no acusa a nadie. Suspender y
+   expulsar sigue siendo de una persona, con el historial delante. Verificado
+   contra la base real: cuenta ACTIVE y cero sanciones tras el barrido.
+2. **Los falsos positivos duelen mucho más.** Acusar de insinceridad a alguien
+   sincero es la herida que este producto no puede permitirse. Cada señal tiene
+   umbrales de volumen y antigüedad, y una cuenta nueva no puede dispararlas.
+   El barrido contra 40 miembros sembrados no señaló a ninguno.
+3. **El puntaje no se le muestra a nadie.** Un número visible se vuelve un juego
+   de estatus. Solo lo ve moderación, con cada señal explicada en español —
+   un puntaje sin explicación es una acusación sin pruebas.
+
+La insignia **«Perfil con propósito»** se gana con evidencia positiva
+—conversaciones sostenidas, un vínculo que avanzó— y no se compra, igual que el
+filtro de respaldados es gratis.
+
+### Conversaciones que importan
+Las parejas que se rompen después de casadas rara vez se rompen por algo que
+nadie podía saber: se rompen por dinero, por familia política, por hijos, por
+cómo se pelea. Doce conversaciones concretas, que se abren por etapa —
+preguntar por hijos en el primer mensaje espanta; preguntarlo antes del
+compromiso llega tarde.
+
+**Las dos respuestas se revelan a la vez.** Si el segundo ve la del primero,
+contesta a esa respuesta y no a la pregunta. No es un `hidden` de CSS: el dato
+no sale del servidor mientras falte una, y la suite de humo comprueba que el
+texto no viaja en ninguna parte del payload.
+
+No hay puntaje de compatibilidad ni «les falta un 20%». Dos personas que no
+coinciden aquí no están mal emparejadas: están informadas.
+
+### Lo que no se construyó, otra vez
+Ni videollamadas, ni feed infinito, ni rachas. La razón práctica, más allá de
+la filosófica: en una app de matrimonio, quien más horas acumula es
+desproporcionadamente quien la está usando mal. Optimizar tiempo en pantalla
+optimiza exactamente a la población que la validación de propósito filtra.
+
+### Verificación
+- 97 pruebas en `@yugo/shared`, 141 en la API, 224 E2E.
+- Suite de humo contra PostgreSQL real: **89/89**, incluida la comprobación de
+  que la respuesta ajena no viaja, que un miembro no puede ver el puntaje de
+  otro, y que cada quien ve de sí mismo solo si ganó la insignia.
+
 ## v0.3.0 — El propósito, dentro del producto
 
 Hasta aquí Yugo era una app de citas bien construida para cristianos. Esta

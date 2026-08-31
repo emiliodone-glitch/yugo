@@ -107,6 +107,12 @@ export interface VerificationBadges {
   identity: boolean;
   /** Church name when endorsed (level 3). */
   endorsedBy?: string;
+  /**
+   * «Perfil con propósito»: se gana con comportamiento sostenido y no se
+   * compra. Es un booleano y nunca un puntaje — exponer el número lo
+   * convertiría en un juego de estatus.
+   */
+  purpose?: boolean;
 }
 
 export interface ProfileCard {

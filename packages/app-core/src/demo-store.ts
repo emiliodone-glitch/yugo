@@ -17,6 +17,10 @@ import {
   type ChatMessage,
   type CoupleAccompaniment,
   type CoupleStory,
+  type StageQuestionsView,
+  canReveal,
+  questionsFor,
+  STAGE_QUESTIONS,
   type MeetingPlan,
   type MeetingPlanInput,
   type RelationshipStage,
@@ -83,6 +87,13 @@ interface DemoState {
   /** Borrador de la historia de cada pareja, tal como lo devuelve la API. */
   storyDrafts: Record<string, NonNullable<CoupleStory['story']>>;
   submitStory: (matchId: string, input: StoryDraftInput) => void;
+  /** Respuestas a las conversaciones que importan, por matchId y pregunta. */
+  questionAnswers: Record<string, Record<string, { mine?: string; theirs?: string }>>;
+  answerStageQuestion: (
+    matchId: string,
+    questionId: string,
+    answer: string,
+  ) => { revealed: boolean; theirAnswer: string | null };
   consentToStory: (matchId: string, agree: boolean) => void;
   /** Plan del primer encuentro, por matchId. Es de quien lo escribe. */
   meetingPlans: Record<string, MeetingPlan>;
@@ -204,6 +215,55 @@ const demoAccompaniment: Record<string, CoupleAccompaniment> = {
         mentorAccepted: true,
       },
     ],
+  },
+};
+
+/**
+ * Las preguntas de una pareja en modo demo, con la misma regla que la API: la
+ * respuesta ajena no aparece hasta que existen las dos.
+ */
+export function demoStageQuestions(
+  stage: RelationshipStage,
+  answers: Record<string, { mine?: string; theirs?: string }> = {},
+): StageQuestionsView {
+  const open = questionsFor(stage);
+  const items = open.map((question) => {
+    const pair = answers[question.id] ?? {};
+    const revealed = canReveal(pair.mine ?? null, pair.theirs ?? null);
+    return {
+      id: question.id,
+      topic: question.topic,
+      text: question.text,
+      why: question.why,
+      myAnswer: pair.mine ?? null,
+      theirAnswer: revealed ? (pair.theirs ?? null) : null,
+      theyAnswered: !!pair.theirs,
+      revealed,
+    };
+  });
+  return {
+    stage,
+    items,
+    answered: items.filter((item) => item.revealed).length,
+    total: items.length,
+    lockedAhead: STAGE_QUESTIONS.length - open.length,
+  };
+}
+
+/**
+ * En la demo la otra persona ya dejó contestadas algunas, para poder ver el
+ * momento que da sentido a la función: las dos respuestas apareciendo juntas.
+ */
+const demoQuestionAnswers: Record<string, Record<string, { mine?: string; theirs?: string }>> = {
+  'm-daniela': {
+    'fe-practica': {
+      theirs:
+        'Leo en la mañana antes del turno. No siempre me da, pero cuando no lo hago se me nota en el día.',
+    },
+    'familia-origen': {
+      mine: 'Quiero repetir la mesa de los domingos. No quiero repetir el silencio cuando algo dolía.',
+      theirs: 'De mi casa me llevo la fe de mi mamá. Dejo atrás lo estrictos que fueron con mi hermana.',
+    },
   },
 };
 
@@ -347,6 +407,23 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   accompaniment: demoAccompaniment,
   storyDrafts: {},
   meetingPlans: {},
+  questionAnswers: demoQuestionAnswers,
+
+  answerStageQuestion: (matchId, questionId, answer) => {
+    const forMatch = get().questionAnswers[matchId] ?? {};
+    const pair = forMatch[questionId] ?? {};
+    // Una vez reveladas no se puede corregir a la vista de la ajena.
+    if (pair.mine && pair.theirs) return { revealed: true, theirAnswer: pair.theirs };
+
+    const next = { ...pair, mine: answer };
+    set((state) => ({
+      questionAnswers: {
+        ...state.questionAnswers,
+        [matchId]: { ...forMatch, [questionId]: next },
+      },
+    }));
+    return { revealed: !!next.theirs, theirAnswer: next.theirs ?? null };
+  },
 
   saveMeetingPlan: (matchId, input) => {
     const plan: MeetingPlan = {

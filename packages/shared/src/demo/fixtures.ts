@@ -102,7 +102,14 @@ const discoverBase: ProfileCard[] = [
       intention: 'Ambos buscan relación con propósito de matrimonio',
       practices: 'Coinciden en servicio, estudio bíblico y asistencia semanal',
     }),
-    badges: { contact: true, identity: true, endorsedBy: 'Iglesia Bíblica Emanuel' },
+    // Ganada por comportamiento sostenido: conversaciones reales y un vínculo
+    // que avanzó. No se compra.
+    badges: {
+      contact: true,
+      identity: true,
+      endorsedBy: 'Iglesia Bíblica Emanuel',
+      purpose: true,
+    },
     inCommon: ['Estudio bíblico', 'Servicio social', 'Cada semana', 'Sin hijos'],
   },
   {

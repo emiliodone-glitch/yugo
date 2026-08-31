@@ -144,6 +144,29 @@ model MeetingPlan {
   @@index([status, meetsAt])
 }
 
+/// Respuesta de una persona a una de las conversaciones que importan.
+///
+/// La regla que hace que esto sirva: una respuesta solo se revela cuando
+/// existen las dos. Si el segundo ve la del primero, contesta a esa respuesta
+/// y no a la pregunta — que es la diferencia entre saber qué piensa la otra
+/// persona y saber qué piensa que quieres oír. El servicio nunca devuelve la
+/// ajena mientras falte la propia.
+model StageQuestionAnswer {
+  id         String   @id @default(cuid())
+  matchId    String
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Identificador de la pregunta en el banco de `@yugo/shared`.
+  questionId String
+  answer     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([matchId, userId, questionId])
+  @@index([matchId, questionId])
+}
+
 enum StoryStatus {
   DRAFT
   IN_REVIEW
@@ -354,6 +377,10 @@ enum ModerationCaseKind {
   REPORT
   AI_HELD
   APPEAL
+  /// Patrón de uso incompatible con lo que la persona declaró buscar. Lo abre
+  /// PurposeService y lo resuelve siempre una persona: el sistema señala, no
+  /// sanciona.
+  PURPOSE
 }
 
 enum SanctionType {
@@ -478,6 +505,7 @@ model User {
   mentorProfile        MentorProfile?
   accompanying         Accompaniment[]      @relation("Mentor")
   meetingPlans         MeetingPlan[]
+  questionAnswers      StageQuestionAnswer[]
   messages             Message[]
   groupMemberships     GroupMember[]
   groupJoinRequests    GroupJoinRequest[]
@@ -544,6 +572,12 @@ model Profile {
   invisibleMode   Boolean    @default(false)
   showOroBadge    Boolean    @default(false)
   allowEventPresenceVisible Boolean @default(true)
+  /// «Perfil con propósito»: se gana con comportamiento sostenido y no se
+  /// compra, igual que el filtro de respaldados es gratis. Lo reparte y lo
+  /// retira el barrido diario de PurposeService. El puntaje que hay detrás
+  /// nunca se expone: un número visible se vuelve un juego y la gente aprende
+  /// a moverlo en vez de a comportarse.
+  purposeBadge    Boolean    @default(false)
   featuredUntil   DateTime?
   updatedAt       DateTime   @updatedAt
 
@@ -829,6 +863,7 @@ model Match {
   accompaniments  Accompaniment[]
   story           Story?
   meetingPlans    MeetingPlan[]
+  questionAnswers StageQuestionAnswer[]
 
   @@unique([userAId, userBId])
   @@index([userAId, status])

@@ -18,6 +18,7 @@ import type {
   SubscriptionTier,
 } from '../types/domain';
 import type { RelationshipStage } from '../relationship/stages';
+import type { QuestionTopic } from '../relationship/questions';
 import type { DiscoverFilters } from '../validators/discover';
 import type { CreateEventInput, CreateGroupInput, ReportInput } from '../validators/community';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '../validators/profile';
@@ -81,6 +82,29 @@ export interface MeetingPlan {
   shareText: string;
   /** The meeting has passed and they have not said they are fine. */
   awaitingCheckIn: boolean;
+}
+
+/** Una de las conversaciones que importan, tal como la ve una persona. */
+export interface StageQuestionItem {
+  id: string;
+  topic: QuestionTopic;
+  text: string;
+  why: string;
+  myAnswer: string | null;
+  /** Null mientras falte la propia. No es CSS: el dato no sale del servidor. */
+  theirAnswer: string | null;
+  /** Sí se sabe que contestó, para invitar a contestar sin filtrar nada. */
+  theyAnswered: boolean;
+  revealed: boolean;
+}
+
+export interface StageQuestionsView {
+  stage: RelationshipStage;
+  items: StageQuestionItem[];
+  answered: number;
+  total: number;
+  /** Cuántas se abrirían al avanzar, para que avanzar signifique algo. */
+  lockedAhead: number;
 }
 
 export type StoryStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'REJECTED';
@@ -616,6 +640,16 @@ export class YugoApiClient {
       this.http.post<MeetingPlan>(`/connections/plan/${planId}/check-in`, {}),
     cancelPlan: (planId: string) =>
       this.http.delete<{ canceled: boolean }>(`/connections/plan/${planId}`),
+
+    // Conversaciones que importan. La respuesta ajena llega en null mientras
+    // falte la propia: la decisión es del servidor, no de la pantalla.
+    questions: (matchId: string) =>
+      this.http.get<StageQuestionsView>(`/connections/${matchId}/questions`),
+    answerQuestion: (matchId: string, questionId: string, answer: string) =>
+      this.http.post<{ revealed: boolean; theirAnswer: string | null }>(
+        `/connections/${matchId}/questions`,
+        { questionId, answer },
+      ),
   };
 
   // ---- Historias de parejas que se casaron --------------------------------

@@ -126,6 +126,9 @@ export const es = {
     undoPass: 'Deshacer "Pasar"',
     listProgress: (shown: number, total: number) =>
       `Lista de hoy: ${shown} de ${total} · ordenada por afinidad`,
+    purposeBadge: 'Perfil con propósito',
+    purposeBadgeHelp:
+      'Se gana conversando de verdad y avanzando con alguien. No se compra.',
     endorsedBadge: 'Respaldada por su iglesia',
     endorsedBadgeM: 'Respaldado por su iglesia',
     purposeMarriage: 'Propósito de matrimonio',
@@ -221,6 +224,40 @@ export const es = {
     checkedIn: 'Nos dijiste que todo estuvo bien.',
     cancel: 'Cancelar el plan',
     privateNotice: 'Este plan es solo tuyo. La otra persona no lo ve.',
+  },
+
+  stageQuestions: {
+    title: 'Conversaciones que importan',
+    intro:
+      'Las cosas por las que se rompen los matrimonios casi siempre se podían hablar antes. Aquí van, de a una, cuando toca.',
+    progress: (answered: number, total: number) => `${answered} de ${total} conversadas`,
+    lockedAhead: (n: number) =>
+      n === 1
+        ? 'Se abre 1 más cuando avancen de etapa.'
+        : `Se abren ${n} más a medida que avancen de etapa.`,
+    lockedNow: 'Se abren cuando declaren «Amistad intencional».',
+    answerLabel: 'Tu respuesta',
+    answerPlaceholder: 'Con calma, y de verdad.',
+    save: 'Guardar mi respuesta',
+    waitingThem: 'Guardada. Se verán las dos cuando conteste la otra persona.',
+    theyAnswered: 'Ya contestó. Cuando contestes tú, se ven las dos.',
+    bothAnswered: 'Las dos respuestas',
+    yours: 'Tú',
+    theirs: 'La otra persona',
+    whyThis: 'Por qué esta pregunta',
+    topics: {
+      fe: 'Fe',
+      familia: 'Familia',
+      dinero: 'Dinero',
+      hijos: 'Hijos',
+      conflicto: 'Conflicto',
+      vida: 'Vida diaria',
+      pasado: 'Historia',
+    },
+    simultaneousNotice:
+      'Nadie ve la respuesta del otro antes de escribir la suya. Así se contesta a la pregunta y no a la respuesta.',
+    noScore:
+      'No hay puntaje ni porcentaje de compatibilidad. Si no coinciden, no están mal emparejados: están informados.',
   },
 
   stories: {

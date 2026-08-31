@@ -431,6 +431,58 @@ async function main() {
     theirTokenForStages = theirToken;
   }
 
+  console.log('\nConversaciones que importan — se revelan a la vez');
+  if (matchId && theirTokenForStages) {
+    // En «conociéndonos» no hay ninguna abierta.
+    const locked = await call('GET', `/connections/${matchId}/questions`, { token });
+    check('en «conociéndonos» no hay preguntas', locked.body?.items?.length === 0, locked.body);
+    check('pero se dice cuántas faltan', (locked.body?.lockedAhead ?? 0) > 0, locked.body);
+
+    // Avanzar a amistad intencional las abre.
+    await call('POST', `/connections/${matchId}/stage/propose`, {
+      token,
+      body: { stage: 'INTENTIONAL_FRIENDSHIP' },
+    });
+    await call('POST', `/connections/${matchId}/stage/accept`, { token: theirTokenForStages });
+
+    const open = await call('GET', `/connections/${matchId}/questions`, { token });
+    check('al avanzar se abren', (open.body?.items?.length ?? 0) > 0, open.body?.items?.length);
+
+    const questionId = open.body.items[0].id;
+    const mine = await call('POST', `/connections/${matchId}/questions`, {
+      token,
+      body: { questionId, answer: 'Mi respuesta, escrita sin ver la suya.' },
+    });
+    check('contestar primero no revela nada', mine.body?.revealed === false, mine.body);
+
+    // La invariante: la respuesta ajena no sale del servidor.
+    const theirView = await call('GET', `/connections/${matchId}/questions`, {
+      token: theirTokenForStages,
+    });
+    const item = (theirView.body?.items ?? []).find((i: { id: string }) => i.id === questionId);
+    check('la otra persona no recibe mi respuesta', item?.theirAnswer === null, item);
+    check('pero sí sabe que contesté', item?.theyAnswered === true, item);
+    check(
+      'y el texto no viaja en ninguna parte del payload',
+      !JSON.stringify(theirView.body).includes('sin ver la suya'),
+      null,
+    );
+
+    const theirs = await call('POST', `/connections/${matchId}/questions`, {
+      token: theirTokenForStages,
+      body: { questionId, answer: 'La mía, también a ciegas.' },
+    });
+    check('al contestar la segunda, se revelan', theirs.body?.revealed === true, theirs.body);
+    check('y devuelve la ajena', theirs.body?.theirAnswer?.includes('sin ver la suya'), theirs.body);
+
+    // «hijos-quiero» se abre en noviazgo: aquí todavía no.
+    const locked2 = await call('POST', `/connections/${matchId}/questions`, {
+      token,
+      body: { questionId: 'hijos-quiero', answer: 'x' },
+    });
+    check('una pregunta de una etapa posterior se rechaza', locked2.status === 400, locked2);
+  }
+
   console.log('\nEtapas del vínculo — la declaran los dos');
   if (matchId && theirTokenForStages) {
     const state = await call('GET', `/connections/${matchId}/stage`, { token });
@@ -584,6 +636,24 @@ async function main() {
     }
   }
 
+  console.log('\nValidación de propósito — señala, nunca sanciona');
+  {
+    const mine = await call('GET', '/proposito/mio', { token });
+    check('cada quien ve si ganó la insignia', mine.status === 200, mine.body);
+    check(
+      'y nunca su puntaje ni sus señales',
+      !('score' in (mine.body ?? {})) && !('signals' in (mine.body ?? {})),
+      Object.keys(mine.body ?? {}),
+    );
+
+    // El puntaje de otra persona no es accesible para un miembro.
+    const otherId = first?.userId;
+    if (otherId) {
+      const peek = await call('GET', `/proposito/${otherId}`, { token });
+      check('un miembro no puede ver el puntaje de otro', peek.status === 403, peek.status);
+    }
+  }
+
   console.log('\nRF-SEG-06 — plan del primer encuentro');
   if (matchId && theirTokenForStages) {
     const created = await call('POST', `/connections/${matchId}/plan`, {
@@ -698,7 +768,10 @@ async function main() {
       funnel.map((row) => row.Etapa),
     );
     const married = funnel.find((row) => row.Etapa === 'Casados');
-    check('y los cuenta de verdad', Number(married?.Miembros) === 2, married);
+    const count = Number(married?.Miembros ?? 0);
+    // Se cuentan personas y los matrimonios vienen de a dos: exigir
+    // exactamente 2 rompería en una base que ya traía otra pareja casada.
+    check('y los cuenta de verdad, siempre en pares', count >= 2 && count % 2 === 0, married);
   }
 
   console.log('\nRF-EVE-04 — cupo real y lista de espera');

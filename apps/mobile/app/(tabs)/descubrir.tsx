@@ -72,6 +72,18 @@ export default function DiscoverScreen() {
               </Text>
             </View>
           ) : null}
+          {/* Se gana con comportamiento sostenido y no se compra. */}
+          {profile.badges.purpose ? (
+            <View
+              style={[
+                styles.badge,
+                styles.purposeBadge,
+                profile.badges.endorsedBy ? { top: 44 } : null,
+              ]}
+            >
+              <Text style={styles.badgeText}>{es.discover.purposeBadge}</Text>
+            </View>
+          ) : null}
           <View style={styles.ringWrap}>
             <AffinityRing value={profile.affinity.total} />
           </View>
@@ -252,6 +264,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     zIndex: 2,
   },
+  purposeBadge: { backgroundColor: colors.inkDeep },
   badgeText: { color: '#fff', fontFamily: fonts.bodySemiBold, fontSize: 10.5 },
   ringWrap: { position: 'absolute', right: 12, bottom: 12, zIndex: 2 },
   photoCaption: { position: 'absolute', left: 14, bottom: 14 },

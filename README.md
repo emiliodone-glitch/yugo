@@ -97,3 +97,17 @@ k6 run infra/k6/discover.js         # carga sobre Descubrir
   tú lo mandas (Ley 172-13).
 - **El éxito se mide en vínculos, no en dinero.** El embudo del panel termina en
   matrimonios; las suscripciones se miden en su propio reporte.
+- **Se valida el propósito, no solo el contenido.** La moderación lee mensajes;
+  las señales de propósito leen el patrón. Coleccionar conexiones sin hablar con
+  nadie se detecta — y lo peor que pasa de forma automática es una conversación
+  privada. Sancionar sigue siendo de una persona.
+- **Ningún puntaje de propósito se muestra a nadie.** Un número visible se
+  vuelve un juego de estatus y la gente aprende a moverlo en vez de a
+  comportarse. La insignia «Perfil con propósito» se gana con comportamiento
+  sostenido y no se compra.
+- **Nadie ve la respuesta del otro antes de escribir la suya.** En las
+  conversaciones que importan, las dos se revelan a la vez. El dato no sale del
+  servidor mientras falte una.
+- **No se optimiza tiempo en pantalla.** Sin videollamadas, sin feed infinito,
+  sin rachas. En una app de matrimonio, quien más horas acumula es
+  desproporcionadamente quien la está usando mal.

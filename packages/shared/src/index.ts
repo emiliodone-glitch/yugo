@@ -7,6 +7,8 @@ export * from './validators/profile';
 export * from './validators/discover';
 export * from './validators/community';
 export * from './relationship/stages';
+export * from './purpose/signals';
+export * from './relationship/questions';
 export * from './events/capacity';
 export * from './events/when';
 export * from './affinity/affinity';

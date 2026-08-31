@@ -439,6 +439,8 @@ export class DiscoverService {
             contact: true,
             identity,
             endorsedBy: level3?.church?.name,
+            // Ganada por comportamiento sostenido, nunca comprada.
+            purpose: candidate.profile.purposeBadge,
           },
           oroBadge: isOro && candidate.profile.showOroBadge,
           inCommon,
