@@ -84,6 +84,32 @@ enum MatchStatus {
   ENDED
 }
 
+/// Stages a bond goes through. The product promises "relación con propósito de
+/// matrimonio"; a connection that can only be ACTIVE or ENDED cannot express
+/// that. A couple declares each step together, and the step changes what the
+/// app does — most importantly, NOVIAZGO takes both of them out of Descubrir.
+enum RelationshipStage {
+  KNOWING
+  INTENTIONAL_FRIENDSHIP
+  COURTSHIP
+  ENGAGED
+}
+
+/// Append-only record of every agreed stage change (RF-ADM-11 in spirit):
+/// the couple, their accompaniment and support can all see how a bond moved.
+model RelationshipStageChange {
+  id         String            @id @default(cuid())
+  matchId    String
+  match      Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  fromStage  RelationshipStage?
+  toStage    RelationshipStage
+  proposedById String
+  acceptedById String
+  createdAt  DateTime          @default(now())
+
+  @@index([matchId, createdAt])
+}
+
 enum GroupType {
   OPEN
   APPROVAL
@@ -237,6 +263,7 @@ enum EndorsementRequestStatus {
 
 enum NotificationCategory {
   CONNECTION
+  RELATIONSHIP
   MESSAGE
   INTEREST
   EVENT
@@ -623,7 +650,16 @@ model Match {
   endedAt   DateTime?
   endedById String?
 
+  /// Current stage, only ever set once both people agreed.
+  stage          RelationshipStage @default(KNOWING)
+  stageChangedAt DateTime?
+  /// A proposal in flight: who suggested which stage, and when.
+  proposedStage     RelationshipStage?
+  proposedById      String?
+  proposedAt        DateTime?
+
   conversation Conversation?
+  stageHistory RelationshipStageChange[]
 
   @@unique([userAId, userBId])
   @@index([userAId, status])

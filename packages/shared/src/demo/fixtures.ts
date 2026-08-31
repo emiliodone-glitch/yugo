@@ -572,6 +572,54 @@ export const demoAdminKpis = {
   weeklyPlus: [14, 18, 22, 30],
 };
 
+/**
+ * Reportes exportables (RF-ADM-12) en modo demo.
+ *
+ * The funnel ends where the product's purpose ends — bonds that advanced —
+ * and revenue is its own report. The demo has to show that framing, because
+ * what the panel puts last is what the team will optimise.
+ */
+export const demoReports: Record<string, { title: string; rows: Array<Record<string, string | number>> }> = {
+  funnel: {
+    title: 'Del registro al vínculo',
+    rows: [
+      { Etapa: 'Registrados', Miembros: 4812, 'Del total (%)': 100 },
+      { Etapa: 'Perfil completo (≥60%)', Miembros: 3416, 'Del total (%)': 71 },
+      { Etapa: 'Verificados nivel 2+', Miembros: 2550, 'Del total (%)': 53 },
+      { Etapa: 'Con al menos una conexión', Miembros: 1207, 'Del total (%)': 25.1 },
+      { Etapa: 'Conversando', Miembros: 862, 'Del total (%)': 17.9 },
+      { Etapa: 'En un vínculo que avanzó', Miembros: 214, 'Del total (%)': 4.4 },
+      { Etapa: 'En noviazgo o compromiso', Miembros: 68, 'Del total (%)': 1.4 },
+    ],
+  },
+  subscriptions: {
+    title: 'Suscripciones activas',
+    rows: [
+      { Plan: 'Gratuito', Miembros: 4441, 'Del total (%)': 92.3 },
+      { Plan: 'Plus', Miembros: 315, 'Del total (%)': 6.5 },
+      { Plan: 'Oro', Miembros: 56, 'Del total (%)': 1.2 },
+    ],
+  },
+  province: {
+    title: 'Actividad por provincia',
+    rows: [
+      { Provincia: 'Distrito Nacional', Miembros: 1829, 'Del total (%)': 38 },
+      { Provincia: 'Santo Domingo', Miembros: 1492, 'Del total (%)': 31 },
+      { Provincia: 'Santiago', Miembros: 818, 'Del total (%)': 17 },
+      { Provincia: 'La Vega', Miembros: 385, 'Del total (%)': 8 },
+      { Provincia: 'Otras', Miembros: 288, 'Del total (%)': 6 },
+    ],
+  },
+  retention: {
+    title: 'Retención por cohorte',
+    rows: [
+      { Cohorte: 'Mayo 2026', 'Día 7 (%)': 58, 'Día 30 (%)': 37 },
+      { Cohorte: 'Junio 2026', 'Día 7 (%)': 61, 'Día 30 (%)': 39 },
+      { Cohorte: 'Julio 2026', 'Día 7 (%)': 63, 'Día 30 (%)': 41 },
+    ],
+  },
+};
+
 export interface DemoModerationRow {
   id: string;
   priority: 'CRITICAL' | 'HIGH' | 'NORMAL';

@@ -26,6 +26,7 @@ import {
   useSendMessage,
 } from '@yugo/app-core';
 import { AvatarCircle, Button, CheckMark, Chip, Notice, Sub } from '../../components/ui';
+import { RelationshipStageCard } from '../../components/relationship';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
@@ -157,6 +158,11 @@ export default function ChatScreen() {
               <Chip label={es.connections.newConnectionToday} tone="wheat" />
             </View>
           ) : null}
+
+          <RelationshipStageCard
+            matchId={connection.matchId}
+            otherName={connection.otherUser.displayName}
+          />
 
           {messages.length <= 3 && icebreakers.length > 0 ? (
             <View style={styles.icebreakerCard}>

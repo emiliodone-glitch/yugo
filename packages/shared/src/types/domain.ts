@@ -3,6 +3,7 @@
  * "conexión", `affinityScore`, `covenant`, `endorsement`. Spanish UI strings
  * live in `i18n/es-DO.ts`.
  */
+import type { RelationshipStage } from '../relationship/stages';
 
 export type UserRole =
   | 'MEMBER'
@@ -143,6 +144,10 @@ export interface ConnectionSummary {
   isNew: boolean;
   lastMessage?: { body: string; sentAt: string; mine: boolean };
   unreadCount: number;
+  /** Etapa del vínculo. Absent on older payloads; treat as KNOWING. */
+  stage?: RelationshipStage;
+  /** The other person proposed a stage and is waiting for an answer. */
+  stageProposalPending?: boolean;
 }
 
 export interface ChatMessage {

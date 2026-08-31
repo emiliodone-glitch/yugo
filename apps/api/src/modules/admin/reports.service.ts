@@ -1,17 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 
-export type ReportKind = 'growth' | 'retention' | 'funnel' | 'province' | 'denomination';
+export type ReportKind =
+  | 'growth'
+  | 'retention'
+  | 'funnel'
+  | 'subscriptions'
+  | 'province'
+  | 'denomination';
 
 interface ReportRow {
   [column: string]: string | number;
 }
 
 /**
- * RF-ADM-12: exportable reports — growth, cohort retention, free→Plus funnel,
- * activity by province and by denomination. Each returns rows plus a CSV
- * rendering that Excel opens directly (BOM + semicolon separator, which is
- * what Excel in es-DO expects).
+ * RF-ADM-12: exportable reports — growth, cohort retention, the funnel from
+ * sign-up to a bond that advanced, subscriptions, and activity by province and
+ * denomination. Each returns rows plus a CSV rendering that Excel opens
+ * directly (BOM + semicolon separator, which is what Excel in es-DO expects).
  */
 @Injectable()
 export class ReportsService {
@@ -24,7 +30,9 @@ export class ReportsService {
       case 'retention':
         return { title: 'Retención por cohorte', rows: await this.retention() };
       case 'funnel':
-        return { title: 'Embudo gratuito → Plus', rows: await this.funnel() };
+        return { title: 'Del registro al vínculo', rows: await this.funnel() };
+      case 'subscriptions':
+        return { title: 'Suscripciones activas', rows: await this.subscriptions() };
       case 'province':
         return { title: 'Actividad por provincia', rows: await this.byProvince() };
       case 'denomination':
@@ -90,31 +98,102 @@ export class ReportsService {
     }));
   }
 
-  /** Free → Plus funnel, following the success metrics in section 14. */
+  /**
+   * The funnel ends where the product's purpose ends: in bonds that advanced,
+   * not in subscriptions.
+   *
+   * It used to close with "Suscritos a Plus" and "Suscritos a Oro", which made
+   * the system define its own success as revenue. Money is still measured —
+   * see subscriptions() — but as its own report, never as the last step of
+   * what Yugo is for. Two people who matched and never spoke are not a result.
+   */
   private async funnel(): Promise<ReportRow[]> {
-    const [registered, completed, verified, connected, plus, oro] = await Promise.all([
-      this.prisma.user.count({ where: { role: 'MEMBER', deletedAt: null } }),
-      this.prisma.profile.count({ where: { completeness: { gte: 60 } } }),
-      this.prisma.user.count({
-        where: { role: 'MEMBER', verifications: { some: { level: { gte: 2 }, status: 'APPROVED' } } },
-      }),
+    const inStage = (stages: Array<'INTENTIONAL_FRIENDSHIP' | 'COURTSHIP' | 'ENGAGED'>) =>
       this.prisma.user.count({
         where: {
           role: 'MEMBER',
-          OR: [{ matchesA: { some: {} } }, { matchesB: { some: {} } }],
+          deletedAt: null,
+          OR: [
+            { matchesA: { some: { status: 'ACTIVE', stage: { in: stages } } } },
+            { matchesB: { some: { status: 'ACTIVE', stage: { in: stages } } } },
+          ],
         },
-      }),
-      this.prisma.subscription.count({ where: { tier: 'PLUS' } }),
-      this.prisma.subscription.count({ where: { tier: 'ORO' } }),
-    ]);
-    const pct = (part: number) => (registered === 0 ? 0 : Math.round((part / registered) * 1000) / 10);
+      });
+
+    const [registered, completed, verified, connected, talking, advanced, settled] =
+      await Promise.all([
+        this.prisma.user.count({ where: { role: 'MEMBER', deletedAt: null } }),
+        this.prisma.profile.count({ where: { completeness: { gte: 60 } } }),
+        this.prisma.user.count({
+          where: {
+            role: 'MEMBER',
+            verifications: { some: { level: { gte: 2 }, status: 'APPROVED' } },
+          },
+        }),
+        this.prisma.user.count({
+          where: {
+            role: 'MEMBER',
+            OR: [{ matchesA: { some: {} } }, { matchesB: { some: {} } }],
+          },
+        }),
+        // Both people in a conversation that actually carries messages: the
+        // first sign a connection became something instead of sitting in a
+        // list. Counting only senders would put this stage below the ones
+        // after it, since the person who answered nothing still advanced.
+        this.prisma.user.count({
+          where: {
+            role: 'MEMBER',
+            deletedAt: null,
+            OR: [
+              {
+                matchesA: {
+                  some: {
+                    conversation: { messages: { some: { moderationStatus: 'APPROVED' } } },
+                  },
+                },
+              },
+              {
+                matchesB: {
+                  some: {
+                    conversation: { messages: { some: { moderationStatus: 'APPROVED' } } },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+        inStage(['INTENTIONAL_FRIENDSHIP', 'COURTSHIP', 'ENGAGED']),
+        inStage(['COURTSHIP', 'ENGAGED']),
+      ]);
+
+    const pct = (part: number) =>
+      registered === 0 ? 0 : Math.round((part / registered) * 1000) / 10;
     return [
       { Etapa: 'Registrados', Miembros: registered, 'Del total (%)': 100 },
       { Etapa: 'Perfil completo (≥60%)', Miembros: completed, 'Del total (%)': pct(completed) },
       { Etapa: 'Verificados nivel 2+', Miembros: verified, 'Del total (%)': pct(verified) },
       { Etapa: 'Con al menos una conexión', Miembros: connected, 'Del total (%)': pct(connected) },
-      { Etapa: 'Suscritos a Plus', Miembros: plus, 'Del total (%)': pct(plus) },
-      { Etapa: 'Suscritos a Oro', Miembros: oro, 'Del total (%)': pct(oro) },
+      { Etapa: 'Conversando', Miembros: talking, 'Del total (%)': pct(talking) },
+      { Etapa: 'En un vínculo que avanzó', Miembros: advanced, 'Del total (%)': pct(advanced) },
+      { Etapa: 'En noviazgo o compromiso', Miembros: settled, 'Del total (%)': pct(settled) },
+    ];
+  }
+
+  /**
+   * Revenue, kept honestly and kept separate. Sustaining the platform matters;
+   * it is simply not the outcome the product is measured by.
+   */
+  private async subscriptions(): Promise<ReportRow[]> {
+    const [members, plus, oro] = await Promise.all([
+      this.prisma.user.count({ where: { role: 'MEMBER', deletedAt: null } }),
+      this.prisma.subscription.count({ where: { tier: 'PLUS', status: 'ACTIVE' } }),
+      this.prisma.subscription.count({ where: { tier: 'ORO', status: 'ACTIVE' } }),
+    ]);
+    const pct = (part: number) => (members === 0 ? 0 : Math.round((part / members) * 1000) / 10);
+    return [
+      { Plan: 'Gratuito', Miembros: members - plus - oro, 'Del total (%)': pct(members - plus - oro) },
+      { Plan: 'Plus', Miembros: plus, 'Del total (%)': pct(plus) },
+      { Plan: 'Oro', Miembros: oro, 'Del total (%)': pct(oro) },
     ];
   }
 

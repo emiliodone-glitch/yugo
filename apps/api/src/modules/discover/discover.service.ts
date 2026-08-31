@@ -38,7 +38,16 @@ export class DiscoverService {
   async getDaily(userId: string, filters: DiscoverFilters = {}): Promise<{
     items: ProfileCard[];
     total: number;
+    settled?: boolean;
   }> {
+    // Leaving Descubrir has to work in both directions. The SQL takes people
+    // in a noviazgo out of everyone else's list; this takes everyone else out
+    // of theirs. A promise the app only enforces against strangers is not the
+    // promise a church is lending its name to.
+    if (await this.isInExclusiveBond(userId)) {
+      return { items: [], total: 0, settled: true };
+    }
+
     const viewer = await this.loadViewer(userId);
     const tier = await this.subscriptions.tierOf(userId);
     const domainLimits = await this.settings.getLimits();
@@ -73,6 +82,19 @@ export class DiscoverService {
     );
     const items = cards.filter((card) => !settled.has(card.userId));
     return { items, total: items.length };
+  }
+
+  /** Whether this member declared noviazgo or compromiso with someone. */
+  private async isInExclusiveBond(userId: string): Promise<boolean> {
+    const bond = await this.prisma.match.findFirst({
+      where: {
+        status: 'ACTIVE',
+        stage: { in: ['COURTSHIP', 'ENGAGED'] },
+        OR: [{ userAId: userId }, { userBId: userId }],
+      },
+      select: { id: true },
+    });
+    return !!bond;
   }
 
   /** Members of `candidateIds` this viewer already marked, passed or connected with. */
@@ -204,6 +226,15 @@ export class DiscoverService {
           WHERE ((m."userAId" = ${viewer.user.id} AND m."userBId" = u.id)
               OR (m."userAId" = u.id AND m."userBId" = ${viewer.user.id}))
             AND (m.status = 'ACTIVE' OR m."endedAt" > now() - make_interval(days => ${domainLimits.reconnectCooldownDays}::int))
+        )
+        -- Quien declaró noviazgo o compromiso con alguien deja de aparecer.
+        -- Cuesta alcance y por eso mismo vale: es la promesa a la que una
+        -- iglesia le presta su nombre.
+        AND NOT EXISTS (
+          SELECT 1 FROM "Match" ex
+          WHERE (ex."userAId" = u.id OR ex."userBId" = u.id)
+            AND ex.status = 'ACTIVE'
+            AND ex.stage IN ('COURTSHIP', 'ENGAGED')
         )
         AND NOT EXISTS (
           SELECT 1 FROM "Pass" ps

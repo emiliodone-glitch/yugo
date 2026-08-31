@@ -81,6 +81,17 @@ export default function ConnectionsScreen() {
                   ? `${connection.lastMessage.mine ? 'Tú: ' : ''}${connection.lastMessage.body}`
                   : es.connections.newConnectionToday}
               </Sub>
+              {/* La etapa solo se muestra cuando el vínculo avanzó: decir
+                  «Conociéndonos» en todas las filas no informa nada. */}
+              {connection.stage && connection.stage !== 'KNOWING' ? (
+                <View style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+                  <Chip label={es.relationship.stages[connection.stage]} tone="wheat" />
+                </View>
+              ) : connection.stageProposalPending ? (
+                <View style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+                  <Chip label={es.relationship.pendingChip} tone="wheat" />
+                </View>
+              ) : null}
             </View>
             {connection.unreadCount > 0 ? <View style={styles.unread} /> : null}
           </Pressable>

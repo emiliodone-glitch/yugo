@@ -17,6 +17,7 @@ import type {
   SubscriptionPlan,
   SubscriptionTier,
 } from '../types/domain';
+import type { RelationshipStage } from '../relationship/stages';
 import type { DiscoverFilters } from '../validators/discover';
 import type { CreateEventInput, CreateGroupInput, ReportInput } from '../validators/community';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '../validators/profile';
@@ -39,6 +40,19 @@ export interface MeResponse {
   profile: MyProfile | null;
   verifications: Array<{ level: number; status: string; church?: { name: string } | null }>;
   subscriptions: Array<{ tier: SubscriptionTier; status: string; endsAt: string }>;
+}
+
+/** Everything the couple's stage screen shows, from one request. */
+export interface RelationshipState {
+  stage: RelationshipStage;
+  stageChangedAt: string | null;
+  /** The only stage proposable from here; null once there is nowhere further. */
+  nextStage: RelationshipStage | null;
+  /** True from noviazgo on: both people have left Descubrir. */
+  isExclusive: boolean;
+  otherName: string;
+  proposal: { stage: RelationshipStage; byMe: boolean; proposedAt: string } | null;
+  history: Array<{ toStage: RelationshipStage; createdAt: string }>;
 }
 
 export interface MyProfile {
@@ -409,6 +423,20 @@ export class YugoApiClient {
     disconnect: (matchId: string) => this.http.delete<{ ended: boolean }>(`/connections/${matchId}`),
     report: (input: ReportInput) => this.http.post<{ id: string }>('/connections/report', input),
     block: (userId: string) => this.http.post<{ blocked: boolean }>('/connections/block', { userId }),
+
+    // Etapas del vínculo: uno propone, el otro acepta, nadie avanza solo.
+    stage: (matchId: string) => this.http.get<RelationshipState>(`/connections/${matchId}/stage`),
+    proposeStage: (matchId: string, stage: RelationshipStage) =>
+      this.http.post<{ proposed: RelationshipStage }>(`/connections/${matchId}/stage/propose`, {
+        stage,
+      }),
+    acceptStage: (matchId: string) =>
+      this.http.post<{ stage: RelationshipStage; isExclusive: boolean; advanced: boolean }>(
+        `/connections/${matchId}/stage/accept`,
+        {},
+      ),
+    declineStage: (matchId: string) =>
+      this.http.post<{ declined: boolean }>(`/connections/${matchId}/stage/decline`, {}),
   };
 
   // ---- Community (RF-COM-01..09) ------------------------------------------

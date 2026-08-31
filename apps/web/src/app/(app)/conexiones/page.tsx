@@ -93,6 +93,15 @@ export default function ConnectionsPage() {
                   ? `${connection.lastMessage.mine ? `${es.common.you}: ` : ''}${connection.lastMessage.body}`
                   : es.connections.newConnectionToday}
               </div>
+              {/* La etapa solo se muestra cuando el vínculo avanzó: decir
+                  «Conociéndonos» en todas las filas no informa nada. */}
+              {connection.stage && connection.stage !== 'KNOWING' ? (
+                <span className="chip chip-wheat mt-1">
+                  {es.relationship.stages[connection.stage]}
+                </span>
+              ) : connection.stageProposalPending ? (
+                <span className="chip chip-wheat mt-1">{es.relationship.pendingChip}</span>
+              ) : null}
             </div>
             {connection.unreadCount > 0 ? (
               <span className="h-2 w-2 flex-none rounded-full bg-wine" aria-label="No leído" />

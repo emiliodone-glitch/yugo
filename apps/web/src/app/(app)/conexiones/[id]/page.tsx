@@ -17,6 +17,7 @@ import {
   useConversationRealtime,
 } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
+import { RelationshipStageCard } from '@/components/relationship';
 import { CheckIcon, ChevronLeft } from '@/components/icons';
 
 export default function ChatPage({ params }: { params: { id: string } }) {
@@ -152,6 +153,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         <div className="my-3 text-center">
           <span className="chip chip-wheat">{es.connections.newConnectionToday}</span>
         </div>
+
+        <RelationshipStageCard
+          matchId={connection.matchId}
+          otherName={connection.otherUser.displayName}
+        />
 
         {isNew || messages.length <= 3 ? (
           <div className="card mb-3 border-0 bg-wheat-soft">

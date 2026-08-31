@@ -51,10 +51,21 @@ async function call(
   return { status: response.status, body: text ? JSON.parse(text) : null };
 }
 
+/**
+ * Tokens are memoised for the run: login is rate limited to 10 an hour on
+ * purpose (RF-SEG-05), and a suite that trips its own limiter fails for the
+ * wrong reason.
+ */
+const tokens = new Map<string, string>();
+
 async function login(identifier: string): Promise<string> {
+  const cached = tokens.get(identifier);
+  if (cached) return cached;
+
   const result = await call('POST', '/auth/login', {
     body: { identifier, password: PASSWORD },
   });
+  if (result.body?.accessToken) tokens.set(identifier, result.body.accessToken);
   if (!result.body?.accessToken) {
     throw new Error(`login failed for ${identifier}: ${JSON.stringify(result.body)}`);
   }
@@ -87,7 +98,7 @@ async function seedEmailOf(userId: string): Promise<string | null> {
  * interests, and those people correctly stop appearing, so a second run on the
  * same database needs a different viewer — or a reseed.
  */
-async function firstViewerWithCandidates(): Promise<{
+async function firstViewerWithCandidates(exceptUserIds: string[] = []): Promise<{
   token: string;
   me: Json;
   items: any[];
@@ -95,6 +106,7 @@ async function firstViewerWithCandidates(): Promise<{
   for (const email of ['demo1@yugo.do', 'demo3@yugo.do', 'demo5@yugo.do']) {
     const token = await login(email);
     const me = await call('GET', '/auth/me', { token });
+    if (exceptUserIds.includes(me.body?.id)) continue;
     const discover = await call('GET', '/discover', { token });
     if (discover.status !== 200) continue;
     const items: any[] = discover.body?.items ?? [];
@@ -314,6 +326,8 @@ async function main() {
   // el bloque de moderación no se ejecutaría nunca en CI, que es justo donde
   // hace falta.
   let conversationId: string | undefined;
+  let matchId: string | undefined;
+  let theirTokenForStages: string | undefined;
   // `first` salió del Descubrir de demo1, así que la elegibilidad mutua ya la
   // garantizó el SQL: basta con que esa persona corresponda el interés.
   const counterpartEmail = first ? await seedEmailOf(first.userId) : null;
@@ -334,6 +348,88 @@ async function main() {
     const connections = await call('GET', '/connections', { token });
     check('la conexión aparece en mi lista', (connections.body?.length ?? 0) > 0, connections.body);
     conversationId = connections.body?.[0]?.conversationId;
+    matchId = connections.body?.[0]?.matchId;
+    theirTokenForStages = theirToken;
+  }
+
+  console.log('\nEtapas del vínculo — la declaran los dos');
+  if (matchId && theirTokenForStages) {
+    const state = await call('GET', `/connections/${matchId}/stage`, { token });
+    check('la etapa se puede consultar', state.status === 200, state.body);
+
+    const skipped = await call('POST', `/connections/${matchId}/stage/propose`, {
+      token,
+      body: { stage: 'ENGAGED' },
+    });
+    check(
+      'no se puede saltar de conociéndonos a comprometidos',
+      skipped.status === 400 && skipped.body?.message === 'cannot_skip_stages',
+      skipped,
+    );
+
+    // Avanza desde donde esté, para que una segunda corrida no falle por
+    // encontrarse el vínculo ya movido.
+    let stage: string = state.body?.stage ?? 'KNOWING';
+    let reachedCourtship = stage === 'COURTSHIP' || stage === 'ENGAGED';
+
+    while (!reachedCourtship) {
+      const next = state.body?.nextStage && stage === state.body?.stage
+        ? state.body.nextStage
+        : stage === 'KNOWING'
+          ? 'INTENTIONAL_FRIENDSHIP'
+          : 'COURTSHIP';
+
+      const proposed = await call('POST', `/connections/${matchId}/stage/propose`, {
+        token,
+        body: { stage: next },
+      });
+      check(`proponer «${next}» responde 201`, proposed.status === 201, proposed.body);
+
+      const ownAccept = await call('POST', `/connections/${matchId}/stage/accept`, { token });
+      check(
+        'nadie acepta su propia propuesta',
+        ownAccept.status === 400 && ownAccept.body?.message === 'cannot_accept_own_proposal',
+        ownAccept,
+      );
+
+      const accepted = await call('POST', `/connections/${matchId}/stage/accept`, {
+        token: theirTokenForStages,
+      });
+      check(`la otra persona acepta y la etapa pasa a «${next}»`, accepted.body?.stage === next, accepted.body);
+      stage = accepted.body?.stage ?? stage;
+      reachedCourtship = stage === 'COURTSHIP' || stage === 'ENGAGED';
+      if (!accepted.body?.stage) break;
+    }
+
+    // La consecuencia que sostiene todo lo demás: declarar noviazgo saca a los
+    // dos de Descubrir, en las dos direcciones. Si esto se rompe, el respaldo
+    // de una iglesia deja de significar algo.
+    check('el noviazgo marca el vínculo como exclusivo', reachedCourtship, stage);
+
+    const mine = await call('GET', '/discover', { token });
+    check(
+      'quien declaró noviazgo ya no recibe candidatos',
+      mine.body?.settled === true && (mine.body?.items ?? []).length === 0,
+      mine.body,
+    );
+
+    const theirs = await call('GET', '/discover', { token: theirTokenForStages });
+    check(
+      'y su pareja tampoco',
+      theirs.body?.settled === true && (theirs.body?.items ?? []).length === 0,
+      theirs.body,
+    );
+
+    // Y ninguno de los dos le aparece a nadie más.
+    const outsider = await firstViewerWithCandidates([me.body.id, first!.userId]);
+    if (outsider) {
+      const visible = outsider.items.filter(
+        (card) => card.userId === me.body.id || card.userId === first!.userId,
+      );
+      check('nadie más los ve en Descubrir', visible.length === 0, visible.map((c) => c.userId));
+    }
+  } else {
+    check('hay un vínculo cuyas etapas probar', false, 'no se pudo crear la conexión');
   }
 
   console.log('\nRF-CON-05 — moderación previa del chat');

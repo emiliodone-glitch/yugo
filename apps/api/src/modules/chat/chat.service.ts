@@ -101,6 +101,10 @@ export class ChatService {
             ? { body: lastMessage.body, sentAt: lastMessage.sentAt, mine: lastMessage.senderId === userId }
             : undefined,
           unreadCount,
+          stage: match.stage,
+          // A proposal the other person left waiting deserves to be visible
+          // from the list, not only once you open the conversation.
+          stageProposalPending: !!match.proposedStage && match.proposedById !== userId,
         };
       }),
     );

@@ -15,11 +15,16 @@ import {
   demoIcebreakers,
   demoNotifications,
   demoPosts,
+  demoReports,
   DEFAULT_PRICES,
   LIMITS,
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
+  isExclusive,
+  nextStage,
   type ChatMessage,
+  type RelationshipStage,
+  type RelationshipState,
   type DiscoverFilters,
   type ConnectionSummary,
   type EventSummary,
@@ -30,7 +35,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation } from './realtime';
-import { useDemoStore } from './demo-store';
+import { NEW_RELATIONSHIP, useDemoStore } from './demo-store';
 
 // ---------------------------------------------------------------------------
 // Session
@@ -288,11 +293,23 @@ export function useSavedProfiles() {
 // ---------------------------------------------------------------------------
 
 export function useConnections() {
+  // Read the demo relationships here so the list and the conversation always
+  // agree about a bond's stage, instead of the fixture going stale the moment
+  // someone accepts a proposal.
+  const demoRelationships = useDemoStore((s) => s.relationships);
   return useQuery({
-    queryKey: ['connections'],
+    queryKey: ['connections', isDemoMode() ? demoRelationships : null],
     queryFn: async (): Promise<Array<ConnectionSummary & { conversationId?: string }>> => {
       if (isDemoMode()) {
-        return demoConnections.map((c) => ({ ...c, conversationId: c.matchId }));
+        return demoConnections.map((c) => {
+          const bond = demoRelationships[c.matchId] ?? NEW_RELATIONSHIP;
+          return {
+            ...c,
+            conversationId: c.matchId,
+            stage: bond.stage,
+            stageProposalPending: !!bond.proposal && !bond.proposal.byMe,
+          };
+        });
       }
       return api().connections.list();
     },
@@ -445,6 +462,76 @@ export function useDisconnect() {
       return api().connections.disconnect(matchId);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['connections'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Etapas del vínculo
+// ---------------------------------------------------------------------------
+
+/**
+ * The stage of one bond, plus any proposal waiting for an answer.
+ *
+ * Reads the demo store reactively rather than through the query cache: a
+ * proposal is the kind of thing the person expects to see change the instant
+ * they tap, not after a refetch.
+ */
+export function useRelationship(matchId: string, otherName = 'tu conexión') {
+  const demo = useDemoStore((s) => s.relationships[matchId]) ?? NEW_RELATIONSHIP;
+  const live = useQuery({
+    queryKey: ['relationship', matchId],
+    enabled: !isDemoMode() && !!matchId,
+    queryFn: () => api().connections.stage(matchId),
+  });
+
+  if (!isDemoMode()) return live;
+
+  const state: RelationshipState = {
+    ...demo,
+    nextStage: nextStage(demo.stage),
+    isExclusive: isExclusive(demo.stage),
+    otherName,
+  };
+  return { ...live, data: state, isLoading: false, isError: false } as typeof live;
+}
+
+export function useProposeStage(matchId: string) {
+  const queryClient = useQueryClient();
+  const proposeDemo = useDemoStore((s) => s.proposeStage);
+  return useMutation({
+    mutationFn: async (stage: RelationshipStage) => {
+      if (isDemoMode()) {
+        if (proposeDemo(matchId, stage) === 'invalid') throw new Error('cannot_skip_stages');
+        return { proposed: stage };
+      }
+      return api().connections.proposeStage(matchId, stage);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['relationship', matchId] }),
+  });
+}
+
+/**
+ * Accepting or declining a proposal. Both invalidate Descubrir too: declaring
+ * noviazgo takes the couple out of everyone's list, including their own.
+ */
+export function useRespondToStage(matchId: string) {
+  const queryClient = useQueryClient();
+  const respondDemo = useDemoStore((s) => s.respondToStage);
+  return useMutation({
+    mutationFn: async (accept: boolean) => {
+      if (isDemoMode()) {
+        respondDemo(matchId, accept);
+        return { accepted: accept };
+      }
+      return accept
+        ? api().connections.acceptStage(matchId)
+        : api().connections.declineStage(matchId);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['relationship', matchId] });
+      void queryClient.invalidateQueries({ queryKey: ['connections'] });
+      void queryClient.invalidateQueries({ queryKey: ['discover'] });
+    },
   });
 }
 
@@ -909,6 +996,28 @@ export function useExportData() {
         return { exportedAt: new Date().toISOString(), demo: true };
       }
       return api().privacy.exportData();
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Admin reports (RF-ADM-12)
+// ---------------------------------------------------------------------------
+
+/**
+ * One exportable report. `funnel` is the one that matters: it runs from
+ * sign-up to bonds that advanced, and deliberately does not end in revenue —
+ * that lives in the `subscriptions` report instead.
+ */
+export function useAdminReport(kind: string, weeks?: number) {
+  return useQuery({
+    queryKey: ['admin-report', kind, weeks],
+    queryFn: async (): Promise<{
+      title: string;
+      rows: Array<Record<string, string | number>>;
+    }> => {
+      if (isDemoMode()) return demoReports[kind] ?? { title: kind, rows: [] };
+      return api().admin.report(kind, weeks);
     },
   });
 }

@@ -10,8 +10,18 @@ import {
   demoDailySummary,
   demoMessages,
   LIMITS,
+  validateStageProposal,
   type ChatMessage,
+  type RelationshipStage,
 } from '@yugo/shared';
+
+/** Per-connection stage state, mirroring what the API returns. */
+export interface DemoRelationship {
+  stage: RelationshipStage;
+  stageChangedAt: string | null;
+  proposal: { stage: RelationshipStage; byMe: boolean; proposedAt: string } | null;
+  history: Array<{ toStage: RelationshipStage; createdAt: string }>;
+}
 
 interface DemoState {
   interestsUsed: number;
@@ -33,6 +43,8 @@ interface DemoState {
   /** RF-DES-10: featured until, so the demo reflects the activation. */
   boostActiveUntil: string | null;
   boostUsedThisWeek: number;
+  /** Etapas del vínculo, por matchId. */
+  relationships: Record<string, DemoRelationship>;
   markInterest: (userId: string) => 'ok' | 'limit';
   passProfile: (userId: string) => void;
   undoPass: () => string | null;
@@ -47,7 +59,47 @@ interface DemoState {
   setTravelMode: (on: boolean) => void;
   setPausedProfile: (on: boolean) => void;
   activateBoost: () => string;
+  proposeStage: (matchId: string, stage: RelationshipStage) => 'ok' | 'invalid';
+  respondToStage: (matchId: string, accept: boolean) => void;
 }
+
+const DAY = 24 * 3600_000;
+const ago = (days: number) => new Date(Date.now() - days * DAY).toISOString();
+
+/** The default for any connection nobody has moved. */
+export const NEW_RELATIONSHIP: DemoRelationship = {
+  stage: 'KNOWING',
+  stageChangedAt: null,
+  proposal: null,
+  history: [],
+};
+
+/**
+ * Seeded so the demo shows the states that matter without anyone having to
+ * click through: a bond that already advanced, one waiting on an answer from
+ * us, and everything else at the start. Two of them sit on connections that
+ * appear in the conversation list, so the stage chip there is visible too.
+ */
+const demoRelationships: Record<string, DemoRelationship> = {
+  'm-daniela': {
+    stage: 'INTENTIONAL_FRIENDSHIP',
+    stageChangedAt: ago(21),
+    proposal: null,
+    history: [{ toStage: 'INTENTIONAL_FRIENDSHIP', createdAt: ago(21) }],
+  },
+  'm-sarah': {
+    stage: 'KNOWING',
+    stageChangedAt: null,
+    proposal: { stage: 'INTENTIONAL_FRIENDSHIP', byMe: false, proposedAt: ago(2) },
+    history: [],
+  },
+  'm-priscila': {
+    stage: 'KNOWING',
+    stageChangedAt: null,
+    proposal: { stage: 'INTENTIONAL_FRIENDSHIP', byMe: false, proposedAt: ago(1) },
+    history: [],
+  },
+};
 
 /** Mirrors the API's stub classifier so demo mode shows real moderation UX. */
 function demoModerationStatus(body: string): ChatMessage['moderationStatus'] {
@@ -75,6 +127,7 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   pausedProfile: false,
   boostActiveUntil: null,
   boostUsedThisWeek: 1,
+  relationships: demoRelationships,
 
   markInterest: (userId) => {
     const { interestsUsed, interestsLimit, sentInterests } = get();
@@ -146,8 +199,40 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   setPausedProfile: (on) => set({ pausedProfile: on }),
 
   activateBoost: () => {
-    const until = new Date(Date.now() + 24 * 3600_000).toISOString();
+    const until = new Date(Date.now() + DAY).toISOString();
     set((state) => ({ boostActiveUntil: until, boostUsedThisWeek: state.boostUsedThisWeek + 1 }));
     return until;
+  },
+
+  proposeStage: (matchId, stage) => {
+    const current = get().relationships[matchId] ?? NEW_RELATIONSHIP;
+    // Same rule the API applies, from the same function, so demo mode cannot
+    // show a step the real product would refuse.
+    if (!validateStageProposal(current.stage, stage).ok) return 'invalid';
+    set((state) => ({
+      relationships: {
+        ...state.relationships,
+        [matchId]: {
+          ...current,
+          proposal: { stage, byMe: true, proposedAt: new Date().toISOString() },
+        },
+      },
+    }));
+    return 'ok';
+  },
+
+  respondToStage: (matchId, accept) => {
+    const current = get().relationships[matchId] ?? NEW_RELATIONSHIP;
+    if (!current.proposal) return;
+    const now = new Date().toISOString();
+    const next: DemoRelationship = accept
+      ? {
+          stage: current.proposal.stage,
+          stageChangedAt: now,
+          proposal: null,
+          history: [...current.history, { toStage: current.proposal.stage, createdAt: now }],
+        }
+      : { ...current, proposal: null };
+    set((state) => ({ relationships: { ...state.relationships, [matchId]: next } }));
   },
 }));

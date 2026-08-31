@@ -1,21 +1,30 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { z } from 'zod';
-import { reportSchema, sendMessageSchema, type ReportInput } from '@yugo/shared';
+import {
+  RELATIONSHIP_STAGES,
+  reportSchema,
+  sendMessageSchema,
+  type RelationshipStage,
+  type ReportInput,
+} from '@yugo/shared';
 import { ChatService } from './chat.service';
 import { IcebreakersService } from './icebreakers.service';
+import { RelationshipService } from './relationship.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const blockSchema = z.object({ userId: z.string().min(1) });
 const archiveSchema = z.object({ archived: z.boolean() });
 const inviteSchema = z.object({ eventId: z.string().min(1) });
+const stageProposalSchema = z.object({ stage: z.enum(RELATIONSHIP_STAGES) });
 
 @Controller('connections')
 export class ChatController {
   constructor(
     private readonly chat: ChatService,
     private readonly icebreakers: IcebreakersService,
+    private readonly relationship: RelationshipService,
   ) {}
 
   @Get()
@@ -80,5 +89,32 @@ export class ChatController {
   @Cron('0 15 * * *')
   remindInactive() {
     return this.chat.remindInactiveConnections();
+  }
+
+  // --- Etapas del vínculo -----------------------------------------------
+  // Una etapa la declaran los dos: uno propone y el otro acepta.
+
+  @Get(':matchId/stage')
+  stage(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.relationship.state(matchId, user.id);
+  }
+
+  @Post(':matchId/stage/propose')
+  proposeStage(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(stageProposalSchema)) body: { stage: RelationshipStage },
+  ) {
+    return this.relationship.propose(matchId, user.id, body.stage);
+  }
+
+  @Post(':matchId/stage/accept')
+  acceptStage(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.relationship.accept(matchId, user.id);
+  }
+
+  @Post(':matchId/stage/decline')
+  declineStage(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.relationship.decline(matchId, user.id);
   }
 }

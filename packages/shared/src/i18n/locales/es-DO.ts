@@ -157,6 +157,35 @@ export const es = {
     notePractices: (list: string) => `Coinciden en ${list}`,
   },
 
+  relationship: {
+    title: 'Nuestra etapa',
+    stages: {
+      KNOWING: 'Conociéndonos',
+      INTENTIONAL_FRIENDSHIP: 'Amistad intencional',
+      COURTSHIP: 'Noviazgo',
+      ENGAGED: 'Comprometidos',
+    },
+    stageHints: {
+      KNOWING: 'Están empezando a conocerse.',
+      INTENTIONAL_FRIENDSHIP: 'Se conocen con intención, sin apuro.',
+      COURTSHIP: 'Son novios. Ninguno de los dos aparece ya en Descubrir.',
+      ENGAGED: 'Se van a casar.',
+    },
+    propose: (stage: string) => `Proponer «${stage}»`,
+    proposedByYou: (stage: string) => `Propusiste «${stage}». Falta que la otra persona acepte.`,
+    proposedByThem: (name: string, stage: string) =>
+      `${name} propone que pasen a «${stage}».`,
+    accept: 'Estoy de acuerdo',
+    decline: 'Todavía no',
+    declined: 'Dijiste que todavía no. Pueden volver a hablarlo cuando quieran.',
+    advanced: (stage: string) => `Ahora están en «${stage}».`,
+    exclusiveNotice:
+      'Al declarar noviazgo, los dos dejan de aparecer en Descubrir. Es una decisión de ambos y queda registrada.',
+    bothMustAgree: 'Una etapa la declaran los dos: uno propone y el otro acepta.',
+    history: 'Cómo ha avanzado',
+    pendingChip: 'Propuso una etapa',
+  },
+
   connections: {
     title: 'Conexiones',
     newSection: 'NUEVAS',
