@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   configureAppRuntime,
   createQueryClient,
+  disconnectRealtime,
   QueryClientProvider,
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient, onSignOut } from './api';
@@ -19,6 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     () =>
       onSignOut(() => {
         queryClient.clear();
+        disconnectRealtime();
         router.replace('/entrar');
       }),
     [queryClient],

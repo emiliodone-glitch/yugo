@@ -26,7 +26,9 @@ import {
   type NotificationItem,
   type ProfileCard,
 } from '@yugo/shared';
+import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
+import { emitTyping, joinConversation } from './realtime';
 import { useDemoStore } from './demo-store';
 
 // ---------------------------------------------------------------------------
@@ -313,6 +315,69 @@ export function useConversation(conversationId: string) {
       return { messages, icebreakers };
     },
   });
+}
+
+/**
+ * RF-CON-03: live chat. Subscribes to the conversation room and keeps the
+ * message list fresh without polling, exposes whether the other person is
+ * writing, and reports when they have read what we sent.
+ *
+ * Everything degrades quietly: in demo mode, or with the socket down, the
+ * screen still works from the HTTP fetch.
+ */
+export function useConversationRealtime(conversationId: string, currentUserId?: string) {
+  const queryClient = useQueryClient();
+  const [otherIsTyping, setOtherIsTyping] = useState(false);
+  const [theyReadAt, setTheyReadAt] = useState<string | null>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!conversationId || isDemoMode()) return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+
+    void joinConversation(conversationId, {
+      onMessage: () => {
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        queryClient.invalidateQueries({ queryKey: ['connections'] });
+      },
+      onRead: (readerId) => {
+        // Our own read receipt bouncing back is not news.
+        if (readerId !== currentUserId) setTheyReadAt(new Date().toISOString());
+      },
+      onTyping: (userId, typing) => {
+        if (userId === currentUserId) return;
+        setOtherIsTyping(typing);
+        // A "stopped typing" event can be lost; without this the indicator
+        // would stay on screen forever.
+        if (typingTimeout.current) clearTimeout(typingTimeout.current);
+        if (typing) {
+          typingTimeout.current = setTimeout(() => setOtherIsTyping(false), 6000);
+        }
+      },
+    }).then((dispose) => {
+      if (cancelled) dispose();
+      else cleanup = dispose;
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup?.();
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    };
+  }, [conversationId, currentUserId, queryClient]);
+
+  /** Call as the member types; throttled so it is one event per second. */
+  const lastSent = useRef(0);
+  const notifyTyping = (typing: boolean) => {
+    if (isDemoMode()) return;
+    const now = Date.now();
+    if (typing && now - lastSent.current < 1000) return;
+    lastSent.current = now;
+    emitTyping(conversationId, typing);
+  };
+
+  return { otherIsTyping, theyReadAt, notifyTyping };
 }
 
 export function useSendMessage(conversationId: string) {

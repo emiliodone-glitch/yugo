@@ -17,6 +17,7 @@ import {
   useBlockUser,
   useConnections,
   useConversation,
+  useConversationRealtime,
   useCurrentUserId,
   useDisconnect,
   useEvents,
@@ -45,6 +46,11 @@ export default function ChatScreen() {
   const blockUser = useBlockUser();
   const disconnect = useDisconnect();
 
+  // RF-CON-03: el mensaje llega solo, sin recargar.
+  const { otherIsTyping, theyReadAt, notifyTyping } = useConversationRealtime(
+    conversationId,
+    currentUserId,
+  );
   const [draft, setDraft] = useState('');
   const [sheet, setSheet] = useState<Sheet>('none');
   const [notice, setNotice] = useState<string | null>(null);
@@ -163,10 +169,23 @@ export default function ChatScreen() {
             </View>
           ) : null}
 
-          {messages.map((message) => {
+          {messages.map((message, index) => {
             const mine = message.senderId === currentUserId;
             const held = message.moderationStatus === 'HELD';
             const rejected = message.moderationStatus === 'REJECTED';
+            // El acuse va solo bajo el último mensaje propio entregado.
+            const isLastMine =
+              mine &&
+              !held &&
+              !rejected &&
+              !messages.slice(index + 1).some((later) => later.senderId === currentUserId);
+            const receipt = isLastMine
+              ? theyReadAt || message.readAt
+                ? es.connections.read
+                : message.deliveredAt
+                  ? es.connections.delivered
+                  : null
+              : null;
             return (
               <View
                 key={message.id}
@@ -195,6 +214,9 @@ export default function ChatScreen() {
                     {es.connections.messageRejected}
                   </Sub>
                 ) : null}
+                {receipt ? (
+                  <Text style={styles.receipt}>{receipt}</Text>
+                ) : null}
               </View>
             );
           })}
@@ -204,13 +226,23 @@ export default function ChatScreen() {
           </Sub>
         </ScrollView>
 
+        {otherIsTyping ? (
+          <Sub style={styles.typing}>
+            {connection.otherUser.displayName} {es.connections.typing}
+          </Sub>
+        ) : null}
+
         <View style={styles.composer}>
           <TextInput
             style={styles.input}
             placeholder={es.connections.writeMessage}
             placeholderTextColor={colors.muted}
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={(text) => {
+              setDraft(text);
+              notifyTyping(text.length > 0);
+            }}
+            onBlur={() => notifyTyping(false)}
             maxLength={2000}
           />
           <Button label={es.common.send} small onPress={() => send(draft)} />
@@ -347,6 +379,14 @@ const styles = StyleSheet.create({
   },
   bubbleRejected: { backgroundColor: colors.wineSoft },
   bubbleText: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 17, color: colors.text },
+  receipt: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: 'rgba(255,255,255,.7)',
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  typing: { fontSize: 11, fontStyle: 'italic', paddingHorizontal: 18, paddingBottom: 4 },
   composer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -2,7 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { configureAppRuntime, createQueryClient, QueryClientProvider } from '@yugo/app-core';
+import {
+  configureAppRuntime,
+  createQueryClient,
+  disconnectRealtime,
+  QueryClientProvider,
+} from '@yugo/app-core';
 import { DEMO_MODE, getApiClient } from './api';
 
 // Tells the shared hooks which client to use. Runs at module scope so it is
@@ -17,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onSignedOut = () => {
       queryClient.clear();
+      disconnectRealtime();
       router.push('/entrar');
     };
     window.addEventListener('yugo:signed-out', onSignedOut);

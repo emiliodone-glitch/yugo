@@ -14,6 +14,7 @@ import {
   useReport,
   useSendMessage,
   useCurrentUserId,
+  useConversationRealtime,
 } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { CheckIcon, ChevronLeft } from '@/components/icons';
@@ -39,6 +40,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const messages = conversation?.messages ?? [];
   const icebreakers = conversation?.icebreakers ?? [];
   const currentUserId = useCurrentUserId();
+  // RF-CON-03: el mensaje llega solo, sin recargar.
+  const { otherIsTyping, theyReadAt, notifyTyping } = useConversationRealtime(
+    params.id,
+    currentUserId,
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -165,10 +171,24 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           </div>
         ) : null}
 
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const mine = message.senderId === currentUserId;
           const held = message.moderationStatus === 'HELD';
           const rejected = message.moderationStatus === 'REJECTED';
+          // El acuse va solo bajo el último mensaje propio entregado: repetirlo
+          // en cada burbuja es ruido.
+          const isLastMine =
+            mine &&
+            !held &&
+            !rejected &&
+            !messages.slice(index + 1).some((later) => later.senderId === currentUserId);
+          const receipt = isLastMine
+            ? theyReadAt || message.readAt
+              ? es.connections.read
+              : message.deliveredAt
+                ? es.connections.delivered
+                : null
+            : null;
           return (
             <div key={message.id} className={`mb-2 flex ${mine ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -184,6 +204,9 @@ export default function ChatPage({ params }: { params: { id: string } }) {
               >
                 {message.body}
                 {held ? <div className="mt-1 text-[10px] not-italic">⏳ {es.connections.messageHeld}</div> : null}
+                {receipt ? (
+                  <div className="mt-1 text-right text-[10px] text-white/70">{receipt}</div>
+                ) : null}
               </div>
             </div>
           );
@@ -231,17 +254,29 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
       {/* Composer — text only in the MVP (RF-CON-05) */}
       <form
-        className="flex items-center gap-2 border-t border-line bg-white px-3.5 py-2.5 pb-[76px] md:pb-2.5"
+        className="relative flex items-center gap-2 border-t border-line bg-white px-3.5 py-2.5 pb-[76px] md:pb-2.5"
         onSubmit={(event) => {
           event.preventDefault();
           handleSend(draft);
         }}
       >
+        {otherIsTyping ? (
+          <span
+            className="absolute -top-5 left-4 text-[11px] italic text-muted"
+            aria-live="polite"
+          >
+            {connection.otherUser.displayName} {es.connections.typing}
+          </span>
+        ) : null}
         <input
           className="field flex-1"
           placeholder={es.connections.writeMessage}
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            notifyTyping(event.target.value.length > 0);
+          }}
+          onBlur={() => notifyTyping(false)}
           maxLength={2000}
         />
         <button type="submit" className="btn btn-sm">
