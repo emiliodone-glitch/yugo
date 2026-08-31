@@ -9,7 +9,15 @@
  */
 import { useState } from 'react';
 import { es, isExclusive, type RelationshipStage } from '@yugo/shared';
-import { useProposeStage, useRelationship, useRespondToStage } from '@/lib/hooks';
+import {
+  useAccompaniment,
+  useConsentToMentor,
+  useEndAccompaniment,
+  useInviteMentor,
+  useProposeStage,
+  useRelationship,
+  useRespondToStage,
+} from '@/lib/hooks';
 
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 
@@ -146,6 +154,149 @@ export function RelationshipStageCard({
           </button>
         )
       ) : null}
+    </section>
+  );
+}
+
+/**
+ * Acompañamiento, en la conversación.
+ *
+ * The line this card has to hold in the interface, not only in the API: it
+ * says plainly, every time, that the couple who accompanies them never sees
+ * what they write. A privacy guarantee nobody is told about is not a feature.
+ */
+export function AccompanimentCard({ matchId }: { matchId: string }) {
+  const { data } = useAccompaniment(matchId);
+  const invite = useInviteMentor(matchId);
+  const consent = useConsentToMentor(matchId);
+  const end = useEndAccompaniment(matchId);
+  const [code, setCode] = useState('');
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!data) return null;
+
+  const current = data.items[0];
+  const waitingOnMe = current?.status === 'INVITED' && !current.myConsent;
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    try {
+      await invite.mutateAsync(code);
+      setCode('');
+      setOpening(false);
+    } catch (cause) {
+      const key = cause instanceof Error ? cause.message : 'generic';
+      setError(
+        key === 'mentor_code_not_found'
+          ? 'Ese código no existe o ya no está activo.'
+          : key === 'already_accompanied'
+            ? es.accompaniment.alreadyAccompanied
+            : es.errors.generic,
+      );
+    }
+  };
+
+  return (
+    <section className="card mb-3 border-0 bg-olive-soft" aria-label={es.accompaniment.title}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-olive-text">
+        {es.accompaniment.title}
+      </div>
+
+      {current?.status === 'ACTIVE' ? (
+        <>
+          <p className="mt-1 text-[12.5px] text-olive-text">
+            {es.accompaniment.active(
+              current.spouseName ? `${current.mentorName} y ${current.spouseName}` : current.mentorName,
+            )}
+          </p>
+          {current.churchName ? (
+            <p className="text-[11px] text-muted">
+              {current.churchName}
+              {current.marriedSince ? ` · ${es.accompaniment.marriedSince(current.marriedSince)}` : ''}
+            </p>
+          ) : null}
+          <p className="mt-1.5 text-[11px] text-olive-text">{es.accompaniment.neverSeesChat}</p>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost mt-2"
+            onClick={() => {
+              if (window.confirm(es.accompaniment.endConfirm)) end.mutate(current.id);
+            }}
+          >
+            {es.accompaniment.end}
+          </button>
+        </>
+      ) : waitingOnMe ? (
+        <>
+          <p className="mt-1 text-[12.5px] text-olive-text">
+            {es.accompaniment.partnerInvited(
+              current.spouseName ? `${current.mentorName} y ${current.spouseName}` : current.mentorName,
+            )}
+          </p>
+          <p className="mt-1 text-[11px] text-olive-text">{es.accompaniment.neverSeesChat}</p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={consent.isPending}
+              onClick={() => consent.mutate(true)}
+            >
+              {es.accompaniment.agree}
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              disabled={consent.isPending}
+              onClick={() => consent.mutate(false)}
+            >
+              {es.accompaniment.refuse}
+            </button>
+          </div>
+        </>
+      ) : current?.status === 'INVITED' ? (
+        <p className="mt-1 text-[12px] text-olive-text">
+          {current.mentorAccepted
+            ? es.accompaniment.invitedWaitingPartner
+            : es.accompaniment.invitedWaitingMentor}
+        </p>
+      ) : data.canInvite ? (
+        <>
+          <p className="mt-1 text-[11.5px] text-olive-text">{es.accompaniment.intro}</p>
+          {opening ? (
+            <form className="mt-2 flex flex-wrap gap-2" onSubmit={submit}>
+              <label className="sr-only" htmlFor="mentor-code">
+                {es.accompaniment.codeLabel}
+              </label>
+              <input
+                id="mentor-code"
+                className="field flex-1"
+                placeholder={es.accompaniment.codePlaceholder}
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                autoComplete="off"
+              />
+              <button type="submit" className="btn btn-sm" disabled={invite.isPending}>
+                {es.accompaniment.invite}
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost mt-2"
+              onClick={() => setOpening(true)}
+            >
+              {es.accompaniment.inviteTitle}
+            </button>
+          )}
+          {error ? <p className="mt-1.5 text-[11px] text-wine">{error}</p> : null}
+        </>
+      ) : (
+        <p className="mt-1 text-[11.5px] text-olive-text">
+          {es.accompaniment.needsIntentionalFriendship}
+        </p>
+      )}
     </section>
   );
 }

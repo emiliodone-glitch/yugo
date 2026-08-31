@@ -240,6 +240,8 @@ export interface SubscriptionState {
 /** The categories a member can silence one by one (RF-NOT-02). */
 export const NOTIFICATION_CATEGORIES = [
   'CONNECTION',
+  'RELATIONSHIP',
+  'ACCOMPANIMENT',
   'MESSAGE',
   'INTEREST',
   'EVENT',

@@ -137,6 +137,10 @@ export default function ProfilePage() {
           <span>Código promocional</span>
           <span className="ml-auto text-muted">›</span>
         </Link>
+        <Link href="/perfil/acompanar" className="list-row text-[12.5px]">
+          <span>{es.accompaniment.mentorTitle}</span>
+          <span className="ml-auto text-muted">›</span>
+        </Link>
         <Link href="/perfil/notificaciones" className="list-row text-[12.5px]">
           <span>{es.notifications.title}</span>
           <span className="ml-auto text-muted">›</span>

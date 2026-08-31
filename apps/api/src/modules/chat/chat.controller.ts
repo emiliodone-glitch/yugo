@@ -11,6 +11,7 @@ import {
 import { ChatService } from './chat.service';
 import { IcebreakersService } from './icebreakers.service';
 import { RelationshipService } from './relationship.service';
+import { AccompanimentService } from './accompaniment.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
@@ -18,6 +19,8 @@ const blockSchema = z.object({ userId: z.string().min(1) });
 const archiveSchema = z.object({ archived: z.boolean() });
 const inviteSchema = z.object({ eventId: z.string().min(1) });
 const stageProposalSchema = z.object({ stage: z.enum(RELATIONSHIP_STAGES) });
+const mentorCodeSchema = z.object({ code: z.string().min(4).max(40) });
+const consentSchema = z.object({ agree: z.boolean() });
 
 @Controller('connections')
 export class ChatController {
@@ -25,6 +28,7 @@ export class ChatController {
     private readonly chat: ChatService,
     private readonly icebreakers: IcebreakersService,
     private readonly relationship: RelationshipService,
+    private readonly accompaniment: AccompanimentService,
   ) {}
 
   @Get()
@@ -116,5 +120,32 @@ export class ChatController {
   @Post(':matchId/stage/decline')
   declineStage(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
     return this.relationship.decline(matchId, user.id);
+  }
+
+  // --- Acompañamiento ----------------------------------------------------
+  // Lo que ve quien acompaña vive en /acompanamiento y no toca este
+  // controlador: aquí están los mensajes, y un padrino no entra aquí.
+
+  @Get(':matchId/accompaniment')
+  myAccompaniment(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.accompaniment.forCouple(matchId, user.id);
+  }
+
+  @Post(':matchId/accompaniment/invite')
+  inviteMentor(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(mentorCodeSchema)) body: { code: string },
+  ) {
+    return this.accompaniment.invite(matchId, user.id, body.code);
+  }
+
+  @Post(':matchId/accompaniment/consent')
+  consentToMentor(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(consentSchema)) body: { agree: boolean },
+  ) {
+    return this.accompaniment.consent(matchId, user.id, body.agree);
   }
 }

@@ -572,6 +572,52 @@ export const demoAdminKpis = {
   weeklyPlus: [14, 18, 22, 30],
 };
 
+// ---------------------------------------------------------------------------
+// Acompañamiento
+// ---------------------------------------------------------------------------
+
+/**
+ * El matrimonio que acompaña, en modo demo.
+ *
+ * Nótese lo que no está y nunca estará: ni una conversación, ni un mensaje,
+ * ni un contador de no leídos. La demo tiene que mostrar exactamente el mismo
+ * límite que la API, o enseñaría una promesa que el producto no cumple.
+ */
+export const demoMentorProfile = {
+  userId: 'u-me',
+  code: 'PADRINOS-7C4A19',
+  spouseName: 'Marta',
+  marriedSince: 2009,
+  bio: 'Servimos en el ministerio de matrimonios de Emanuel desde 2015.',
+  active: true,
+};
+
+export const demoAccompaniedBonds = [
+  {
+    id: 'acc-1',
+    status: 'ACTIVE' as const,
+    stage: 'COURTSHIP' as const,
+    stageChangedAt: '2026-07-14T18:00:00-04:00',
+    since: '2026-05-02T10:00:00-04:00',
+    names: ['Rebeca', 'Josué'] as [string, string],
+    churches: ['Iglesia Bíblica Emanuel', 'Iglesia Monte de Sion'] as [string | null, string | null],
+    bothConsented: true,
+  },
+  {
+    id: 'acc-2',
+    status: 'INVITED' as const,
+    stage: 'INTENTIONAL_FRIENDSHIP' as const,
+    stageChangedAt: '2026-08-20T09:30:00-04:00',
+    since: null,
+    names: ['Noemí', 'Elías'] as [string, string],
+    churches: ['Iglesia Metodista Central', 'Iglesia Metodista Central'] as [
+      string | null,
+      string | null,
+    ],
+    bothConsented: true,
+  },
+];
+
 /**
  * Reportes exportables (RF-ADM-12) en modo demo.
  *

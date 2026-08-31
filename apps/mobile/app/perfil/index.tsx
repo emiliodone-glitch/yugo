@@ -144,6 +144,11 @@ export default function ProfileScreen() {
           onPress={() => router.push('/perfil/promo')}
         />
         <ListRow
+          label={es.accompaniment.mentorTitle}
+          hint="Acompaña a una pareja de tu iglesia"
+          onPress={() => router.push('/perfil/acompanar')}
+        />
+        <ListRow
           label={es.notifications.title}
           onPress={() => router.push('/perfil/notificaciones')}
         />

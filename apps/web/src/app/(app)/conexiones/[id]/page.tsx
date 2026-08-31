@@ -17,7 +17,7 @@ import {
   useConversationRealtime,
 } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
-import { RelationshipStageCard } from '@/components/relationship';
+import { AccompanimentCard, RelationshipStageCard } from '@/components/relationship';
 import { CheckIcon, ChevronLeft } from '@/components/icons';
 
 export default function ChatPage({ params }: { params: { id: string } }) {
@@ -158,6 +158,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           matchId={connection.matchId}
           otherName={connection.otherUser.displayName}
         />
+        <AccompanimentCard matchId={connection.matchId} />
 
         {isNew || messages.length <= 3 ? (
           <div className="card mb-3 border-0 bg-wheat-soft">

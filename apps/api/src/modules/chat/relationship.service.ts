@@ -6,9 +6,11 @@ import {
   validateStageProposal,
   type RelationshipStage,
 } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccompanimentService } from './accompaniment.service';
 
 /**
  * Etapas del vínculo.
@@ -27,6 +29,7 @@ export class RelationshipService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly accompaniment: AccompanimentService,
   ) {}
 
   private async loadMatch(matchId: string, userId: string) {
@@ -156,6 +159,8 @@ export class RelationshipService {
     await Promise.all([
       this.notifications.notify(userId, 'RELATIONSHIP', 'Avanzaron de etapa', body),
       this.notifications.notify(otherId, 'RELATIONSHIP', 'Avanzaron de etapa', body),
+      // Quien los acompaña se entera por la app, no por terceros.
+      this.accompaniment.notifyStageAdvance(matchId, es.relationship.stages[stage]),
     ]);
 
     return { stage: updated.stage, isExclusive: isExclusive(stage), advanced: hasAdvanced(stage) };

@@ -94,6 +94,29 @@ async function seedEmailOf(userId: string): Promise<string | null> {
 }
 
 /**
+ * A seeded member with a level-3 endorsement who is not in the bond under
+ * test — the only kind of person who can act as a padrino.
+ */
+async function seedEmailOfEndorsedOutsider(exclude: string[]): Promise<string | null> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: { notIn: exclude },
+        role: 'MEMBER',
+        email: { not: null },
+        verifications: { some: { level: 3, status: 'APPROVED' } },
+      },
+      select: { email: true },
+    });
+    return user?.email ?? null;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
  * The first seeded member who still has people to see. Running the suite marks
  * interests, and those people correctly stop appearing, so a second run on the
  * same database needs a different viewer — or a reseed.
@@ -430,6 +453,79 @@ async function main() {
     }
   } else {
     check('hay un vínculo cuyas etapas probar', false, 'no se pudo crear la conexión');
+  }
+
+  console.log('\nAcompañamiento — ve la etapa, nunca el chat');
+  if (matchId && theirTokenForStages && conversationId) {
+    // El padrino es un tercero real: alguien con respaldo nivel 3 que no está
+    // en el vínculo. Sin eso la prueba de privacidad no probaría nada.
+    const mentorEmail = await seedEmailOfEndorsedOutsider([me.body.id, first!.userId]);
+    check('hay un miembro con respaldo nivel 3 para acompañar', mentorEmail !== null);
+
+    if (mentorEmail) {
+      const mentorToken = await login(mentorEmail);
+      const enabled = await call('PUT', '/acompanamiento/perfil', {
+        token: mentorToken,
+        body: { spouseName: 'Marta', marriedSince: 2009 },
+      });
+      check('un miembro respaldado obtiene su código', !!enabled.body?.code, enabled.body);
+
+      const invited = await call('POST', `/connections/${matchId}/accompaniment/invite`, {
+        token,
+        body: { code: enabled.body.code },
+      });
+      check('invitar responde 201', invited.status === 201, invited.body);
+
+      // Todavía no: falta la otra persona y falta el matrimonio.
+      const tooEarly = await call('GET', `/acompanamiento/${invited.body.id}`, {
+        token: mentorToken,
+      });
+      check('antes de aceptar, el padrino no ve nada', tooEarly.status === 403, tooEarly.status);
+
+      await call('POST', `/acompanamiento/${invited.body.id}/respond`, {
+        token: mentorToken,
+        body: { accept: true },
+      });
+      const consented = await call('POST', `/connections/${matchId}/accompaniment/consent`, {
+        token: theirTokenForStages,
+        body: { agree: true },
+      });
+      check('con el sí de los tres queda activo', consented.body?.status === 'ACTIVE', consented.body);
+
+      const detail = await call('GET', `/acompanamiento/${invited.body.id}`, { token: mentorToken });
+      check('el padrino ve la etapa', detail.body?.stage === 'COURTSHIP', detail.body?.stage);
+      check(
+        'y el historial de cómo llegaron ahí',
+        (detail.body?.history ?? []).length >= 2,
+        detail.body?.history,
+      );
+
+      // La invariante que sostiene todo el módulo, comprobada de verdad y no
+      // solo por ausencia de pantalla.
+      const serialized = JSON.stringify(detail.body ?? {});
+      check('la respuesta no trae conversación ni mensajes', !/conversation|message/i.test(serialized), serialized.slice(0, 200));
+
+      const peeking = await call('GET', `/connections/conversations/${conversationId}/messages`, {
+        token: mentorToken,
+      });
+      check('el padrino no puede leer el chat', peeking.status === 403, peeking.status);
+
+      const writing = await call('POST', `/connections/conversations/${conversationId}/messages`, {
+        token: mentorToken,
+        body: { body: 'Hola, soy el padrino' },
+      });
+      check('ni escribir en él', writing.status === 403, writing.status);
+
+      const ended = await call('DELETE', `/acompanamiento/${invited.body.id}`, {
+        token: theirTokenForStages,
+      });
+      check('cualquiera de los tres puede terminarlo', ended.body?.status === 'ENDED', ended.body);
+
+      const afterEnd = await call('GET', `/acompanamiento/${invited.body.id}`, {
+        token: mentorToken,
+      });
+      check('terminado, deja de ver', afterEnd.status === 403, afterEnd.status);
+    }
   }
 
   console.log('\nRF-CON-05 — moderación previa del chat');

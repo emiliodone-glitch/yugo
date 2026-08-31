@@ -66,13 +66,17 @@ function buildService(overrides: Partial<FakeMatch> = {}) {
     notify: jest.fn(async (..._args: unknown[]) => undefined),
   };
   const audit = { log: jest.fn(async () => undefined) };
+  const accompaniment = {
+    notifyStageAdvance: jest.fn(async (..._args: unknown[]) => undefined),
+  };
 
   const service = new RelationshipService(
     prisma as never,
     notifications as never,
     audit as never,
+    accompaniment as never,
   );
-  return { service, match, prisma, notifications, audit };
+  return { service, match, prisma, notifications, audit, accompaniment };
 }
 
 describe('RelationshipService', () => {
@@ -130,6 +134,25 @@ describe('RelationshipService', () => {
     expect(audit.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'RELATIONSHIP_EXCLUSIVE', targetId: 'm1' }),
     );
+  });
+
+  it('avisa a quien los acompaña, con el nombre de la etapa en español', async () => {
+    // Enterarse por la app y no por terceros es la razón de ser del padrinazgo.
+    const { service, accompaniment } = buildService({
+      stage: 'INTENTIONAL_FRIENDSHIP',
+      proposedStage: 'COURTSHIP',
+      proposedById: THEM,
+    });
+    await service.accept('m1', ME);
+
+    expect(accompaniment.notifyStageAdvance).toHaveBeenCalledWith('m1', 'Noviazgo');
+  });
+
+  it('proponer no avisa a quien acompaña: todavía no pasó nada', async () => {
+    const { service, accompaniment } = buildService();
+    await service.propose('m1', ME, 'INTENTIONAL_FRIENDSHIP');
+
+    expect(accompaniment.notifyStageAdvance).not.toHaveBeenCalled();
   });
 
   it('proposing the same stage the other person already proposed is agreeing', async () => {

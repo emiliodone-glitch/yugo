@@ -11,6 +11,7 @@ export type PushDestination =
   | { screen: 'group'; id: string }
   | { screen: 'interested-in-you' }
   | { screen: 'verification' }
+  | { screen: 'accompaniment'; id: string }
   | { screen: 'notifications' };
 
 export function destinationFor(data: Record<string, unknown> | undefined): PushDestination {
@@ -24,6 +25,10 @@ export function destinationFor(data: Record<string, unknown> | undefined): PushD
 
   const groupId = text('groupId');
   if (groupId) return { screen: 'group', id: groupId };
+
+  // Un aviso de acompañamiento lleva a la pareja acompañada, nunca al chat.
+  const accompanimentId = text('accompanimentId');
+  if (accompanimentId) return { screen: 'accompaniment', id: accompanimentId };
 
   const category = text('category');
   if (category === 'INTEREST') return { screen: 'interested-in-you' };

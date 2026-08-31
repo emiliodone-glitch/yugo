@@ -11,7 +11,9 @@ import {
   demoMessages,
   LIMITS,
   validateStageProposal,
+  hasAdvanced,
   type ChatMessage,
+  type CoupleAccompaniment,
   type RelationshipStage,
 } from '@yugo/shared';
 
@@ -61,6 +63,14 @@ interface DemoState {
   activateBoost: () => string;
   proposeStage: (matchId: string, stage: RelationshipStage) => 'ok' | 'invalid';
   respondToStage: (matchId: string, accept: boolean) => void;
+  /** Acompañamiento por matchId, tal como lo devuelve la API. */
+  accompaniment: Record<string, CoupleAccompaniment>;
+  inviteMentor: (
+    matchId: string,
+    code: string,
+  ) => 'ok' | 'mentor_code_not_found' | 'needs_intentional_friendship' | 'already_accompanied';
+  consentToMentor: (matchId: string, agree: boolean) => void;
+  endAccompaniment: (matchId: string) => void;
 }
 
 const DAY = 24 * 3600_000;
@@ -98,6 +108,57 @@ const demoRelationships: Record<string, DemoRelationship> = {
     stageChangedAt: null,
     proposal: { stage: 'INTENTIONAL_FRIENDSHIP', byMe: false, proposedAt: ago(1) },
     history: [],
+  },
+};
+
+/** Los códigos que la demo reconoce, y a quién corresponden. */
+const DEMO_MENTOR_CODES: Record<
+  string,
+  { mentorName: string; spouseName: string; churchName: string; marriedSince: number; bio: string }
+> = {
+  'PADRINOS-7C4A19': {
+    mentorName: 'Pedro',
+    spouseName: 'Marta',
+    churchName: 'Iglesia Bíblica Emanuel',
+    marriedSince: 2009,
+    bio: 'Servimos en el ministerio de matrimonios de Emanuel desde 2015.',
+  },
+};
+
+/**
+ * El acompañamiento por defecto de un vínculo: nadie todavía, y se puede
+ * invitar solo si la pareja pasó de «conociéndonos».
+ */
+export function demoAccompanimentFor(matchId: string): CoupleAccompaniment {
+  const stage = useDemoStore.getState?.().relationships[matchId]?.stage ?? 'KNOWING';
+  const advanced = hasAdvanced(stage);
+  return {
+    canInvite: advanced,
+    whyNot: advanced ? null : 'needs_intentional_friendship',
+    items: [],
+  };
+}
+
+/** Una pareja ya acompañada, para que la demo muestre el estado activo. */
+const demoAccompaniment: Record<string, CoupleAccompaniment> = {
+  'm-daniela': {
+    canInvite: true,
+    whyNot: null,
+    items: [
+      {
+        id: 'acc-daniela',
+        status: 'ACTIVE',
+        mentorName: 'Pedro',
+        spouseName: 'Marta',
+        churchName: 'Iglesia Bíblica Emanuel',
+        marriedSince: 2009,
+        bio: 'Servimos en el ministerio de matrimonios de Emanuel desde 2015.',
+        invitedByMe: true,
+        myConsent: true,
+        theirConsent: true,
+        mentorAccepted: true,
+      },
+    ],
   },
 };
 
@@ -219,6 +280,72 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       },
     }));
     return 'ok';
+  },
+
+  accompaniment: demoAccompaniment,
+
+  inviteMentor: (matchId, code) => {
+    const bond = get().relationships[matchId] ?? NEW_RELATIONSHIP;
+    // Las mismas condiciones que aplica la API, para que la demo no muestre
+    // un camino que el producto rechazaría.
+    if (!hasAdvanced(bond.stage)) return 'needs_intentional_friendship';
+    if (!DEMO_MENTOR_CODES[code.trim().toUpperCase()]) return 'mentor_code_not_found';
+
+    const current = get().accompaniment[matchId] ?? demoAccompanimentFor(matchId);
+    if (current.items.some((item) => item.status === 'INVITED' || item.status === 'ACTIVE')) {
+      return 'already_accompanied';
+    }
+
+    const mentor = DEMO_MENTOR_CODES[code.trim().toUpperCase()];
+    set((state) => ({
+      accompaniment: {
+        ...state.accompaniment,
+        [matchId]: {
+          canInvite: true,
+          whyNot: null,
+          items: [
+            {
+              id: `acc-demo-${matchId}`,
+              status: 'INVITED',
+              ...mentor,
+              invitedByMe: true,
+              // Invitar es consentir; falta la otra persona y el matrimonio.
+              myConsent: true,
+              theirConsent: false,
+              mentorAccepted: false,
+            },
+          ],
+        },
+      },
+    }));
+    return 'ok';
+  },
+
+  consentToMentor: (matchId, agree) => {
+    const current = get().accompaniment[matchId] ?? demoAccompanimentFor(matchId);
+    const pending = current.items.find((item) => item.status === 'INVITED');
+    if (!pending) return;
+
+    const items = agree
+      ? current.items.map((item) =>
+          item.id === pending.id
+            ? // En la demo el matrimonio contesta enseguida; en producción hace
+              // falta que los tres digan que sí.
+              { ...item, status: 'ACTIVE' as const, myConsent: true, theirConsent: true, mentorAccepted: true }
+            : item,
+        )
+      : current.items.filter((item) => item.id !== pending.id);
+
+    set((state) => ({
+      accompaniment: { ...state.accompaniment, [matchId]: { ...current, items } },
+    }));
+  },
+
+  endAccompaniment: (matchId) => {
+    const current = get().accompaniment[matchId] ?? demoAccompanimentFor(matchId);
+    set((state) => ({
+      accompaniment: { ...state.accompaniment, [matchId]: { ...current, items: [] } },
+    }));
   },
 
   respondToStage: (matchId, accept) => {

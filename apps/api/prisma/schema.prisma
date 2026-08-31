@@ -95,6 +95,65 @@ enum RelationshipStage {
   ENGAGED
 }
 
+enum AccompanimentStatus {
+  /// The couple invited a mentor; waiting on consent.
+  INVITED
+  /// Both members and the mentor agreed. Only now can the mentor see anything.
+  ACTIVE
+  DECLINED
+  ENDED
+}
+
+/// Acompañamiento: a married couple from the church walks alongside a bond.
+///
+/// The invariant that makes this defensible: the mentor sees the bond and its
+/// stage, never a single message. Not "we did not build that screen" —
+/// AccompanimentService has no path to a conversation at all, and a test
+/// proves a mentor is refused on the chat endpoints.
+///
+/// Consent is from all three and revocable by any of them. A bond is not the
+/// property of whoever invited the mentor.
+model Accompaniment {
+  id       String             @id @default(cuid())
+  matchId  String
+  match    Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  mentorId String
+  mentor   User               @relation("Mentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  status   AccompanimentStatus @default(INVITED)
+
+  /// Which of the couple sent the invitation.
+  invitedById String
+  /// Consent recorded per member, so one cannot enrol the other.
+  consentAId  Boolean   @default(false)
+  consentBId  Boolean   @default(false)
+  mentorAcceptedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  activeAt  DateTime?
+  endedAt   DateTime?
+  endedById String?
+
+  @@unique([matchId, mentorId])
+  @@index([mentorId, status])
+}
+
+/// A member who offers to accompany couples, with the code they hand out.
+///
+/// Requires a level-3 endorsement: the church vouches for them before anyone
+/// trusts them with a couple. `spouseName` is free text because the spouse of
+/// a mentoring couple often is not on Yugo, and pretending otherwise would
+/// either block real couples or invent accounts.
+model MentorProfile {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code       String   @unique
+  spouseName String?
+  marriedSince Int?
+  bio        String?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
 /// Append-only record of every agreed stage change (RF-ADM-11 in spirit):
 /// the couple, their accompaniment and support can all see how a bond moved.
 model RelationshipStageChange {
@@ -264,6 +323,7 @@ enum EndorsementRequestStatus {
 enum NotificationCategory {
   CONNECTION
   RELATIONSHIP
+  ACCOMPANIMENT
   MESSAGE
   INTEREST
   EVENT
@@ -312,6 +372,8 @@ model User {
   savedBy              SavedProfile[]       @relation("SavedTo")
   matchesA             Match[]              @relation("MatchA")
   matchesB             Match[]              @relation("MatchB")
+  mentorProfile        MentorProfile?
+  accompanying         Accompaniment[]      @relation("Mentor")
   messages             Message[]
   groupMemberships     GroupMember[]
   groupJoinRequests    GroupJoinRequest[]
@@ -658,8 +720,9 @@ model Match {
   proposedById      String?
   proposedAt        DateTime?
 
-  conversation Conversation?
-  stageHistory RelationshipStageChange[]
+  conversation    Conversation?
+  stageHistory    RelationshipStageChange[]
+  accompaniments  Accompaniment[]
 
   @@unique([userAId, userBId])
   @@index([userAId, status])

@@ -16,6 +16,8 @@ import {
   demoNotifications,
   demoPosts,
   demoReports,
+  demoAccompaniedBonds,
+  demoMentorProfile,
   DEFAULT_PRICES,
   LIMITS,
   NOTIFICATION_CATEGORIES,
@@ -23,6 +25,8 @@ import {
   isExclusive,
   nextStage,
   type ChatMessage,
+  type AccompaniedBond,
+  type MentorProfile,
   type RelationshipStage,
   type RelationshipState,
   type DiscoverFilters,
@@ -35,7 +39,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation } from './realtime';
-import { NEW_RELATIONSHIP, useDemoStore } from './demo-store';
+import { demoAccompanimentFor, NEW_RELATIONSHIP, useDemoStore } from './demo-store';
 
 // ---------------------------------------------------------------------------
 // Session
@@ -1019,5 +1023,117 @@ export function useAdminReport(kind: string, weeks?: number) {
       if (isDemoMode()) return demoReports[kind] ?? { title: kind, rows: [] };
       return api().admin.report(kind, weeks);
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Acompañamiento
+// ---------------------------------------------------------------------------
+
+/** Who accompanies this bond, from the couple's side. */
+export function useAccompaniment(matchId: string) {
+  const demo = useDemoStore((s) => s.accompaniment[matchId]);
+  const live = useQuery({
+    queryKey: ['accompaniment', matchId],
+    enabled: !isDemoMode() && !!matchId,
+    queryFn: () => api().connections.accompaniment(matchId),
+  });
+
+  if (!isDemoMode()) return live;
+  return { ...live, data: demo ?? demoAccompanimentFor(matchId), isLoading: false } as typeof live;
+}
+
+export function useInviteMentor(matchId: string) {
+  const queryClient = useQueryClient();
+  const inviteDemo = useDemoStore((s) => s.inviteMentor);
+  return useMutation({
+    mutationFn: async (code: string) => {
+      if (isDemoMode()) {
+        const result = inviteDemo(matchId, code);
+        if (result !== 'ok') throw new Error(result);
+        return { id: 'demo', status: 'INVITED' as const };
+      }
+      return api().connections.inviteMentor(matchId, code);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accompaniment', matchId] }),
+  });
+}
+
+export function useConsentToMentor(matchId: string) {
+  const queryClient = useQueryClient();
+  const consentDemo = useDemoStore((s) => s.consentToMentor);
+  return useMutation({
+    mutationFn: async (agree: boolean) => {
+      if (isDemoMode()) {
+        consentDemo(matchId, agree);
+        return { id: 'demo', status: agree ? ('ACTIVE' as const) : ('DECLINED' as const) };
+      }
+      return api().connections.consentToMentor(matchId, agree);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accompaniment', matchId] }),
+  });
+}
+
+export function useEndAccompaniment(matchId: string) {
+  const queryClient = useQueryClient();
+  const endDemo = useDemoStore((s) => s.endAccompaniment);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (isDemoMode()) {
+        endDemo(matchId);
+        return { id, status: 'ENDED' as const };
+      }
+      return api().accompaniment.end(id);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['accompaniment', matchId] });
+      void queryClient.invalidateQueries({ queryKey: ['accompanied-bonds'] });
+    },
+  });
+}
+
+/**
+ * The other side: the bonds this member accompanies. Nothing here carries a
+ * conversation, because the API has no endpoint that could return one.
+ */
+export function useAccompaniedBonds() {
+  return useQuery({
+    queryKey: ['accompanied-bonds'],
+    queryFn: async (): Promise<AccompaniedBond[]> => {
+      if (isDemoMode()) return demoAccompaniedBonds;
+      return api().accompaniment.mine();
+    },
+  });
+}
+
+export function useRespondToAccompaniment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, accept }: { id: string; accept: boolean }) => {
+      if (isDemoMode()) return { id, status: accept ? ('ACTIVE' as const) : ('DECLINED' as const) };
+      return api().accompaniment.respond(id, accept);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accompanied-bonds'] }),
+  });
+}
+
+export function useMentorProfile() {
+  return useQuery({
+    queryKey: ['mentor-profile'],
+    queryFn: async (): Promise<MentorProfile | null> => {
+      if (isDemoMode()) return demoMentorProfile;
+      return api().accompaniment.myMentorProfile();
+    },
+  });
+}
+
+export function useEnableMentor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { spouseName?: string; marriedSince?: number; bio?: string }) => {
+      if (isDemoMode()) return { ...demoMentorProfile, ...input };
+      return api().accompaniment.enableMentor(input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mentor-profile'] }),
   });
 }

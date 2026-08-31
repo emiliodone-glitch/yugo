@@ -55,6 +55,61 @@ export interface RelationshipState {
   history: Array<{ toStage: RelationshipStage; createdAt: string }>;
 }
 
+export type AccompanimentStatus = 'INVITED' | 'ACTIVE' | 'DECLINED' | 'ENDED';
+
+/** What the couple sees about who accompanies them. */
+export interface CoupleAccompaniment {
+  canInvite: boolean;
+  whyNot: 'needs_intentional_friendship' | null;
+  items: Array<{
+    id: string;
+    status: AccompanimentStatus;
+    mentorName: string;
+    spouseName: string | null;
+    churchName: string | null;
+    marriedSince: number | null;
+    bio: string | null;
+    invitedByMe: boolean;
+    myConsent: boolean;
+    theirConsent: boolean;
+    mentorAccepted: boolean;
+  }>;
+}
+
+/**
+ * What the mentor sees. Note what is missing and always will be: no
+ * conversation id, no last message, no unread count.
+ */
+export interface AccompaniedBond {
+  id: string;
+  status: AccompanimentStatus;
+  stage: RelationshipStage;
+  stageChangedAt: string | null;
+  since: string | null;
+  names: [string, string];
+  churches: [string | null, string | null];
+  bothConsented: boolean;
+}
+
+export interface AccompaniedBondDetail {
+  id: string;
+  since: string | null;
+  stage: RelationshipStage;
+  stageChangedAt: string | null;
+  names: [string, string];
+  churches: [string | null, string | null];
+  history: Array<{ toStage: RelationshipStage; createdAt: string }>;
+}
+
+export interface MentorProfile {
+  userId: string;
+  code: string;
+  spouseName: string | null;
+  marriedSince: number | null;
+  bio: string | null;
+  active: boolean;
+}
+
 export interface MyProfile {
   userId: string;
   displayName: string;
@@ -437,6 +492,38 @@ export class YugoApiClient {
       ),
     declineStage: (matchId: string) =>
       this.http.post<{ declined: boolean }>(`/connections/${matchId}/stage/decline`, {}),
+
+    // Acompañamiento, lado de la pareja.
+    accompaniment: (matchId: string) =>
+      this.http.get<CoupleAccompaniment>(`/connections/${matchId}/accompaniment`),
+    inviteMentor: (matchId: string, code: string) =>
+      this.http.post<{ id: string; status: AccompanimentStatus }>(
+        `/connections/${matchId}/accompaniment/invite`,
+        { code },
+      ),
+    consentToMentor: (matchId: string, agree: boolean) =>
+      this.http.post<{ id: string; status: AccompanimentStatus }>(
+        `/connections/${matchId}/accompaniment/consent`,
+        { agree },
+      ),
+  };
+
+  // ---- Acompañamiento, lado del matrimonio que acompaña -------------------
+  // Nada aquí devuelve un mensaje: no hay endpoint que pueda.
+  readonly accompaniment = {
+    mine: () => this.http.get<AccompaniedBond[]>('/acompanamiento'),
+    detail: (id: string) => this.http.get<AccompaniedBondDetail>(`/acompanamiento/${id}`),
+    respond: (id: string, accept: boolean) =>
+      this.http.post<{ id: string; status: AccompanimentStatus }>(
+        `/acompanamiento/${id}/respond`,
+        { accept },
+      ),
+    end: (id: string) =>
+      this.http.delete<{ id: string; status: AccompanimentStatus }>(`/acompanamiento/${id}`),
+    myMentorProfile: () => this.http.get<MentorProfile | null>('/acompanamiento/perfil'),
+    enableMentor: (input: { spouseName?: string; marriedSince?: number; bio?: string }) =>
+      this.http.put<MentorProfile>('/acompanamiento/perfil', input),
+    disableMentor: () => this.http.delete<MentorProfile>('/acompanamiento/perfil'),
   };
 
   // ---- Community (RF-COM-01..09) ------------------------------------------

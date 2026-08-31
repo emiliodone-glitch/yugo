@@ -186,6 +186,50 @@ export const es = {
     pendingChip: 'Propuso una etapa',
   },
 
+  accompaniment: {
+    title: 'Acompañamiento',
+    intro:
+      'Un matrimonio de su iglesia puede acompañarlos: ve en qué etapa están y cuándo avanzan. Nunca ve lo que se escriben.',
+    neverSeesChat: 'Quien los acompaña nunca ve sus conversaciones.',
+    needsIntentionalFriendship:
+      'Podrán invitar a un matrimonio cuando declaren «Amistad intencional».',
+    inviteTitle: 'Invitar a un matrimonio',
+    codeLabel: 'Código de los padrinos',
+    codePlaceholder: 'PADRINOS-XXXXXX',
+    invite: 'Invitar',
+    invitedWaitingPartner: 'Falta que tu conexión también esté de acuerdo.',
+    invitedWaitingMentor: 'Falta que el matrimonio acepte.',
+    partnerInvited: (name: string) =>
+      `Tu conexión invitó a ${name} a acompañarlos. Hace falta que tú también estés de acuerdo.`,
+    agree: 'Estoy de acuerdo',
+    refuse: 'Prefiero que no',
+    active: (name: string) => `Los acompaña ${name}.`,
+    marriedSince: (year: number) => `Casados desde ${year}`,
+    end: 'Terminar el acompañamiento',
+    endConfirm:
+      '¿Terminar el acompañamiento? Cualquiera de los tres puede hacerlo, sin dar explicaciones.',
+    ended: 'El acompañamiento terminó.',
+    alreadyAccompanied: 'Ya los acompaña un matrimonio.',
+
+    /** El otro lado: la pareja que acompaña. */
+    mentorTitle: 'Parejas que acompañas',
+    mentorEmpty: 'Todavía no acompañas a nadie.',
+    mentorIntro:
+      'Verás en qué etapa está cada vínculo y cuándo avanzan. No verás sus conversaciones: eso es solo de ellos.',
+    mentorEnable: 'Quiero acompañar parejas',
+    mentorNeedsEndorsement:
+      'Para acompañar hace falta el respaldo de tu iglesia (verificación nivel 3).',
+    mentorCodeIntro: 'Comparte este código con la pareja que quieras acompañar:',
+    spouseName: 'Nombre de tu cónyuge',
+    marriedSinceLabel: 'Casados desde',
+    bioLabel: 'Unas líneas sobre ustedes',
+    pendingInvitation: 'Te invitaron a acompañar',
+    accept: 'Aceptar',
+    decline: 'Ahora no',
+    since: (date: string) => `Acompañándolos desde ${date}`,
+    stageAdvanced: (stage: string) => `Avanzaron a «${stage}».`,
+  },
+
   connections: {
     title: 'Conexiones',
     newSection: 'NUEVAS',
@@ -468,6 +512,8 @@ export const es = {
     quietHours: 'Horario silencioso',
     categories: {
       CONNECTION: 'Conexiones',
+      RELATIONSHIP: 'Etapas del vínculo',
+      ACCOMPANIMENT: 'Acompañamiento',
       MESSAGE: 'Mensajes',
       INTEREST: 'Intereses',
       EVENT: 'Eventos',
