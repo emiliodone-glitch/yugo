@@ -3,6 +3,90 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.3.0 — El propósito, dentro del producto
+
+Hasta aquí Yugo era una app de citas bien construida para cristianos. Esta
+versión mete el propósito en el modelo de datos, donde no se puede olvidar.
+
+### Etapas del vínculo
+Una conexión que solo podía estar `ACTIVE` o `ENDED` no expresaba lo que el
+producto promete. Ahora un vínculo recorre **conociéndonos → amistad
+intencional → noviazgo → comprometidos → casados**, y cada paso lo declaran los
+dos: uno propone, el otro acepta, ninguna avanza sola. La app no puede decir
+que dos personas son novios porque una tocó un botón.
+
+La consecuencia que sostiene todo lo demás: **al declarar noviazgo, ambos salen
+de Descubrir**, en las dos direcciones. Ninguna app de citas lo hace porque va
+contra su métrica; aquí es la señal de confianza que sostiene el respaldo de
+una iglesia. Le cuesta alcance a Yugo, y por eso vale.
+
+`validateStageProposal()` vive en `@yugo/shared` y valida igual en la API y en
+modo demo, así que la demo no puede enseñar un paso que el producto rechazaría.
+
+### Acompañamiento: un matrimonio camina al lado
+Un noviazgo dentro de una iglesia no ocurre a solas. Una pareja con respaldo
+nivel 3 puede acompañar a otra: ve en qué etapa está el vínculo y cuándo
+avanzan.
+
+**Nunca ve un mensaje.** No es una pantalla que decidimos no construir:
+`AccompanimentService` no tiene ningún camino a una `Conversation`, vive en su
+propio controlador, y la suite de humo comprueba contra un servidor real que un
+padrino recibe 403 al intentar leer o escribir en el chat. Una garantía de
+privacidad que no se puede verificar no es una garantía.
+
+Consentimiento de los tres, y cualquiera puede terminarlo cuando quiera sin dar
+explicaciones: un consentimiento que no se puede retirar no es consentimiento.
+
+### La iglesia convoca, y el cupo es real
+Encuentros del ministerio de solteros, separados de los cultos para que el
+ministerio pueda ver si su trabajo llega a alguien. Panel nuevo en el portal
+con totales y tasas, nunca nombres.
+
+Se corrigió un fallo de fondo: cuando un evento se llenaba, una suscripción Oro
+entraba **por encima** del aforo. El comentario prometía «a small reserved
+buffer» que nunca se implementó, así que el dinero compraba una silla que no
+existe en el salón. Ahora el cupo no se pasa nunca con ningún plan; la
+prioridad de Oro es una reserva *dentro* del cupo que se disuelve 48 h antes; y
+quien no cabe entra en lista de espera y sube solo cuando alguien cancela.
+
+### Medir lo correcto
+El embudo terminaba en «Suscritos a Plus» y «Suscritos a Oro»: el sistema
+definía su éxito como ingresos. Ahora termina en vínculos que avanzaron, en
+noviazgos y en **matrimonios**. Las suscripciones siguen medidas, en su propio
+reporte, sin ser la meta. La pantalla de reportes dejó de ser estática.
+
+### Historias
+Parejas que se conocieron aquí y se casaron, con su congregación por testigo.
+Es lo único que Yugo puede publicar que demuestre que hace lo que dice, y lo
+más fácil de falsificar: por eso hacen falta los dos síes, la iglesia queda
+nombrada y una persona la lee antes de publicarla. La página es pública y vive
+fuera de la app.
+
+### El evento como presentación, y el primer encuentro
+Coincidir en un evento desplaza a cualquier otro motivo en la tarjeta y lleva
+al evento: compartir denominación es una etiqueta, estar en la misma sala el
+viernes es un hecho, y verse entre gente conocida es más seguro que una cita
+armada desde cero. La preferencia `allowEventPresenceVisible` manda.
+
+El plan del primer encuentro (RF-SEG-06) es **de quien lo escribe**: la otra
+persona no lo ve ni sabe que existe. Y Yugo **nunca guarda ni contacta al
+tercero**: la app escribe el mensaje, la persona lo manda desde su teléfono, y
+solo se registra que lo hizo (Ley 172-13). Unas horas después pregunta «¿todo
+bien?», a la persona y a nadie más.
+
+### Verificación
+- 67 pruebas en `@yugo/shared`, 119 en la API, 208 E2E (con auditoría axe de
+  cada pantalla nueva).
+- Suite de humo contra PostgreSQL real: **79/79**, incluyendo el ciclo completo
+  de etapas hasta «Casados», los 403 del padrino en el chat, el encuentro de un
+  solo lugar con su lista de espera, y que el plan del primer encuentro no
+  contiene ningún teléfono de terceros.
+
+### Lo que deliberadamente NO se construyó
+Videollamadas, feed infinito, rachas ni nada que optimice tiempo en pantalla.
+Son las funciones que harían subir las métricas de una app de citas y bajar las
+de esta.
+
 ## v0.1.0 — MVP inicial (2026-08-30)
 
 ### Hito 1 — Cimientos del monorepo

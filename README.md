@@ -80,3 +80,20 @@ k6 run infra/k6/discover.js         # carga sobre Descubrir
 - **Intención sobre volumen**: 8 intereses diarios gratis, lista curada (30/día; 60 en Oro), sin deslizar infinito.
 - **Moderación previa**: todo texto e imagen de usuarios pasa por clasificación automática antes de publicarse o entregarse.
 - **Ninguna función de pago desactiva seguridad ni moderación** (RF-PLU-09).
+- **El cupo es el que cabe en el salón**: ningún plan permite entrar por encima
+  del aforo de un encuentro. La prioridad de Oro es una reserva *dentro* del
+  cupo, y se disuelve 48 h antes.
+- **Al declarar noviazgo, los dos salen de Descubrir**, en ambas direcciones. Le
+  cuesta alcance a Yugo y por eso mismo vale: es la promesa a la que una iglesia
+  le presta su nombre.
+- **Una etapa la declaran los dos**: uno propone y el otro acepta. La app no
+  puede decir que dos personas son novios porque una tocó un botón.
+- **Quien acompaña ve la etapa, nunca el chat.** No es una pantalla que
+  decidimos no construir: `AccompanimentService` no tiene ningún camino a una
+  conversación, y la suite de humo comprueba que un padrino recibe 403 en los
+  endpoints de chat.
+- **Nunca guardamos ni contactamos a un tercero.** El plan del primer encuentro
+  no pide el teléfono de tu contacto de confianza: la app escribe el mensaje y
+  tú lo mandas (Ley 172-13).
+- **El éxito se mide en vínculos, no en dinero.** El embudo del panel termina en
+  matrimonios; las suscripciones se miden en su propio reporte.

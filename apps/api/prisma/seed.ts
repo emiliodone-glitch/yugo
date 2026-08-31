@@ -449,6 +449,81 @@ async function main() {
     });
   }
 
+  // --- Encuentro convocado por el ministerio de solteros -------------------------
+  // Con cupo pequeño a propósito: sin un encuentro que se llene, la lista de
+  // espera y la regla del aforo no se pueden ver en una base recién sembrada.
+  const singlesEncounter = await prisma.event.findFirst({ where: { audience: 'SINGLES' } });
+  if (!singlesEncounter) {
+    await prisma.event.create({
+      data: {
+        churchId: churchIds[0],
+        title: 'Café y conversación: noviazgo con propósito',
+        description:
+          'Una noche del ministerio de solteros para hablar de relaciones con propósito, con espacio para preguntas.',
+        type: 'ACTIVIDAD_SOCIAL',
+        audience: 'SINGLES',
+        startsAt: new Date(Date.now() + 18 * 86400000),
+        address: 'Salón parroquial, Av. Independencia 120',
+        city: 'Santo Domingo',
+        lat: 18.4655,
+        lng: -69.9312,
+        capacity: 24,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        qrToken: `qr-solteros-${Math.floor(rand() * 1e9)}`,
+        attendances: {
+          create: pickMany(memberIds, 24).map((userId) => ({ userId, status: 'GOING' as const })),
+        },
+      },
+    });
+  }
+
+  // --- Un matrimonio que acompaña (RF-VER-02 nivel 3) ----------------------------
+  const mentorUserId = (
+    await prisma.verification.findFirst({
+      where: { level: 3, status: 'APPROVED' },
+      select: { userId: true },
+    })
+  )?.userId;
+  if (mentorUserId) {
+    await prisma.mentorProfile.upsert({
+      where: { userId: mentorUserId },
+      update: {},
+      create: {
+        userId: mentorUserId,
+        code: 'PADRINOS-DEMO01',
+        spouseName: 'Marta',
+        marriedSince: 2009,
+        bio: 'Servimos en el ministerio de matrimonios desde 2015.',
+      },
+    });
+  }
+
+  // --- Una historia publicada ----------------------------------------------------
+  // La página de historias vacía no dice nada; con una, dice para qué existe
+  // todo lo demás.
+  if ((await prisma.story.count()) === 0) {
+    await prisma.story.create({
+      data: {
+        names: 'Rebeca y Josué',
+        churchNames: 'Iglesia Bíblica Emanuel y Iglesia Monte de Sion',
+        city: 'Santo Domingo',
+        marriedAt: new Date('2026-02-14'),
+        body:
+          'Coincidimos en una vigilia antes de coincidir en Yugo. Lo que nos ayudó no fue la ' +
+          'aplicación: fue que un matrimonio de Emanuel nos acompañó desde que declaramos amistad ' +
+          'intencional, y que ninguno de los dos tuvo que adivinar en qué estábamos. A quien está ' +
+          'empezando: no tengan prisa por saltarse etapas.',
+        status: 'PUBLISHED',
+        consentAId: true,
+        consentBId: true,
+        publishedAt: new Date('2026-03-02'),
+      },
+    });
+  }
+
+  console.log(`Encuentros de solteros: ${await prisma.event.count({ where: { audience: 'SINGLES' } })}`);
+  console.log(`Historias publicadas: ${await prisma.story.count({ where: { status: 'PUBLISHED' } })}`);
   console.log('Seed complete.');
 }
 
