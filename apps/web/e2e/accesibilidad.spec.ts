@@ -27,6 +27,7 @@ const SURFACES = [
   { name: 'privacidad', path: '/perfil/privacidad' },
   { name: 'verificación', path: '/perfil/verificacion' },
   { name: 'paywall', path: '/plus' },
+  { name: 'historias', path: '/historias' },
   { name: 'legal', path: '/legal/pacto' },
   { name: 'panel admin', path: '/admin' },
   { name: 'moderación', path: '/admin/moderacion' },

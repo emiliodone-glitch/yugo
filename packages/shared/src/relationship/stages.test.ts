@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hasAdvanced,
   isExclusive,
+  isMarried,
   nextStage,
   RELATIONSHIP_STAGES,
   validateStageProposal,
@@ -56,7 +57,23 @@ describe('etapas del vínculo', () => {
   it('sabe cuál es la única etapa proponible, y cuándo ya no hay', () => {
     expect(nextStage('KNOWING')).toBe('INTENTIONAL_FRIENDSHIP');
     expect(nextStage('COURTSHIP')).toBe('ENGAGED');
-    expect(nextStage('ENGAGED')).toBeNull();
+    expect(nextStage('ENGAGED')).toBe('MARRIED');
+    expect(nextStage('MARRIED')).toBeNull();
+  });
+
+  it('la escalera termina en el matrimonio, que es lo que el producto promete', () => {
+    // Si la última etapa que la app sabe nombrar fuera el compromiso, no
+    // podría medir si cumplió su promesa — y lo que no se mide termina
+    // reemplazado por lo que sí.
+    expect(RELATIONSHIP_STAGES.at(-1)).toBe('MARRIED');
+    expect(isMarried('MARRIED')).toBe(true);
+    expect(isMarried('ENGAGED')).toBe(false);
+    expect(isExclusive('MARRIED')).toBe(true);
+    expect(validateStageProposal('ENGAGED', 'MARRIED')).toEqual({ ok: true });
+    expect(validateStageProposal('COURTSHIP', 'MARRIED')).toEqual({
+      ok: false,
+      error: 'cannot_skip_stages',
+    });
   });
 
   it('un vínculo avanzó cuando pasó de la primera etapa', () => {

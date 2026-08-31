@@ -19,6 +19,7 @@ import {
   demoAccompaniedBonds,
   demoMentorProfile,
   demoSinglesMinistry,
+  demoStories,
   DEFAULT_PRICES,
   LIMITS,
   NOTIFICATION_CATEGORIES,
@@ -29,6 +30,9 @@ import {
   type AccompaniedBond,
   type MentorProfile,
   type SinglesMinistry,
+  type CoupleStory,
+  type PublishedStory,
+  type StoryDraftInput,
   type RelationshipStage,
   type RelationshipState,
   type DiscoverFilters,
@@ -1156,5 +1160,69 @@ export function useSinglesMinistry() {
       if (isDemoMode()) return demoSinglesMinistry;
       return api().church.singlesMinistry();
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Historias
+// ---------------------------------------------------------------------------
+
+/** Published stories. Public — no session required. */
+export function useStories(limit?: number) {
+  return useQuery({
+    queryKey: ['stories', limit],
+    queryFn: async (): Promise<PublishedStory[]> => {
+      if (isDemoMode()) return demoStories.slice(0, limit ?? 20);
+      return api().stories.published(limit);
+    },
+  });
+}
+
+/** The couple's own story, if they have one, and whether they can write it. */
+export function useOurStory(matchId: string) {
+  const stage = useDemoStore((s) => s.relationships[matchId]?.stage ?? 'KNOWING');
+  const draft = useDemoStore((s) => s.storyDrafts[matchId]);
+  const live = useQuery({
+    queryKey: ['our-story', matchId],
+    enabled: !isDemoMode() && !!matchId,
+    queryFn: () => api().stories.forCouple(matchId),
+  });
+
+  if (!isDemoMode()) return live;
+  const data: CoupleStory = {
+    canSubmit: stage === 'MARRIED' && !draft,
+    whyNot: stage === 'MARRIED' ? null : 'not_married_yet',
+    story: draft ?? null,
+  };
+  return { ...live, data, isLoading: false } as typeof live;
+}
+
+export function useSubmitStory(matchId: string) {
+  const queryClient = useQueryClient();
+  const submitDemo = useDemoStore((s) => s.submitStory);
+  return useMutation({
+    mutationFn: async (input: StoryDraftInput) => {
+      if (isDemoMode()) {
+        submitDemo(matchId, input);
+        return { id: 'demo', status: 'DRAFT' as const };
+      }
+      return api().stories.submit(matchId, input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['our-story', matchId] }),
+  });
+}
+
+export function useConsentToStory(matchId: string) {
+  const queryClient = useQueryClient();
+  const consentDemo = useDemoStore((s) => s.consentToStory);
+  return useMutation({
+    mutationFn: async (agree: boolean) => {
+      if (isDemoMode()) {
+        consentDemo(matchId, agree);
+        return agree ? { status: 'IN_REVIEW' as const } : { deleted: true };
+      }
+      return api().stories.consent(matchId, agree);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['our-story', matchId] }),
   });
 }

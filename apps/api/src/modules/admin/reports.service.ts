@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ADVANCED_STAGES, EXCLUSIVE_STAGES, type RelationshipStage } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 
 export type ReportKind =
@@ -108,7 +109,7 @@ export class ReportsService {
    * what Yugo is for. Two people who matched and never spoke are not a result.
    */
   private async funnel(): Promise<ReportRow[]> {
-    const inStage = (stages: Array<'INTENTIONAL_FRIENDSHIP' | 'COURTSHIP' | 'ENGAGED'>) =>
+    const inStage = (stages: RelationshipStage[]) =>
       this.prisma.user.count({
         where: {
           role: 'MEMBER',
@@ -120,7 +121,7 @@ export class ReportsService {
         },
       });
 
-    const [registered, completed, verified, connected, talking, advanced, settled] =
+    const [registered, completed, verified, connected, talking, advanced, settled, married] =
       await Promise.all([
         this.prisma.user.count({ where: { role: 'MEMBER', deletedAt: null } }),
         this.prisma.profile.count({ where: { completeness: { gte: 60 } } }),
@@ -162,8 +163,9 @@ export class ReportsService {
             ],
           },
         }),
-        inStage(['INTENTIONAL_FRIENDSHIP', 'COURTSHIP', 'ENGAGED']),
-        inStage(['COURTSHIP', 'ENGAGED']),
+        inStage(ADVANCED_STAGES),
+        inStage(EXCLUSIVE_STAGES),
+        inStage(['MARRIED']),
       ]);
 
     const pct = (part: number) =>
@@ -176,6 +178,9 @@ export class ReportsService {
       { Etapa: 'Conversando', Miembros: talking, 'Del total (%)': pct(talking) },
       { Etapa: 'En un vínculo que avanzó', Miembros: advanced, 'Del total (%)': pct(advanced) },
       { Etapa: 'En noviazgo o compromiso', Miembros: settled, 'Del total (%)': pct(settled) },
+      // Donde termina el propósito del producto. Si esta fila no existiera,
+      // el equipo optimizaría la anterior y llamaría éxito a eso.
+      { Etapa: 'Casados', Miembros: married, 'Del total (%)': pct(married) },
     ];
   }
 

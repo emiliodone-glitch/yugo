@@ -580,6 +580,47 @@ export const demoAdminKpis = {
 };
 
 // ---------------------------------------------------------------------------
+// Historias
+// ---------------------------------------------------------------------------
+
+/**
+ * Historias en modo demo.
+ *
+ * Cada una nombra su iglesia, porque una historia que nadie puede comprobar
+ * es publicidad, y una que una congregación respalda es una razón para
+ * confiar en el producto.
+ */
+export const demoStories = [
+  {
+    id: 'st-rebeca-josue',
+    names: 'Rebeca y Josué',
+    churchNames: 'Iglesia Bíblica Emanuel y Iglesia Monte de Sion',
+    city: 'Santo Domingo',
+    marriedAt: '2026-02-14T00:00:00-04:00',
+    body: 'Coincidimos en una vigilia de jóvenes adultos antes de coincidir en Yugo. Cuando la app nos sugirió, ya nos habíamos visto de lejos dos veces. Lo que nos ayudó no fue la aplicación: fue que un matrimonio de Emanuel nos acompañó desde que declaramos amistad intencional, y que ninguno de los dos tuvo que adivinar en qué estábamos. A quien está empezando: no tengan prisa por saltarse etapas. Nosotros tardamos catorce meses y no cambiaríamos ninguno.',
+    publishedAt: '2026-03-02T10:00:00-04:00',
+  },
+  {
+    id: 'st-noemi-elias',
+    names: 'Noemí y Elías',
+    churchNames: 'Iglesia Metodista Central',
+    city: 'Santiago',
+    marriedAt: '2025-11-08T00:00:00-04:00',
+    body: 'Los dos habíamos dejado de creer que existía alguien que quisiera lo mismo con la misma seriedad. Nos escribimos tres meses antes de vernos, y cuando nos vimos fue en un encuentro que convocó nuestra propia iglesia, con gente conocida alrededor. Eso quitó todo el miedo. Hoy servimos juntos en el ministerio de matrimonios, acompañando a otras dos parejas.',
+    publishedAt: '2025-12-15T10:00:00-04:00',
+  },
+  {
+    id: 'st-sarah-daniel',
+    names: 'Sarah y Daniel',
+    churchNames: 'Iglesia Bautista Quisqueya',
+    city: 'La Vega',
+    marriedAt: '2025-06-21T00:00:00-04:00',
+    body: 'Lo que más agradecemos es algo que suena raro: que la app nos sacara de Descubrir cuando declaramos noviazgo. Dejó de existir la duda de si el otro seguía mirando. Esa decisión, que a Yugo le costó tenernos dentro, es la razón por la que lo recomendamos en nuestra iglesia.',
+    publishedAt: '2025-07-30T10:00:00-04:00',
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Ministerio de solteros
 // ---------------------------------------------------------------------------
 

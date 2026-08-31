@@ -164,12 +164,14 @@ export const es = {
       INTENTIONAL_FRIENDSHIP: 'Amistad intencional',
       COURTSHIP: 'Noviazgo',
       ENGAGED: 'Comprometidos',
+      MARRIED: 'Casados',
     },
     stageHints: {
       KNOWING: 'Están empezando a conocerse.',
       INTENTIONAL_FRIENDSHIP: 'Se conocen con intención, sin apuro.',
       COURTSHIP: 'Son novios. Ninguno de los dos aparece ya en Descubrir.',
       ENGAGED: 'Se van a casar.',
+      MARRIED: 'Se casaron. Es lo que Yugo existe para que pase.',
     },
     propose: (stage: string) => `Proponer «${stage}»`,
     proposedByYou: (stage: string) => `Propusiste «${stage}». Falta que la otra persona acepte.`,
@@ -184,6 +186,46 @@ export const es = {
     bothMustAgree: 'Una etapa la declaran los dos: uno propone y el otro acepta.',
     history: 'Cómo ha avanzado',
     pendingChip: 'Propuso una etapa',
+    marriedNotice:
+      'Al declararlo, podrán contar su historia si quieren. Ustedes deciden si se publica.',
+    /**
+     * Solo en la demo. En producción responde la otra persona; aquí hace
+     * falta una forma de ver el flujo completo, y se dice que es de la demo
+     * en vez de fingir que la app avanza sola.
+     */
+    demoRespondForThem: 'Demo: responder como la otra persona',
+  },
+
+  stories: {
+    title: 'Historias',
+    subtitle: 'Parejas que se conocieron aquí y se casaron, con su iglesia por testigo.',
+    empty: 'Todavía no hay historias publicadas. La primera puede ser la de ustedes.',
+    marriedOn: (date: string) => `Se casaron el ${date}`,
+    witness: (churches: string) => `Con el testimonio de ${churches}`,
+    readMore: 'Leer su historia',
+
+    /** Cuando la pareja la escribe. */
+    tellOurs: 'Contar nuestra historia',
+    tellOursIntro:
+      'Si quieren, cuéntenla. Nada se publica sin el sí de los dos, y una persona del equipo la lee antes.',
+    onlyWhenMarried: 'Podrán contarla cuando declaren que se casaron.',
+    namesLabel: 'Cómo quieren aparecer',
+    namesPlaceholder: 'Rebeca y Josué',
+    churchesLabel: 'Iglesia o iglesias',
+    churchesHint: 'Si lo dejas vacío, usamos las que están en sus perfiles.',
+    cityLabel: 'Ciudad',
+    marriedAtLabel: 'Fecha de la boda',
+    bodyLabel: 'Su historia',
+    bodyHint: 'Cómo se conocieron y qué le dirían a alguien que está empezando.',
+    submit: 'Enviar para revisión',
+    waitingPartner: 'Falta que tu conexión esté de acuerdo en publicarla.',
+    partnerWrote: 'Tu conexión escribió la historia de ustedes. Léela y dinos si la publicamos.',
+    agree: 'Sí, publíquenla',
+    refuse: 'Prefiero que no',
+    inReview: 'Una persona del equipo la está leyendo.',
+    published: 'Ya está publicada. Gracias por contarla.',
+    rejected: 'No pudimos publicarla por ahora.',
+    consentNotice: 'Sin el sí de los dos, no se publica nunca.',
   },
 
   accompaniment: {

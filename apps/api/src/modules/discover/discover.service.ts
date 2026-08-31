@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { affinityReason, ageFromBirthDate, DiscoverFilters, ProfileCard } from '@yugo/shared';
+import {
+  affinityReason,
+  ageFromBirthDate,
+  EXCLUSIVE_STAGES,
+  DiscoverFilters,
+  ProfileCard,
+} from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { CacheService } from '../../common/cache.service';
 import { SettingsService } from '../../common/settings.service';
@@ -89,7 +95,7 @@ export class DiscoverService {
     const bond = await this.prisma.match.findFirst({
       where: {
         status: 'ACTIVE',
-        stage: { in: ['COURTSHIP', 'ENGAGED'] },
+        stage: { in: EXCLUSIVE_STAGES },
         OR: [{ userAId: userId }, { userBId: userId }],
       },
       select: { id: true },
@@ -234,7 +240,7 @@ export class DiscoverService {
           SELECT 1 FROM "Match" ex
           WHERE (ex."userAId" = u.id OR ex."userBId" = u.id)
             AND ex.status = 'ACTIVE'
-            AND ex.stage IN ('COURTSHIP', 'ENGAGED')
+            AND ex.stage::text = ANY(${EXCLUSIVE_STAGES})
         )
         AND NOT EXISTS (
           SELECT 1 FROM "Pass" ps

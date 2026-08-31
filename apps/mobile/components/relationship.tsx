@@ -12,9 +12,12 @@ import {
   useConsentToMentor,
   useEndAccompaniment,
   useInviteMentor,
+  useConsentToStory,
+  useOurStory,
   useProposeStage,
   useRelationship,
   useRespondToStage,
+  useSubmitStory,
 } from '@yugo/app-core';
 import { Button, Field, Sub } from './ui';
 import { theme } from '../lib/theme';
@@ -185,6 +188,21 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  storyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.olive,
+    padding: 14,
+    marginBottom: 12,
+  },
+  storyBody: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.text,
+    marginTop: 6,
+  },
   oliveBody: {
     fontFamily: fonts.body,
     fontSize: 12,
@@ -332,6 +350,124 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
         </>
       ) : (
         <Text style={styles.oliveBody}>{es.accompaniment.needsIntentionalFriendship}</Text>
+      )}
+    </View>
+  );
+}
+
+/**
+ * La historia de la pareja, en la conversación.
+ *
+ * Solo aparece cuando declararon que se casaron. Nada se publica con el sí de
+ * una sola persona, y la tarjeta lo dice antes de que nadie escriba una línea.
+ */
+export function OurStoryCard({ matchId }: { matchId: string }) {
+  const { data } = useOurStory(matchId);
+  const submit = useSubmitStory(matchId);
+  const consent = useConsentToStory(matchId);
+  const [writing, setWriting] = useState(false);
+  const [names, setNames] = useState('');
+  const [churchNames, setChurchNames] = useState('');
+  const [marriedAt, setMarriedAt] = useState('');
+  const [body, setBody] = useState('');
+
+  if (!data || (!data.canSubmit && !data.story)) return null;
+
+  const story = data.story;
+  const waitingOnMe = story?.status === 'DRAFT' && !story.myConsent;
+
+  return (
+    <View style={styles.storyCard} accessibilityLabel={es.stories.title}>
+      <Text style={[styles.eyebrow, { color: colors.oliveText }]}>{es.stories.title}</Text>
+
+      {story ? (
+        <>
+          <Text style={styles.stage}>{story.names}</Text>
+          <Text style={styles.storyBody}>{story.body}</Text>
+          <Sub style={{ fontSize: 11, marginTop: 8 }}>
+            {story.status === 'PUBLISHED'
+              ? es.stories.published
+              : story.status === 'IN_REVIEW'
+                ? es.stories.inReview
+                : story.status === 'REJECTED'
+                  ? (story.reviewNote ?? es.stories.rejected)
+                  : waitingOnMe
+                    ? es.stories.partnerWrote
+                    : es.stories.waitingPartner}
+          </Sub>
+          {waitingOnMe ? (
+            <View style={styles.actions}>
+              <Button
+                label={es.stories.agree}
+                style={{ flex: 1 }}
+                onPress={() => consent.mutate(true)}
+              />
+              <Button
+                label={es.stories.refuse}
+                tone="ghost"
+                style={{ flex: 1 }}
+                onPress={() => consent.mutate(false)}
+              />
+            </View>
+          ) : null}
+        </>
+      ) : writing ? (
+        <>
+          <Sub style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>
+            {es.stories.namesLabel}
+          </Sub>
+          <Field value={names} onChangeText={setNames} placeholder={es.stories.namesPlaceholder} />
+
+          <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+            {es.stories.churchesLabel}
+          </Sub>
+          <Field value={churchNames} onChangeText={setChurchNames} />
+
+          <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
+            {es.stories.marriedAtLabel}
+          </Sub>
+          <Field
+            value={marriedAt}
+            onChangeText={setMarriedAt}
+            placeholder="2026-02-14"
+            keyboardType="numeric"
+            maxLength={10}
+          />
+
+          <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>{es.stories.bodyLabel}</Sub>
+          <Field value={body} onChangeText={setBody} multiline maxLength={3000} />
+          <Sub style={{ fontSize: 11, marginTop: 4 }}>{es.stories.bodyHint}</Sub>
+
+          <View style={styles.actions}>
+            <Button
+              label={es.stories.submit}
+              style={{ flex: 1 }}
+              disabled={submit.isPending}
+              onPress={() => {
+                submit.mutate(
+                  { names, churchNames, marriedAt, body },
+                  { onSuccess: () => setWriting(false) },
+                );
+              }}
+            />
+            <Button
+              label={es.common.cancel}
+              tone="ghost"
+              style={{ flex: 1 }}
+              onPress={() => setWriting(false)}
+            />
+          </View>
+          <Sub style={{ fontSize: 11, marginTop: 8 }}>{es.stories.consentNotice}</Sub>
+        </>
+      ) : (
+        <>
+          <Text style={styles.oliveBody}>{es.stories.tellOursIntro}</Text>
+          <Button
+            label={es.stories.tellOurs}
+            style={{ marginTop: 10 }}
+            onPress={() => setWriting(true)}
+          />
+        </>
       )}
     </View>
   );

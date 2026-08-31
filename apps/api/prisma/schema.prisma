@@ -93,6 +93,52 @@ enum RelationshipStage {
   INTENTIONAL_FRIENDSHIP
   COURTSHIP
   ENGAGED
+  /// The outcome the product exists for. The wedding happens outside the app;
+  /// declaring it inside is what lets Yugo measure whether it kept its
+  /// promise, instead of measuring revenue and calling that success.
+  MARRIED
+}
+
+enum StoryStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+/// Historia de una pareja que se casó.
+///
+/// Nothing else Yugo publishes is worth as much as this, and nothing else is
+/// as easy to fake. So: both people consent, the church is named, and a human
+/// reviews it before it is public. A story nobody can verify is marketing;
+/// a story a congregation stands behind is a reason to trust the product.
+model Story {
+  id        String      @id @default(cuid())
+  matchId   String?     @unique
+  match     Match?      @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  /// Kept denormalised on purpose: a story outlives the accounts behind it,
+  /// and a couple who deletes their profiles does not un-marry.
+  names       String
+  churchNames String
+  city        String?
+  marriedAt   DateTime
+  /// Cómo se conocieron y qué quieren decirle a quien está empezando.
+  body        String
+  photoKey    String?
+
+  status     StoryStatus @default(DRAFT)
+  /// Consentimiento de los dos, sin el cual no se publica nunca.
+  consentAId Boolean     @default(false)
+  consentBId Boolean     @default(false)
+  submittedById String?
+  reviewedById  String?
+  reviewNote    String?
+
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+
+  @@index([status, publishedAt])
 }
 
 enum AccompanimentStatus {
@@ -735,6 +781,7 @@ model Match {
   conversation    Conversation?
   stageHistory    RelationshipStageChange[]
   accompaniments  Accompaniment[]
+  story           Story?
 
   @@unique([userAId, userBId])
   @@index([userAId, status])

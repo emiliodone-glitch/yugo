@@ -16,7 +16,9 @@ import {
   hasAdvanced,
   type ChatMessage,
   type CoupleAccompaniment,
+  type CoupleStory,
   type RelationshipStage,
+  type StoryDraftInput,
 } from '@yugo/shared';
 
 /** Per-connection stage state, mirroring what the API returns. */
@@ -76,6 +78,10 @@ interface DemoState {
   ) => 'ok' | 'mentor_code_not_found' | 'needs_intentional_friendship' | 'already_accompanied';
   consentToMentor: (matchId: string, agree: boolean) => void;
   endAccompaniment: (matchId: string) => void;
+  /** Borrador de la historia de cada pareja, tal como lo devuelve la API. */
+  storyDrafts: Record<string, NonNullable<CoupleStory['story']>>;
+  submitStory: (matchId: string, input: StoryDraftInput) => void;
+  consentToStory: (matchId: string, agree: boolean) => void;
 }
 
 const DAY = 24 * 3600_000;
@@ -305,6 +311,44 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   },
 
   accompaniment: demoAccompaniment,
+  storyDrafts: {},
+
+  submitStory: (matchId, input) =>
+    set((state) => ({
+      storyDrafts: {
+        ...state.storyDrafts,
+        [matchId]: {
+          id: `story-${matchId}`,
+          status: 'DRAFT',
+          names: input.names,
+          churchNames: input.churchNames,
+          marriedAt: input.marriedAt,
+          body: input.body,
+          // Escribirla es consentir; falta el sí de la otra persona.
+          myConsent: true,
+          theirConsent: false,
+          reviewNote: null,
+        },
+      },
+    })),
+
+  consentToStory: (matchId, agree) => {
+    const current = get().storyDrafts[matchId];
+    if (!current) return;
+    if (!agree) {
+      // Decir que no la borra en vez de dejarla en una cola esperando a que
+      // alguien cambie de opinión.
+      const { [matchId]: _removed, ...rest } = get().storyDrafts;
+      set({ storyDrafts: rest });
+      return;
+    }
+    set((state) => ({
+      storyDrafts: {
+        ...state.storyDrafts,
+        [matchId]: { ...current, theirConsent: true, status: 'IN_REVIEW' },
+      },
+    }));
+  },
 
   inviteMentor: (matchId, code) => {
     const bond = get().relationships[matchId] ?? NEW_RELATIONSHIP;

@@ -55,6 +55,49 @@ export interface RelationshipState {
   history: Array<{ toStage: RelationshipStage; createdAt: string }>;
 }
 
+export type StoryStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'REJECTED';
+
+/**
+ * Una historia publicada.
+ *
+ * `churchNames` is not optional: a story a congregation stands behind is a
+ * reason to trust the product, and one nobody can check is just marketing.
+ */
+export interface PublishedStory {
+  id: string;
+  names: string;
+  churchNames: string;
+  city: string | null;
+  marriedAt: string;
+  body: string;
+  publishedAt: string | null;
+}
+
+export interface StoryDraftInput {
+  names: string;
+  churchNames: string;
+  city?: string;
+  marriedAt: string;
+  body: string;
+}
+
+/** La historia de una pareja, vista por ellos mismos. */
+export interface CoupleStory {
+  canSubmit: boolean;
+  whyNot: 'not_married_yet' | null;
+  story: {
+    id: string;
+    status: StoryStatus;
+    names: string;
+    churchNames: string;
+    marriedAt: string;
+    body: string;
+    myConsent: boolean;
+    theirConsent: boolean;
+    reviewNote: string | null;
+  } | null;
+}
+
 /**
  * Lo que ve el ministerio de solteros de una congregación.
  *
@@ -532,6 +575,25 @@ export class YugoApiClient {
         `/connections/${matchId}/accompaniment/consent`,
         { agree },
       ),
+  };
+
+  // ---- Historias de parejas que se casaron --------------------------------
+  readonly stories = {
+    /** Público a propósito: quien no tiene cuenta también debería poder verlas. */
+    published: (limit?: number) =>
+      this.http.get<PublishedStory[]>('/historias', { query: { limit }, anonymous: true }),
+    forCouple: (matchId: string) =>
+      this.http.get<CoupleStory>(`/historias/conexion/${matchId}`),
+    submit: (matchId: string, input: StoryDraftInput) =>
+      this.http.post<{ id: string; status: StoryStatus }>(`/historias/conexion/${matchId}`, input),
+    consent: (matchId: string, agree: boolean) =>
+      this.http.post<{ status?: StoryStatus; deleted?: boolean }>(
+        `/historias/conexion/${matchId}/consent`,
+        { agree },
+      ),
+    queue: () => this.http.get<PublishedStory[]>('/historias/revision'),
+    decide: (id: string, approve: boolean, note?: string) =>
+      this.http.post<{ status: StoryStatus }>(`/historias/revision/${id}`, { approve, note }),
   };
 
   // ---- Acompañamiento, lado del matrimonio que acompaña -------------------

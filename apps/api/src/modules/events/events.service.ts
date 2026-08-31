@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EVENT_TYPES, LIMITS, openSeats, seatFor } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';

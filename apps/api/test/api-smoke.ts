@@ -117,6 +117,26 @@ async function seedEmailOfEndorsedOutsider(exclude: string[]): Promise<string | 
 }
 
 /**
+ * The rows of an admin report, read through the real service.
+ *
+ * Not over HTTP: the admin account requires 2FA, and adding a bypass to the
+ * suite would weaken the thing it is meant to protect. Running the service
+ * against the same database still exercises every query.
+ */
+async function reportRows(kind: string): Promise<Array<Record<string, string | number>>> {
+  const { PrismaClient } = await import('@prisma/client');
+  const { ReportsService } = await import('../src/modules/admin/reports.service');
+  const prisma = new PrismaClient();
+  try {
+    const service = new ReportsService(prisma as never);
+    const { rows } = await service.build(kind as never);
+    return rows;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
  * A published encuentro with exactly one seat, created fresh for this run.
  *
  * One seat is the most honest test of the rule: if a second person gets in,
@@ -562,6 +582,59 @@ async function main() {
       });
       check('terminado, deja de ver', afterEnd.status === 403, afterEnd.status);
     }
+  }
+
+  console.log('\nHistorias — se casaron y lo cuentan');
+  if (matchId && theirTokenForStages) {
+    // Llegar a «Casados» desde noviazgo son dos pasos, y cada uno lo declaran
+    // los dos: es exactamente lo que la historia certifica.
+    for (const stage of ['ENGAGED', 'MARRIED']) {
+      await call('POST', `/connections/${matchId}/stage/propose`, { token, body: { stage } });
+      await call('POST', `/connections/${matchId}/stage/accept`, { token: theirTokenForStages });
+    }
+    const state = await call('GET', `/connections/${matchId}/stage`, { token });
+    check('la escalera llega hasta «Casados»', state.body?.stage === 'MARRIED', state.body?.stage);
+    check('y ya no hay etapa siguiente', state.body?.nextStage === null, state.body?.nextStage);
+
+    const written = await call('POST', `/historias/conexion/${matchId}`, {
+      token,
+      body: {
+        names: 'Pareja de prueba',
+        churchNames: '',
+        marriedAt: '2026-02-14',
+        body: 'Nos conocimos en Yugo y nos acompañó un matrimonio de la iglesia desde el principio. '.repeat(2),
+      },
+    });
+    check('escribirla responde 201', written.status === 201, written.body);
+    check('nace en borrador, no publicada', written.body?.status === 'DRAFT', written.body);
+
+    // Lo que sostiene todo: sin el sí de los dos no llega ni a revisión.
+    const publicBefore = await call('GET', '/historias');
+    const leaked = (publicBefore.body ?? []).some((s: { names: string }) => s.names === 'Pareja de prueba');
+    check('sin el sí de los dos no es pública', !leaked, publicBefore.body?.length);
+
+    const consented = await call('POST', `/historias/conexion/${matchId}/consent`, {
+      token: theirTokenForStages,
+      body: { agree: true },
+    });
+    check('con los dos sí, pasa a revisión', consented.body?.status === 'IN_REVIEW', consented.body);
+
+    const stillPrivate = await call('GET', '/historias');
+    const leakedInReview = (stillPrivate.body ?? []).some(
+      (s: { names: string }) => s.names === 'Pareja de prueba',
+    );
+    check('en revisión tampoco es pública', !leakedInReview, stillPrivate.body?.length);
+
+    // Y el embudo termina donde el producto promete.
+    const funnel = await reportRows('funnel');
+    check(
+      'el embudo mide casados, no suscripciones',
+      funnel.some((row) => row.Etapa === 'Casados') &&
+        !funnel.some((row) => String(row.Etapa).includes('Suscritos')),
+      funnel.map((row) => row.Etapa),
+    );
+    const married = funnel.find((row) => row.Etapa === 'Casados');
+    check('y los cuenta de verdad', Number(married?.Miembros) === 2, married);
   }
 
   console.log('\nRF-EVE-04 — cupo real y lista de espera');

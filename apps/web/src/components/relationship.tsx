@@ -9,14 +9,18 @@
  */
 import { useState } from 'react';
 import { es, isExclusive, type RelationshipStage } from '@yugo/shared';
+import { isDemoMode } from '@yugo/app-core';
 import {
   useAccompaniment,
   useConsentToMentor,
   useEndAccompaniment,
   useInviteMentor,
+  useConsentToStory,
+  useOurStory,
   useProposeStage,
   useRelationship,
   useRespondToStage,
+  useSubmitStory,
 } from '@/lib/hooks';
 
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
@@ -110,9 +114,23 @@ export function RelationshipStageCard({
 
       {/* Ours, waiting on them. */}
       {proposal && proposal.byMe ? (
-        <p className="mt-2.5 rounded-field bg-linen px-3 py-2 text-[11.5px] text-muted">
-          {es.relationship.proposedByYou(stageName(proposal.stage))}
-        </p>
+        <div className="mt-2.5 rounded-field bg-linen px-3 py-2">
+          <p className="text-[11.5px] text-muted">
+            {es.relationship.proposedByYou(stageName(proposal.stage))}
+          </p>
+          {/* En producción responde la otra persona. La demo necesita una
+              forma de ver el flujo completo, y lo dice en vez de fingir que
+              la app avanza sola. */}
+          {isDemoMode() ? (
+            <button
+              type="button"
+              className="mt-1.5 text-[11px] text-muted underline"
+              onClick={() => respond.mutate(true)}
+            >
+              {es.relationship.demoRespondForThem}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Nothing in flight: we can suggest the next step. */}
@@ -296,6 +314,167 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
         <p className="mt-1 text-[11.5px] text-olive-text">
           {es.accompaniment.needsIntentionalFriendship}
         </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * La historia de la pareja, en la conversación.
+ *
+ * Only appears once they declared they married, which is the only stage that
+ * can produce one. Nothing is published on one person's say-so, and the card
+ * says so before anybody types a word.
+ */
+export function OurStoryCard({ matchId }: { matchId: string }) {
+  const { data } = useOurStory(matchId);
+  const submit = useSubmitStory(matchId);
+  const consent = useConsentToStory(matchId);
+  const [writing, setWriting] = useState(false);
+  const [names, setNames] = useState('');
+  const [churchNames, setChurchNames] = useState('');
+  const [city, setCity] = useState('');
+  const [marriedAt, setMarriedAt] = useState('');
+  const [body, setBody] = useState('');
+
+  // Antes de casarse no hay nada que contar, y decirlo aquí sería ruido.
+  if (!data || (!data.canSubmit && !data.story)) return null;
+
+  const story = data.story;
+  const waitingOnMe = story?.status === 'DRAFT' && !story.myConsent;
+
+  const send = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await submit.mutateAsync({ names, churchNames, city, marriedAt, body });
+    setWriting(false);
+  };
+
+  return (
+    <section className="card mb-3 border-[1.5px] border-olive" aria-label={es.stories.tellOurs}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-olive-text">
+        {es.stories.title}
+      </div>
+
+      {story ? (
+        <>
+          <b className="text-[13px]">{story.names}</b>
+          <p className="mt-1 whitespace-pre-line text-[12px] text-body">{story.body}</p>
+          <p className="mt-2 text-[11px] text-muted">
+            {story.status === 'PUBLISHED'
+              ? es.stories.published
+              : story.status === 'IN_REVIEW'
+                ? es.stories.inReview
+                : story.status === 'REJECTED'
+                  ? (story.reviewNote ?? es.stories.rejected)
+                  : waitingOnMe
+                    ? es.stories.partnerWrote
+                    : es.stories.waitingPartner}
+          </p>
+          {waitingOnMe ? (
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={consent.isPending}
+                onClick={() => consent.mutate(true)}
+              >
+                {es.stories.agree}
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={consent.isPending}
+                onClick={() => consent.mutate(false)}
+              >
+                {es.stories.refuse}
+              </button>
+            </div>
+          ) : null}
+        </>
+      ) : writing ? (
+        <form className="mt-2" onSubmit={send}>
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="story-names">
+            {es.stories.namesLabel}
+          </label>
+          <input
+            id="story-names"
+            className="field mb-2 w-full"
+            placeholder={es.stories.namesPlaceholder}
+            value={names}
+            onChange={(event) => setNames(event.target.value)}
+            required
+          />
+
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="story-churches">
+            {es.stories.churchesLabel}
+          </label>
+          <input
+            id="story-churches"
+            className="field w-full"
+            value={churchNames}
+            onChange={(event) => setChurchNames(event.target.value)}
+          />
+          <p className="mb-2 mt-1 text-[11px] text-muted">{es.stories.churchesHint}</p>
+
+          <div className="mb-2 flex gap-2">
+            <div className="flex-1">
+              <label className="mb-1 block text-[11px] text-muted" htmlFor="story-city">
+                {es.stories.cityLabel}
+              </label>
+              <input
+                id="story-city"
+                className="field w-full"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-[11px] text-muted" htmlFor="story-date">
+                {es.stories.marriedAtLabel}
+              </label>
+              <input
+                id="story-date"
+                type="date"
+                className="field w-full"
+                value={marriedAt}
+                onChange={(event) => setMarriedAt(event.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <label className="mb-1 block text-[11px] text-muted" htmlFor="story-body">
+            {es.stories.bodyLabel}
+          </label>
+          <textarea
+            id="story-body"
+            className="field w-full"
+            rows={5}
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            minLength={80}
+            maxLength={3000}
+            required
+          />
+          <p className="mb-2 mt-1 text-[11px] text-muted">{es.stories.bodyHint}</p>
+
+          <div className="flex gap-2">
+            <button type="submit" className="btn btn-sm" disabled={submit.isPending}>
+              {es.stories.submit}
+            </button>
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setWriting(false)}>
+              {es.common.cancel}
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted">{es.stories.consentNotice}</p>
+        </form>
+      ) : (
+        <>
+          <p className="mt-1 text-[11.5px] text-olive-text">{es.stories.tellOursIntro}</p>
+          <button type="button" className="btn btn-sm mt-2" onClick={() => setWriting(true)}>
+            {es.stories.tellOurs}
+          </button>
+        </>
       )}
     </section>
   );

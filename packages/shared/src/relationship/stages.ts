@@ -9,12 +9,20 @@
  * La consecuencia que más importa: al declarar noviazgo, ambos salen de
  * Descubrir. Ninguna app de citas lo hace porque va contra su métrica; aquí es
  * la señal de confianza que sostiene el respaldo de una iglesia.
+ *
+ * La escalera termina en «Casados» a propósito. El producto promete relación
+ * con propósito de matrimonio: si la última etapa que sabe nombrar es el
+ * compromiso, entonces no puede medir si cumplió su promesa, y lo que no se
+ * mide termina reemplazado por lo que sí — ingresos, sesiones, tiempo en
+ * pantalla. La boda ocurre fuera de la app; declararla dentro es de los dos,
+ * como todas las demás.
  */
 export const RELATIONSHIP_STAGES = [
   'KNOWING',
   'INTENTIONAL_FRIENDSHIP',
   'COURTSHIP',
   'ENGAGED',
+  'MARRIED',
 ] as const;
 
 export type RelationshipStage = (typeof RELATIONSHIP_STAGES)[number];
@@ -24,6 +32,7 @@ export const STAGE_ORDER: Record<RelationshipStage, number> = {
   INTENTIONAL_FRIENDSHIP: 1,
   COURTSHIP: 2,
   ENGAGED: 3,
+  MARRIED: 4,
 };
 
 /** From this stage on, both people stop appearing in anyone's Descubrir. */
@@ -32,6 +41,24 @@ export const EXCLUSIVE_FROM: RelationshipStage = 'COURTSHIP';
 export function isExclusive(stage: RelationshipStage): boolean {
   return STAGE_ORDER[stage] >= STAGE_ORDER[EXCLUSIVE_FROM];
 }
+
+/**
+ * Every stage that takes a couple out of Descubrir, derived rather than
+ * written out.
+ *
+ * The list used to be spelled `['COURTSHIP', 'ENGAGED']` in four places —
+ * an SQL string, a Prisma filter and two report queries. Adding MARRIED would
+ * have silently missed some of them, and a married couple reappearing in
+ * Descubrir is exactly the failure this whole feature exists to prevent.
+ */
+export const EXCLUSIVE_STAGES: RelationshipStage[] = RELATIONSHIP_STAGES.filter((stage) =>
+  isExclusive(stage),
+);
+
+/** Stages that count as a bond having moved past the first one. */
+export const ADVANCED_STAGES: RelationshipStage[] = RELATIONSHIP_STAGES.filter(
+  (stage) => STAGE_ORDER[stage] > STAGE_ORDER.KNOWING,
+);
 
 export type StageProposalError =
   | 'same_stage'
@@ -74,4 +101,13 @@ export function nextStage(current: RelationshipStage): RelationshipStage | null 
  */
 export function hasAdvanced(stage: RelationshipStage): boolean {
   return STAGE_ORDER[stage] > STAGE_ORDER.KNOWING;
+}
+
+/**
+ * The outcome the product exists for. Everything else Yugo counts —
+ * registrations, connections, subscriptions — is a step towards this or it is
+ * a distraction.
+ */
+export function isMarried(stage: RelationshipStage): boolean {
+  return stage === 'MARRIED';
 }
