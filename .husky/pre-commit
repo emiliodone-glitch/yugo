@@ -1,1 +1,43 @@
+#
+# Antes de cada commit: buscar secretos, y luego el lint.
+#
+# El orden importa. Un lint que falla se arregla y ya; un secreto que entra al
+# historial de git no se borra reescribiendo el archivo en el commit siguiente
+# —queda en el objeto anterior— y hay que rotarlo, avisar y reescribir la
+# historia. Por eso se comprueba primero lo que no tiene vuelta atrás.
+#
+# Qué pasa si gitleaks no está instalado: **avisa fuerte y deja pasar**. Es una
+# decisión, no un descuido. Bloquear a quien no lo tiene instalado enseña a
+# escribir `--no-verify`, y quien aprende ese reflejo se salta también el día
+# que sí había un secreto. La red que no se puede saltar es la de CI, que corre
+# siempre y bloquea el merge. Este hook es para enterarse antes de que el
+# secreto salga de tu máquina; el de CI es el que de verdad cierra la puerta.
+#
+
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --config .gitleaks.toml --no-banner --redact --verbose; then
+    echo
+    echo "  Hay un secreto en lo que estás por commitear."
+    echo
+    echo "  Sácalo del archivo y usa .env (que está en .gitignore), o documenta"
+    echo "  el nombre de la variable en .env.example sin su valor."
+    echo
+    echo "  Si es un falso positivo, añade la excepción a .gitleaks.toml con un"
+    echo "  comentario que diga por qué, y agrega el caso a"
+    echo "  scripts/secret-scan-selftest.sh para que quede probado."
+    echo
+    exit 1
+  fi
+else
+  echo
+  echo "  gitleaks no está instalado: este commit va SIN revisar secretos."
+  echo
+  echo "    brew install gitleaks                            # macOS"
+  echo "    https://github.com/gitleaks/gitleaks/releases    # Linux / Windows"
+  echo
+  echo "  CI sí lo revisa y bloquea el merge, pero para entonces el secreto ya"
+  echo "  estaría en el historial y habría que rotarlo."
+  echo
+fi
+
 pnpm lint

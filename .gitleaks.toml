@@ -1,0 +1,133 @@
+# ============================================================================
+# Yugo — detección de secretos.
+#
+# Este archivo existe porque las reglas por defecto de gitleaks **no** atrapan
+# las tres fugas más probables de este repositorio. Se comprobó corriéndolo:
+# un `DATABASE_URL` de producción con contraseña, un `REDIS_URL` igual y una
+# `ANTHROPIC_API_KEY` pasan limpios con la configuración de fábrica. Sí atrapa
+# Stripe, la clave de Azul y el token de Expo.
+#
+# Esa asimetría tiene sentido desde el lado de gitleaks —una URI de conexión
+# es sintaxis legítima y aparece en mil archivos de ejemplo— y es exactamente
+# por eso que aquí hay que nombrarlas: en Yugo, un `DATABASE_URL` filtrado no
+# es una credencial de un servicio, es la libreta de direcciones, las fotos y
+# las conversaciones de gente real, más las peticiones de oración anónimas que
+# se escribieron **porque** nadie iba a saber quién las firmó.
+#
+# Cada regla nueva tiene su caso de prueba en `scripts/secret-scan-selftest.sh`.
+# Una regla de seguridad que nadie ha visto dispararse no es una protección:
+# es una creencia.
+# ============================================================================
+
+title = "Yugo"
+
+[extend]
+# Las reglas de fábrica siguen activas: atrapan Stripe, AWS, GCP, Slack y
+# decenas más que nadie va a reescribir mejor aquí.
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Reglas propias
+# ---------------------------------------------------------------------------
+
+[[rules]]
+id = "yugo-anthropic-api-key"
+description = "Clave de la API de Anthropic (moderación de texto)"
+# La moderación previa de todo el texto del producto pasa por esta clave. Que
+# se filtre no solo cuesta dinero: deja la moderación en manos de cualquiera.
+regex = '''sk-ant-[a-zA-Z0-9]{2,}-[a-zA-Z0-9_\-]{80,}'''
+keywords = ["sk-ant-"]
+
+[[rules]]
+id = "yugo-db-uri-with-password"
+description = "URI de base de datos o caché con contraseña embebida"
+# Cubre postgres, postgresql, redis, rediss, mysql, mongodb y mongodb+srv.
+# El usuario puede ir vacío (redis://:clave@host) porque así se escribe Redis.
+regex = '''(?i)\b(?:postgres(?:ql)?|rediss?|mysql|mongodb(?:\+srv)?)://[^\s:/@]*:([^\s:/@]{6,})@'''
+secretGroup = 1
+keywords = ["postgres://", "postgresql://", "redis://", "rediss://", "mysql://", "mongodb://"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  # Las credenciales de desarrollo que el repo sí debe contener: la plantilla
+  # `.env.example`, docker-compose y los servicios de CI. Se listan una por una
+  # a propósito — un allowlist por carpeta taparía una fuga de verdad puesta
+  # al lado de una de estas.
+  regexes = [
+    '''://yugo:yugo@''',
+    '''://postgres:postgres@''',
+    '''://(?:[^\s:/@]*):(?:password|passwd|secret|changeme|change-me|example|placeholder|tu-clave|clave)@''',
+  ]
+
+[[rules]]
+id = "yugo-azul-auth-key"
+description = "Llave de autenticación de Azul (procesador de pagos dominicano)"
+# La regla genérica de gitleaks la atrapa hoy por entropía, de casualidad. Una
+# llave con menos entropía se le escaparía, y Azul es el medio de pago real de
+# este producto: se nombra explícitamente para que no dependa de la suerte.
+regex = '''(?i)\bazul_(?:auth_key|auth_key_?[123]|certificate|key)\s*[:=]\s*['"]?([a-zA-Z0-9/+_\-]{16,})['"]?'''
+secretGroup = 1
+keywords = ["azul_auth", "azul_certificate", "azul_key"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  regexes = ['''(?i)=\s*['"]?(?:change-me|changeme|placeholder|tu-llave)''']
+
+[[rules]]
+id = "yugo-jwt-signing-secret"
+description = "Secreto de firma de JWT con valor real"
+# Con esto cualquiera emite un token de administrador. Se exige longitud y se
+# permiten explícitamente los valores de plantilla y de CI.
+regex = '''(?i)\bjwt_(?:access|refresh)_secret\s*[:=]\s*['"]?([a-zA-Z0-9/+_\-\.]{20,})['"]?'''
+secretGroup = 1
+keywords = ["jwt_access_secret", "jwt_refresh_secret"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  regexes = [
+    '''(?i)=\s*['"]?(?:change-me|changeme|ci-|dev-|test-|placeholder)''',
+    '''(?i)=\s*\$\{''',   # interpolación: el valor no está aquí
+  ]
+
+[[rules]]
+id = "yugo-private-key-block"
+description = "Bloque de clave privada (Google Play, Apple, TLS)"
+# `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` y la clave de App Store llegan como PEM
+# dentro de un JSON, que es fácil de pegar en un archivo sin pensarlo.
+regex = '''-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY( BLOCK)?-----'''
+keywords = ["BEGIN", "PRIVATE KEY"]
+
+# ---------------------------------------------------------------------------
+# Allowlist global
+# ---------------------------------------------------------------------------
+
+[allowlist]
+description = "Lo que este repositorio sí debe contener"
+
+paths = [
+  # La plantilla de entorno tiene que traer los nombres de todas las variables
+  # y valores de relleno; es documentación, no una fuga.
+  '''^\.env\.example$''',
+  # El auto-test contiene un secreto falso de cada forma: es su trabajo, y sin
+  # esta excepción no se podría ni commitear.
+  #
+  # Esto abre un punto ciego y conviene decirlo en voz alta: un secreto de
+  # verdad pegado en este archivo pasaría sin que nadie lo note. Se acepta
+  # porque la alternativa —no tener auto-test— deja el punto ciego en todo el
+  # repositorio en vez de en un archivo. Lo que lo mantiene manejable es que
+  # ahí solo van valores inventados, y que un cambio a este archivo es de los
+  # pocos que un revisor mira con atención justamente por lo que contiene.
+  '''^scripts/secret-scan-selftest\.sh$''',
+  # Los reportes de la propia herramienta.
+  '''^gitleaks-report\.json$''',
+  # Dependencias y artefactos: no son código de este repositorio.
+  '''(^|/)node_modules/''',
+  '''(^|/)(dist|build|\.next|\.turbo|coverage)/''',
+  '''(^|/)pnpm-lock\.yaml$''',
+]
+
+regexes = [
+  # La contraseña de las cuentas sembradas para demo y pruebas. Es pública a
+  # propósito: sin ella nadie puede correr la demo ni la suite de humo.
+  '''Yugo\.demo1''',
+]

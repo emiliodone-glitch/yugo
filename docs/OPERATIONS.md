@@ -104,6 +104,63 @@ En producción se inyectan desde el gestor de secretos del proveedor.
 Rotación recomendada: `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` cada 90 días
 (rotar el de refresco invalida todas las sesiones: avisar antes).
 
+### Detección automática
+
+Dos redes, y hacen cosas distintas:
+
+| | Dónde | Si falta gitleaks | Qué revisa |
+| --- | --- | --- | --- |
+| `.husky/pre-commit` | Tu máquina, antes del commit | **Avisa y deja pasar** | Lo que está en el índice |
+| Trabajo `secretos` en CI | GitHub Actions, antes del merge | No aplica: lo instala | **Toda la historia** |
+
+Que el hook local no bloquee cuando falta la herramienta es una decisión, no un
+descuido: bloquear enseña a escribir `--no-verify`, y quien aprende ese reflejo
+se lo salta también el día que sí había un secreto. La red que no se puede
+saltar es la de CI. El costo es real y conviene decirlo: si haces push con un
+secreto, CI lo detiene antes del merge, pero para entonces ya está en el
+historial remoto y **hay que rotarlo igual**.
+
+Instalar la herramienta localmente:
+
+```bash
+brew install gitleaks                          # macOS
+# Linux/Windows: https://github.com/gitleaks/gitleaks/releases
+```
+
+```bash
+pnpm scan:secrets     # revisa toda la historia
+pnpm scan:selftest    # comprueba que el escáner detecta lo que dice detectar
+```
+
+Las reglas están en `.gitleaks.toml`. Existen porque **las de fábrica dejaban
+pasar las tres fugas más probables de este repositorio**: un `DATABASE_URL` de
+producción con contraseña, un `REDIS_URL` igual y una `ANTHROPIC_API_KEY`. Se
+comprobó corriéndolo, no leyendo la documentación. Además hay reglas propias
+para Azul (procesador dominicano que gitleaks no conoce), los secretos de firma
+de JWT y los bloques de clave privada.
+
+`scripts/secret-scan-selftest.sh` le pone delante un secreto falso de cada
+forma y falla si alguno pasa limpio; también comprueba que los valores de
+relleno del repositorio no disparen nada, porque un escáner que grita por todo
+se apaga en una semana. CI lo corre **antes** del escaneo: sin ese paso, una
+regla rota se vería exactamente igual que un repositorio limpio.
+
+### Si se filtró un secreto
+
+Por este orden, y el primer paso no es borrar el archivo:
+
+1. **Rotar la credencial.** Ya está comprometida. Borrarla del repositorio no
+   la desfiltra: sigue en el objeto de git anterior y en cualquier copia que
+   alguien haya clonado.
+2. Revisar accesos con esa credencial desde la fecha del commit que la
+   introdujo (`git log -S` sobre el valor para encontrarlo).
+3. Sacarla del código y ponerla en el gestor de secretos.
+4. Si es `DATABASE_URL` o una clave de almacenamiento, esto es un incidente de
+   datos personales: aplica el procedimiento de la Ley 172-13 y hay que
+   notificar. No es solo un problema técnico.
+5. Reescribir la historia solo después de lo anterior, y coordinado: obliga a
+   todo el mundo a reclonar.
+
 ## Contactos de escalada
 
 | Tema | Responsable |

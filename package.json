@@ -12,6 +12,8 @@
     "dev": "turbo run dev",
     "lint": "eslint \"packages/*/src/**/*.ts\" \"apps/api/src/**/*.ts\" && turbo run lint",
     "test": "turbo run test",
+    "scan:secrets": "gitleaks detect --source . --config .gitleaks.toml --no-banner --redact --verbose",
+    "scan:selftest": "./scripts/secret-scan-selftest.sh",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "db:migrate": "pnpm --filter @yugo/api db:migrate",

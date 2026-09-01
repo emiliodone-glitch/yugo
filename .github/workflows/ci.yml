@@ -6,6 +6,50 @@ on:
   pull_request:
 
 jobs:
+  # Va primero y sin `needs`: es lo único que no tiene vuelta atrás. Un lint que
+  # falla se arregla en el commit siguiente; un secreto que entra al historial
+  # hay que rotarlo, avisar y reescribir la historia.
+  secretos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historia completa: un secreto borrado en el commit siguiente sigue
+          # estando en el objeto anterior, y es exactamente el caso que hay que
+          # atrapar. Con el checkout superficial por defecto no se vería.
+          fetch-depth: 0
+
+      - name: Instalar gitleaks
+        run: |
+          curl -sSL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
+        env:
+          # Fijada a propósito: que una versión nueva cambie las reglas por
+          # debajo es justo lo que el auto-test de abajo tiene que detectar.
+          GITLEAKS_VERSION: 8.21.2
+
+      # Antes de confiar en el escáner, comprobar que dispara. Le pone delante
+      # un secreto falso de cada forma que Yugo maneja de verdad y falla si
+      # alguno pasa limpio. Sin este paso, una regla rota se vería igual que un
+      # repositorio limpio.
+      - name: El escáner detecta lo que tiene que detectar
+        run: ./scripts/secret-scan-selftest.sh
+
+      - name: Buscar secretos en toda la historia
+        run: |
+          gitleaks detect --source . --config .gitleaks.toml \
+            --no-banner --redact --verbose \
+            --report-format json --report-path gitleaks-report.json
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          retention-days: 7
+
   verify:
     runs-on: ubuntu-latest
     steps:
