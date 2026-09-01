@@ -68,6 +68,8 @@ k6 run infra/k6/discover.js         # carga sobre Descubrir
 - `docs/Yugo_Requerimientos_v1.md` — documento de requerimientos (fuente de verdad, códigos RF-XXX-NN).
 - `docs/mockups/Yugo_Mockups.html` — mockups de referencia de las tres superficies.
 - `docs/ARCHITECTURE.md` — decisiones de arquitectura.
+- `docs/DECISIONES.md` — **lo que Yugo decide no construir**, qué cuesta cada
+  decisión y qué evidencia la cambiaría.
 - `docs/CHANGELOG.md` — registro por hito.
 - `docs/TESTING.md` — cómo probar manualmente cada entrega.
 - `docs/OPERATIONS.md` — runbook: alertas, incidentes frecuentes, respaldos.
@@ -110,4 +112,10 @@ k6 run infra/k6/discover.js         # carga sobre Descubrir
   servidor mientras falte una.
 - **No se optimiza tiempo en pantalla.** Sin videollamadas, sin feed infinito,
   sin rachas. En una app de matrimonio, quien más horas acumula es
-  desproporcionadamente quien la está usando mal.
+  desproporcionadamente quien la está usando mal. Lo que sí se busca es que la
+  app **valga la pena abrirla**: el devocional y el muro de oración le sirven a
+  alguien aunque nunca conozca a nadie aquí.
+
+Cada una de estas ausencias tiene un costo, y ninguno es cero. Están todos
+dichos —con qué evidencia cambiaría cada decisión— en
+[`docs/DECISIONES.md`](docs/DECISIONES.md).
