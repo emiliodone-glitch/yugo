@@ -22,6 +22,14 @@ La API aplica las migraciones sola al arrancar (`prisma migrate deploy` antes
 de `node dist/main.js`). No hay que correr nada a mano después de cada
 despliegue.
 
+Los dos Dockerfiles se construyen desde la raíz del monorepo; el
+`.dockerignore` de la raíz deja fuera `node_modules`, los artefactos y
+cualquier `.env`. Aviso honesto: las imágenes no se han construido todavía en
+ningún entorno con acceso a Docker Hub, así que **el primer despliegue es la
+primera construcción real**. Si falla, el log de build de Railway dice en qué
+etapa (`deps`, `build` o `runtime`) y la tabla del final de esta guía cubre lo
+más probable.
+
 ## Antes de empezar
 
 - Cuenta en [railway.com](https://railway.com) y la CLI instalada:
@@ -141,6 +149,28 @@ Railway pasa las variables del servicio como `ARG` al Dockerfile, que ya los
 declara. Genera el dominio de la web y **vuelve a la API para poner `WEB_URL`**
 con esa URL exacta (con `https://`, sin barra final). Sin ese paso, el
 navegador bloquea las peticiones por CORS y la web parece "no cargar nada".
+
+## 5b. Desplegar desde GitHub (opcional, recomendado después de la primera vez)
+
+Una vez creados los servicios a mano (pasos 2 a 5), los despliegues siguientes
+pueden salir solos desde GitHub con `.github/workflows/railway.yml`:
+
+1. En Railway: **Project → Settings → Tokens → New token**. Copia el valor.
+2. En GitHub: **Settings → Secrets and variables → Actions → New repository
+   secret** con el nombre `RAILWAY_TOKEN`.
+3. Opcional, en **Variables** del repo: `RAILWAY_API_URL` con la URL pública de
+   la API (para que el flujo espere a que esté sana), y `RAILWAY_API_SERVICE` /
+   `RAILWAY_WEB_SERVICE` si los servicios no se llaman `api` y `web`.
+
+A partir de ahí, cada push a `main` que toque la API, la web o los paquetes
+despliega; y en **Actions → Railway → Run workflow** se puede lanzar a mano
+eligiendo qué servicio.
+
+El flujo `deploy.yml` que ya existía apunta a un proveedor genérico por
+webhook (`STAGING_DEPLOY_HOOK`, `PRODUCTION_DEPLOY_HOOK`). Si Railway es el
+destino, ese flujo va a fallar en su paso de despliegue por falta de esos
+secretos: desactívalo en **Actions → Deploy → ⋯ → Disable workflow**, o
+bórralo.
 
 ## 6. Comprobar que todo funciona
 

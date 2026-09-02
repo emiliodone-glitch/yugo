@@ -23,6 +23,33 @@ Lo que este entorno no puede hacer y queda dicho: no hay token de Railway ni de
 Expo aquí. Todo está preparado y verificado; el despliegue y el build los lanza
 quien tenga las cuentas, con los comandos de las guías.
 
+### Desplegar y generar el APK desde GitHub, con un secreto y un clic
+Para que no haga falta instalar nada en una máquina propia:
+
+- **`.github/workflows/railway.yml`.** Despliega API y web con la CLI de
+  Railway. Corre en cada push a `main` que toque `apps/api`, `apps/web` o
+  `packages`, y a mano desde Actions eligiendo qué servicio. Necesita el
+  secreto `RAILWAY_TOKEN`; si falta, se detiene en el primer paso con el
+  mensaje de dónde crearlo. Si el repo tiene la variable `RAILWAY_API_URL`,
+  espera a que `/v1/health` responda `ok` antes de dar el trabajo por bueno.
+- **`.github/workflows/apk.yml`.** Lanza el build de Android en EAS con el
+  perfil elegido (`preview`, `preview-demo`, `production`). Antes de gastar
+  cuota de EAS repite aquí lo barato: tipos, las 32 pantallas montándose sin
+  lanzar y el bundle de Android. Necesita `EXPO_TOKEN` y que alguien haya
+  corrido `eas init` una vez. El enlace para seguir el build y descargar el
+  APK queda en el resumen del trabajo.
+- **`.dockerignore` en la raíz.** Los Dockerfiles se construyen desde la raíz
+  del monorepo y sin él el contexto arrastraba `node_modules` (1.1 GB) y
+  cualquier `.env` local. Lo primero hacía lento cada despliegue; lo segundo
+  podía meter una credencial en una capa de imagen.
+
+Se intentó construir las dos imágenes en este entorno para verificarlas: el
+daemon de Docker arranca, pero la política de salida bloquea el CDN de Docker
+Hub (403 al bajar `node:22-alpine`), así que **el primer despliegue en Railway
+es la primera construcción real de las imágenes**. Los Dockerfiles se
+revisaron paso a paso contra el lockfile y los scripts de cada paquete, y la
+guía tiene la tabla de síntomas por si algo se tropieza.
+
 ### La app móvil, validada sin dispositivo
 No hay emulador ni SDK de Android en CI ni en este entorno (la descarga del SDK
 está bloqueada), así que se construyó lo más parecido a abrir la app en un

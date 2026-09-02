@@ -93,6 +93,22 @@ Los perfiles están en `eas.json`:
 `EXPO_PUBLIC_API_URL` se lee **al construir**; para cambiar de servidor hay que
 volver a construir. Sin `/v1` al final: la app lo añade.
 
+### Desde GitHub, sin instalar nada
+
+`.github/workflows/apk.yml` hace lo mismo desde Actions:
+
+1. En expo.dev: **Account settings → Access tokens → Create token**.
+2. En GitHub: secreto `EXPO_TOKEN` en **Settings → Secrets and variables →
+   Actions**.
+3. Una sola vez, con la cuenta del proyecto: `cd apps/mobile && eas init` y
+   commitear el `projectId` que añade a `app.json`.
+4. **Actions → APK (EAS Build) → Run workflow**: elige el perfil y, salvo en
+   `preview-demo`, pega la URL de la API.
+
+El flujo corre primero tipos, las 32 pantallas y el bundle, y solo entonces
+pide el build a EAS. El enlace para seguirlo y descargar el APK queda en el
+resumen del trabajo.
+
 ### Antes de lanzar el build
 
 Lo que se puede comprobar sin un teléfono, y se comprueba en CI:

@@ -1,0 +1,101 @@
+name: APK (EAS Build)
+
+# Construye el APK de Android en la nube de Expo desde GitHub, sin Android
+# Studio ni una máquina propia. Se lanza a mano: Actions → «APK (EAS Build)» →
+# Run workflow, eligiendo el perfil.
+#
+# Necesita un secreto: EXPO_TOKEN (expo.dev → Account settings → Access
+# tokens). Y una sola vez, alguien tiene que haber corrido `eas init` en
+# apps/mobile para que app.json tenga el projectId; el primer paso lo comprueba.
+#
+# Antes de pedirle a EAS que construya, este flujo corre lo mismo que CI para la
+# app: tipos, las 32 pantallas montándose sin lanzar, y el bundle de Android.
+# Un build en EAS tarda minutos y cuesta cuota; que falle por algo que se podía
+# ver aquí en treinta segundos es un desperdicio evitable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Perfil de eas.json'
+        type: choice
+        default: preview
+        options: [preview, preview-demo, production]
+      api_url:
+        description: 'URL de la API (sin /v1). Se ignora en preview-demo.'
+        type: string
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Comprobar token y projectId
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Falta el secreto EXPO_TOKEN (expo.dev → Account settings → Access tokens)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: El proyecto tiene projectId de EAS
+        run: |
+          if ! grep -q '"projectId"' apps/mobile/app.json; then
+            echo "::error::apps/mobile/app.json no tiene extra.eas.projectId. Corre una vez \`cd apps/mobile && eas init\` con la cuenta del proyecto y commitea el cambio."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Construir paquetes compartidos
+        run: pnpm --filter @yugo/ui-tokens build && pnpm --filter @yugo/shared build && pnpm --filter @yugo/app-core build
+
+      # Lo barato primero. Si algo de esto falla, EAS habría fallado igual,
+      # pero diez minutos y una unidad de cuota después.
+      - name: Tipos
+        run: pnpm --filter @yugo/mobile typecheck
+
+      - name: Cada pantalla se monta sin lanzar
+        run: pnpm --filter @yugo/mobile test
+
+      - name: El bundle de Android resuelve todos sus módulos
+        env:
+          EXPO_PUBLIC_DEMO_MODE: ${{ inputs.profile == 'preview-demo' && 'true' || 'false' }}
+          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+        run: pnpm --filter @yugo/mobile exec expo export --platform android --output-dir /tmp/expo-export
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Lanzar el build en EAS
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+        run: |
+          if [ "${{ inputs.profile }}" != "preview-demo" ] && [ -z "$EXPO_PUBLIC_API_URL" ]; then
+            echo "::error::El perfil ${{ inputs.profile }} necesita api_url (la URL de la API en Railway, sin /v1)."
+            exit 1
+          fi
+          eas build --platform android --profile "${{ inputs.profile }}" --non-interactive --no-wait --json > build.json
+          cat build.json
+          URL=$(node -e "const b=require('./build.json'); console.log((Array.isArray(b)?b[0]:b).buildDetailsPageUrl ?? '')")
+          echo "### Build lanzado en EAS" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Perfil: \`${{ inputs.profile }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sigue el progreso y descarga el APK aquí: $URL" >> "$GITHUB_STEP_SUMMARY"
