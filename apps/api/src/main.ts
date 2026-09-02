@@ -17,8 +17,10 @@ async function bootstrap() {
   // global aquí solo pedía class-validator, que el proyecto no usa.
   app.enableShutdownHooks();
 
-  const port = Number(process.env.API_PORT ?? 4000);
-  await app.listen(port);
+  // Railway y la mayoría de las plataformas inyectan PORT; API_PORT queda
+  // para desarrollo local. Escuchar en 0.0.0.0 es obligatorio en contenedor.
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
+  await app.listen(port, '0.0.0.0');
   Logger.log(`Yugo API listening on http://localhost:${port}/v1`, 'Bootstrap');
 }
 

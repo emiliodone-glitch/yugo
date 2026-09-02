@@ -57,6 +57,8 @@ keywords = ["postgres://", "postgresql://", "redis://", "rediss://", "mysql://",
     '''://yugo:yugo@''',
     '''://postgres:postgres@''',
     '''://(?:[^\s:/@]*):(?:password|passwd|secret|changeme|change-me|example|placeholder|tu-clave|clave)@''',
+    # Marcadores de documentación: <pass>, <contraseña>, ${POSTGRES_PASSWORD}.
+    '''://(?:[^\s:/@]*):(?:<[^>@\s]+>|\$\{[^}@\s]+\})@''',
   ]
 
 [[rules]]

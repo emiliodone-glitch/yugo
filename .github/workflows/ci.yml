@@ -82,6 +82,15 @@ jobs:
       - name: Coverage (domain services ≥ 70%, RNF-09)
         run: pnpm --filter @yugo/api test:cov
 
+      # El bundle de Android tiene que resolver todos sus módulos. Es la
+      # comprobación que atrapó un @babel/runtime ausente por la estructura del
+      # monorepo, que habría roto el build en EAS. Las pantallas se montan sin
+      # lanzar en `pnpm test` (apps/mobile/__tests__).
+      - name: Mobile bundle resolves (expo export, Android)
+        env:
+          EXPO_PUBLIC_DEMO_MODE: 'true'
+        run: pnpm --filter @yugo/mobile exec expo export --platform android --output-dir /tmp/expo-export
+
       - name: Build web + api + packages
         run: pnpm build
 

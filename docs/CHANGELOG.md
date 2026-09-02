@@ -3,6 +3,63 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.6.0 — Listo para Railway, y la app validada antes del APK
+
+### Lo que hacía falta para desplegar, y no estaba
+- **La API no podía migrar en producción.** `prisma` era dependencia de
+  desarrollo; la imagen de producción se instala con `--prod` y el CLI no
+  existía. Ahora es dependencia y el contenedor arranca con
+  `prisma migrate deploy && node dist/main.js`: no hay que correr nada a mano.
+- **La API ignoraba `PORT`.** Railway inyecta `PORT`; la API leía solo
+  `API_PORT`. Ahora `PORT` manda. Verificado arrancando con `PORT=4100` y
+  recibiendo `/v1/health` en ese puerto.
+- `railway.json` por servicio (Dockerfile, healthcheck, reinicio) y
+  `docs/RAILWAY.md` con los pasos exactos, la tabla de variables y la tabla de
+  «cuando algo falla». El punto que más se va a tropezar: la plantilla estándar
+  de Postgres de Railway **no trae PostGIS**, y la primera migración lo exige;
+  la guía despliega `postgis/postgis:16-3.4` como servicio con volumen.
+
+Lo que este entorno no puede hacer y queda dicho: no hay token de Railway ni de
+Expo aquí. Todo está preparado y verificado; el despliegue y el build los lanza
+quien tenga las cuentas, con los comandos de las guías.
+
+### La app móvil, validada sin dispositivo
+No hay emulador ni SDK de Android en CI ni en este entorno (la descarga del SDK
+está bloqueada), así que se construyó lo más parecido a abrir la app en un
+teléfono:
+
+- **`expo export` del bundle de Android.** En la primera corrida falló:
+  faltaba `@babel/runtime`, que pnpm no expone a la app aunque Metro lo
+  necesita. Eso habría roto el build en EAS. Añadido; el bundle compila
+  (3.4 MB, un solo archivo).
+- **Dos copias de React en el APK.** `@yugo/app-core` resolvía `react` 18.3.1
+  desde su propio `node_modules` y la app usa 18.2.0 (la que exige React
+  Native 0.74). Metro, con búsqueda jerárquica, empaquetaba las dos: es un
+  «Invalid hook call» al abrir la app. `metro.config.js` fuerza ahora una sola
+  copia de `react`, `react-native`, `@tanstack/react-query` y `zustand`, las
+  cuatro que guardan estado en contextos de React.
+- **Cada pantalla se monta sin lanzar.** Suite Jest (`apps/mobile/__tests__`)
+  que descubre las 32 rutas bajo `app/`, las monta con los proveedores de
+  producción (React Query, caché offline, push) y falla si alguna lanza o
+  escribe un error de React en consola. Corre dos veces: en modo demo, y con
+  `YUGO_TEST_LIVE=1` **sin sesión contra la API real** (todo responde 401 y la
+  app tiene que quedarse en pie). 33/33 en las dos.
+- `eas.json` con tres perfiles: `preview` (APK contra la API), `preview-demo`
+  (APK con fixtures) y `production` (AAB). Pasos en `docs/STORE_RELEASE.md`.
+- CI corre `expo export` en el trabajo `verify`.
+
+### Lo que el escáner de secretos aprendió
+La guía de Railway trae `postgresql://yugo:<pass>@…` como ejemplo y el escáner
+lo atrapó como contraseña. Es un marcador, no una clave: la regla reconoce ahora
+`<así>` y `${ASÍ}` y el auto-test lo fija (17/17). Que disparara por un ejemplo
+es la prueba de que está mirando.
+
+### Verificación
+- 120 pruebas en `@yugo/shared`, 179 en la API, **33 en la app** (nuevas),
+  290 E2E, escaneo de secretos 17/17.
+- Suite de humo contra API y PostgreSQL reales: **130/130** con la API
+  recompilada.
+
 ## v0.5.0 — Dos defectos propios, y una revisión con capturas
 
 ### Lo que estaba roto, dicho sin rodeos

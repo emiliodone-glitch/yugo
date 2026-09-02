@@ -40,7 +40,11 @@ RUN addgroup -S yugo && adduser -S yugo -G yugo
 USER yugo
 
 EXPOSE 4000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD node -e "fetch('http://localhost:4000/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||4000)+'/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "apps/api/dist/main.js"]
+# Las migraciones se aplican en el arranque, antes de servir: Railway no tiene
+# fase de «release», y una API nueva contra un esquema viejo falla peor que
+# unos segundos de espera. `prisma` va en dependencias de producción por esto.
+WORKDIR /app/apps/api
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

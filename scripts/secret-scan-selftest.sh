@@ -137,6 +137,10 @@ debe_ignorar 'la contraseña de las cuentas de demo' 'seed.ts' \
   "const password = await argon2.hash('Yugo.demo1');"
 debe_ignorar 'una variable interpolada' 'compose.yml' \
   'JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}'
+debe_ignorar 'un marcador <pass> en la documentación' 'RAILWAY.md' \
+  'DATABASE_URL=postgresql://yugo:<pass>@postgres.railway.internal:5432/yugo'
+debe_ignorar 'una contraseña interpolada en una URI' 'compose.yml' \
+  'DATABASE_URL=postgresql://yugo:${POSTGRES_PASSWORD}@postgres:5432/yugo'
 
 echo
 if [ "$fallos" -gt 0 ]; then

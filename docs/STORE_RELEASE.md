@@ -59,6 +59,61 @@ Puntos que suelen preguntarse:
   compras de la tienda.
 ```
 
+## APK de prueba interna con EAS
+
+Antes de las tiendas, un APK que se instala a mano en teléfonos de prueba.
+Se construye en la nube de Expo (EAS Build); no hace falta Android Studio.
+
+```bash
+npm i -g eas-cli
+cd apps/mobile
+eas login                      # cuenta de Expo del proyecto
+eas init                       # una sola vez: crea el proyecto y su projectId
+
+# APK contra la API desplegada (Railway):
+EXPO_PUBLIC_API_URL=https://<dominio-de-la-api> \
+  eas build --platform android --profile preview
+
+# APK en modo demo (sin servidor, con las fixtures), para enseñar el producto:
+eas build --platform android --profile preview-demo
+```
+
+Al terminar, EAS da un enlace de descarga y un código QR. El archivo se instala
+en Android activando «Instalar apps de origen desconocido» para el navegador o
+el gestor de archivos.
+
+Los perfiles están en `eas.json`:
+
+| Perfil | Produce | Apunta a | Para qué |
+| --- | --- | --- | --- |
+| `preview` | APK | `EXPO_PUBLIC_API_URL` | Pruebas con la API real |
+| `preview-demo` | APK | Fixtures (`EXPO_PUBLIC_DEMO_MODE=true`) | Enseñar la app sin infraestructura |
+| `production` | AAB | `EXPO_PUBLIC_API_URL` | Google Play |
+
+`EXPO_PUBLIC_API_URL` se lee **al construir**; para cambiar de servidor hay que
+volver a construir. Sin `/v1` al final: la app lo añade.
+
+### Antes de lanzar el build
+
+Lo que se puede comprobar sin un teléfono, y se comprueba en CI:
+
+```bash
+cd apps/mobile
+pnpm typecheck                                  # tipos
+pnpm test                                       # cada pantalla se monta sin lanzar
+npx expo export --platform android              # el bundle resuelve todos los módulos
+npx expo-doctor                                 # versiones compatibles con el SDK
+```
+
+La suite de `pnpm test` monta las 32 rutas en modo demo con los proveedores de
+producción y falla si alguna lanza o escribe un error de React en la consola.
+Es la prueba más barata contra una app que se cierra al abrirla. `expo export`
+es la que atrapó, en la primera corrida, un módulo que faltaba por la
+estructura del monorepo y habría roto el build en EAS.
+
+Lo que solo se puede comprobar en un dispositivo: los flujos de Maestro
+(`maestro test apps/mobile/.maestro`) contra el APK instalado.
+
 ## Pasos de publicación
 
 ### iOS (App Store)

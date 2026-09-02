@@ -73,6 +73,7 @@ k6 run infra/k6/discover.js         # carga sobre Descubrir
 - `docs/CHANGELOG.md` — registro por hito.
 - `docs/TESTING.md` — cómo probar manualmente cada entrega.
 - `docs/OPERATIONS.md` — runbook: alertas, incidentes frecuentes, respaldos.
+- `docs/RAILWAY.md` — desplegar API, web y PostGIS en Railway, paso a paso.
 - `docs/STORE_RELEASE.md` — publicación en App Store y Google Play.
 
 ## Principios que no se negocian
