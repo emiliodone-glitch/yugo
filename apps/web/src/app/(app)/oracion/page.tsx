@@ -16,7 +16,7 @@ export default function PrayerPage() {
     <div className="pb-4">
       <PageHeader title={es.prayer.title} backHref="/inicio" />
       <div className="px-4">
-        <PrayerWall />
+        <PrayerWall showTitle={false} />
       </div>
     </div>
   );

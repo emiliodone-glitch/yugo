@@ -76,6 +76,35 @@ prioridad alta, no crítica.
 | `0 3 * * *` | Vencimientos, downgrades y avisos de modo invisible (RF-PLU-08) | `SubscriptionsController.dailyMaintenance` |
 | `0 4 * * *` | Borrado definitivo tras la gracia de 14 días (RF-AUT-08) | `PrivacyService.purgeExpiredDeletions` |
 
+## Contenido que alguien tiene que producir
+
+### El devocional del día
+No es una tarea programada: es una persona. Cada día tiene que haber un
+devocional publicado, y la app no lo genera. Cuando no lo hay, repite el último
+y le dice a la gente que el de hoy todavía no está.
+
+- Dónde se escribe: `/admin/devocionales` (roles `COMMUNITY_MANAGER` y
+  `SUPERADMIN`).
+- Qué mirar: la **reserva**, en grande al entrar. Son los días consecutivos
+  programados a partir de hoy. El tablero avisa en alto con menos de una
+  semana y en crítico cuando es cero.
+- Ritmo recomendado: escribir con dos semanas de adelanto, una vez por semana.
+  Es media hora; el costo de no hacerlo es que el producto pierda la única
+  razón que tiene para abrirse un martes cualquiera.
+- Lo que no se puede: reescribir o borrar uno que alguien ya leyó. Lo que esa
+  persona leyó fue lo que leyó.
+
+### La cola de retenidos
+Lo que la moderación automática para queda esperando a una persona:
+mensajes, publicaciones, fotos, peticiones de oración, testimonios y
+reflexiones. Las peticiones y reflexiones **nunca se rechazan solas** —si el
+clasificador dice «rechazar», entran con prioridad alta— así que la cola vacía
+no es opcional: a cada persona que espera se le prometió una respuesta.
+
+- Dónde: `/admin/moderacion`, pestaña «Retenidos», que es la que abre.
+- Cuándo: al menos dos veces al día. Una petición de oración escrita un
+  domingo por la noche no debería esperar al lunes al mediodía.
+
 ## Respaldos y recuperación
 
 - Respaldo diario de PostgreSQL con retención de 30 días (RNF-01):

@@ -203,6 +203,7 @@ pantalla.
 | Nadie ve la respuesta del otro antes de escribir la suya | `theirAnswer` llega en `null`, el texto no sale del servidor | Mandarlo y ocultarlo con CSS |
 | De una petición anónima no sale ni el nombre ni la iglesia | `churchId` se guarda en `null`; el autor no se serializa | Guardarlo «solo para ordenar» |
 | La edad se valida en el servidor y el intento menor se audita | 403 desde el servicio, con registro previo en `AuditLog` | Un 400 desde un esquema que corta antes de auditar |
+| Una petición de oración o una reflexión nunca se rechaza sola | «Rechazar» del clasificador se guarda como retenida con prioridad alta; la decide una persona | Un rechazo automático, que dejaría sin nadie detrás la promesa «se publica cuando alguien la apruebe» |
 
 La tercera merece una nota porque su costo es el menos obvio: **una petición
 anónima no aparece en la vista «mi iglesia»**, lo que le quita alcance justo a

@@ -146,6 +146,23 @@ export class AdminController {
     return this.admin.decideCase(user.id, id, body.decision, body.reason);
   }
 
+  /** Lo retenido por la IA, con el contenido delante para poder decidir. */
+  @Get('moderation/held')
+  @Roles('MODERATOR', 'SUPERADMIN')
+  heldContent() {
+    return this.admin.heldContent();
+  }
+
+  @Post('moderation/held/:caseId/resolve')
+  @Roles('MODERATOR', 'SUPERADMIN')
+  resolveHeldContent(
+    @CurrentUser() user: AuthUser,
+    @Param('caseId') caseId: string,
+    @Body(new ZodPipe(heldSchema)) body: { approve: boolean },
+  ) {
+    return this.admin.resolveHeldContent(user.id, caseId, body.approve);
+  }
+
   @Post('moderation/messages/:id/resolve')
   @Roles('MODERATOR', 'SUPERADMIN')
   resolveHeld(

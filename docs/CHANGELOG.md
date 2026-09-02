@@ -3,6 +3,83 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.5.0 — Dos defectos propios, y una revisión con capturas
+
+### Lo que estaba roto, dicho sin rodeos
+Dos defectos introducidos en la entrega anterior, encontrados al verificarla y
+no por un reporte:
+
+1. **Una petición de oración retenida no podía aprobarse nunca.** El caso de
+   moderación se creaba solo con el id de la persona; la cola resolvía casos
+   por mensaje, publicación o foto y no sabía qué hacer con este. A quien la
+   escribió se le decía «se publica cuando alguien la apruebe», y nadie podía.
+   Lo mismo con las reflexiones del devocional y con los testimonios de
+   «fue contestada», que además se descartaban en silencio.
+2. **No había forma de escribir devocionales.** Había catorce sembrados; el día
+   quince la app iba a decir «el de hoy todavía no está publicado» para
+   siempre. Se construyó la función y no quién la alimenta.
+
+### Cola de retenidos, real
+La pestaña «Retenidos» del panel traía un texto fijo («41 mensajes retenidos»)
+y no permitía hacer nada, ni siquiera con mensajes. Ahora trae el contenido de
+cada cosa —mensajes, publicaciones, fotos, peticiones, testimonios y
+reflexiones— y dos botones. Aprobar publica y avisa; rechazar retira y también
+avisa: las dos respuestas importan igual. Una sola puerta para todos los tipos,
+para que el siguiente texto que pase por moderación no repita la historia.
+
+Quien modera ve quién escribió una petición anónima —es personal del equipo y
+lo necesita para decidir—; la etiqueta «anónima para la comunidad» le recuerda
+lo grave que sería filtrarla.
+
+**Una petición o una reflexión nunca se rechaza sola.** Si el clasificador dice
+«rechazar», queda retenida con prioridad alta y la decide una persona. En el
+chat es distinto: ahí se le dice a la persona al instante que no se entregó;
+aquí se le dijo que espere, y alguien tiene que estar del otro lado.
+
+### Autoría de devocionales
+`/admin/devocionales`: la **reserva** —días consecutivos programados a partir
+de hoy— en grande y con color, porque es el número que evita el defecto. El
+tablero avisa con una semana y en rojo cuando llega a cero. Un devocional ya
+leído no se reescribe ni se borra: lo que alguien leyó fue lo que leyó, y «27
+de tu iglesia lo leyeron hoy» tiene que seguir significando que leyeron lo
+mismo.
+
+Esto es una **dependencia operativa**, no solo una pantalla: alguien tiene que
+escribir uno al día. Está en `OPERATIONS.md`.
+
+### Lo que la suite encontró de paso
+- **Desfase de un día en las fechas del devocional.** `publishOn` es un `DATE`
+  que Prisma entrega como medianoche UTC; formatearlo en hora de Santo Domingo
+  lo convertía en el día anterior. Contra la API real, el devocional de hoy
+  habría dicho «el de hoy todavía no está publicado». La semilla tenía el mismo
+  sesgo.
+- El login del personal exige 2FA (RF-AUT-07) y la suite de humo no lo
+  contemplaba. Ahora acuña su propio código, como haría una persona con la
+  consola delante: el camino que se ejercita es el real.
+
+### Revisión visual, con capturas y no leyendo código
+36 capturas de todas las pantallas, en móvil y escritorio. Lo que se corrigió:
+- En escritorio, todas las páginas eran una columna de 672 px y la mitad de la
+  pantalla quedaba vacía. Inicio va a dos columnas (lo del día y, al lado, lo
+  que vale abrir todos los días); Descubrir y Eventos, en retícula. El chat,
+  el perfil y los formularios se quedan en una columna: una conversación
+  estirada a 1000 px se lee peor.
+- «Muro de oración» aparecía dos veces en su propia página.
+- «Miércoles, 2 De Septiembre»: un `capitalize` de CSS ponía mayúscula a cada
+  palabra. Corregido en web y en la app.
+- Las pestañas de la web no tenían roles de pestaña (la app sí): un lector de
+  pantalla anunciaba botones sueltos sin saber cuál estaba activa.
+- El panel no tenía navegación en móvil: quien moderaba desde el teléfono se
+  quedaba en la página en la que entró.
+- Un texto al 80 % de opacidad bajaba el contraste por debajo de AA.
+
+### Verificación
+- 120 pruebas en `@yugo/shared`, 179 en la API (22 nuevas: cola de retenidos y
+  autoría), **290 E2E**, escaneo de secretos con auto-test 15/15.
+- Suite de humo contra API y PostgreSQL reales: **130/130**, incluido el ciclo
+  completo que antes no cerraba: petición retenida → aparece en la cola con su
+  texto → un moderador la aprueba → aparece en el muro → sale de la cola.
+
 ## v0.4.0 — Propósito verificable, y conversaciones que importan
 
 ### Validación de propósito

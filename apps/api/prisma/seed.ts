@@ -543,9 +543,17 @@ async function main() {
     { reference: 'Salmo 139:14', title: 'Formidables tus obras', body: 'Antes de que alguien te vea con ojos de querer conocerte, ya fuiste visto y llamado bueno. Eso no lo otorga ni lo quita una relación.', question: '¿Qué le pides a otra persona que ya tienes?' },
   ];
   if ((await prisma.devotional.count()) === 0) {
+    // El día se decide en hora de Santo Domingo: si se tomara en UTC, entre
+    // las 8 de la noche y la medianoche la semilla escribiría el de «mañana».
     const midnight = (daysAgo: number) => {
       const d = new Date(Date.now() - daysAgo * 86400000);
-      return new Date(`${d.toISOString().slice(0, 10)}T00:00:00.000Z`);
+      const local = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santo_Domingo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+      return new Date(`${local}T00:00:00.000Z`);
     };
     for (let i = 0; i < DEVOTIONALS.length; i += 1) {
       const devotional = await prisma.devotional.create({

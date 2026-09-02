@@ -664,6 +664,57 @@ export const es = {
     limitCompleteness: 'Completitud mínima para aparecer',
     limitPassHidden: 'Días ocultos tras "Pasar"',
     limitInactivity: 'Inactividad que oculta el perfil',
+    devotionals: 'Devocionales',
+    devotionalsTitle: 'Devocionales · calendario',
+    runway: (n: number) =>
+      n === 0
+        ? 'No hay devocional para hoy'
+        : n === 1
+          ? 'Queda 1 día programado'
+          : `Quedan ${n} días programados`,
+    runwayHelp:
+      'Días consecutivos con devocional a partir de hoy. Cuando llega a cero, la app repite el último y le dice a la gente que el de hoy todavía no está.',
+    runwayOk: 'Hay reserva para más de dos semanas.',
+    runwayLow: 'Menos de una semana. Conviene escribir los próximos.',
+    runwayNone: 'Hoy la gente está viendo el de ayer. Escribe el de hoy ahora.',
+    writeFor: (date: string) => `Escribir el del ${date}`,
+    nextFree: 'Siguiente día sin devocional',
+    pickOrWrite: 'Elige un día de la lista para verlo o corregirlo, o escribe el siguiente que falta.',
+    fieldDate: 'Fecha',
+    fieldReference: 'Referencia bíblica',
+    fieldTitle: 'Título',
+    fieldBody: 'Texto',
+    fieldQuestion: 'Pregunta para pensarlo',
+    fieldBodyHelp: 'Entre 40 y 2000 caracteres. Se lee en un minuto; no es un sermón.',
+    fieldQuestionHelp: 'Es para responderse por dentro, no para contestar en público.',
+    saveDevotional: 'Guardar',
+    savedDevotional: 'Guardado.',
+    lockedRead: (n: number) =>
+      n === 1
+        ? 'Ya lo leyó 1 persona. Lo que leyó fue lo que leyó: no se cambia.'
+        : `Ya lo leyeron ${n} personas. Lo que leyeron fue lo que leyeron: no se cambia.`,
+    readsCount: (n: number) => (n === 1 ? '1 lectura' : `${n} lecturas`),
+    removeDevotional: 'Quitar',
+    past: 'Pasado',
+    todayLabel: 'Hoy',
+    scheduled: 'Programado',
+    heldTitle: 'Retenidos por la moderación automática',
+    heldEmpty: 'No hay nada retenido. Todo lo que la gente escribió hoy ya está publicado.',
+    heldApprove: 'Publicar',
+    heldReject: 'No publicar',
+    heldWaiting: (n: number) =>
+      n === 1 ? '1 persona espera una respuesta.' : `${n} personas esperan una respuesta.`,
+    heldNote:
+      'Aprobar publica el contenido y avisa a la persona. Rechazar lo retira y también le avisa: las dos respuestas importan igual.',
+    heldRisk: (pct: number) => `Riesgo estimado ${pct}%`,
+    heldKind: {
+      message: 'Mensaje',
+      post: 'Publicación',
+      photo: 'Foto',
+      prayer: 'Petición de oración',
+      prayer_note: 'Testimonio',
+      reflection: 'Reflexión',
+    },
     aiThresholds: 'Umbrales de moderación IA',
     holdIf: 'Retener mensaje si riesgo ≥',
     rejectIf: 'Rechazar automáticamente si ≥',

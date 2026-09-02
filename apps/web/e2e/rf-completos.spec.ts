@@ -143,7 +143,7 @@ test.describe('Sesión', () => {
 test.describe('Grupos con aprobación (RF-COM-02)', () => {
   test('los grupos con aprobación solicitan entrada en vez de unirse', async ({ page }) => {
     await page.goto('/comunidad');
-    await page.getByRole('button', { name: 'Sugeridos' }).click();
+    await page.getByRole('tab', { name: 'Sugeridos' }).click();
 
     await expect(page.getByRole('button', { name: 'Solicitar entrada' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unirme' }).first()).toBeVisible();
@@ -161,7 +161,7 @@ test.describe('Notificaciones (RF-NOT-01/02)', () => {
 
   test('las preferencias permiten silenciar una categoría y fijar el horario', async ({ page }) => {
     await page.goto('/perfil/notificaciones');
-    await page.getByRole('button', { name: 'Preferencias' }).click();
+    await page.getByRole('tab', { name: 'Preferencias' }).click();
 
     // Cada categoría se silencia por separado.
     const messages = page.getByRole('switch', { name: 'Mensajes' });

@@ -245,6 +245,7 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
   const markAnswered = useMarkPrayerAnswered();
   const [closing, setClosing] = useState(false);
   const [note, setNote] = useState('');
+  const [noteHeld, setNoteHeld] = useState(false);
 
   // La autoría se decide por id y nunca por nombre: dos personas se pueden
   // llamar Ana, y cada una vería la petición de la otra como suya.
@@ -270,6 +271,7 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
           </Text>
         </View>
       ) : null}
+      {noteHeld ? <Notice text={es.prayer.answeredNoteHeld} tone="wine" /> : null}
 
       <View style={[styles.rowBetween, { marginTop: 10 }]}>
         {/* Nunca imprime un cero: eso lo resuelve `intercessionCount`. */}
@@ -303,8 +305,12 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
                 tone="olive"
                 small
                 style={{ flex: 1 }}
-                onPress={() => {
-                  markAnswered.mutate({ id: item.id, note: note.trim() || undefined });
+                onPress={async () => {
+                  const result = await markAnswered.mutateAsync({
+                    id: item.id,
+                    note: note.trim() || undefined,
+                  });
+                  setNoteHeld(result.noteHeld);
                   setClosing(false);
                 }}
               />

@@ -136,6 +136,56 @@ export interface DevotionalReadResult {
   published: boolean;
 }
 
+/**
+ * Un contenido retenido por la moderación automática, tal como lo ve quien
+ * modera. `kind` dice qué es; `context` lo dice en palabras para no tener que
+ * traducir el enum en cada pantalla.
+ */
+export type HeldContentKind = 'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
+
+export interface HeldContentItem {
+  caseId: string;
+  kind: HeldContentKind;
+  text: string | null;
+  photoKey?: string;
+  /** Firmada y de vida corta; la foto está retenida por algo. */
+  photoUrl?: string;
+  authorId: string | null;
+  authorName: string;
+  context: string;
+  risk: number | null;
+  priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+  createdAt: string;
+}
+
+/** Lo que se escribe para un día. */
+export interface DevotionalDraft {
+  reference: string;
+  title: string;
+  body: string;
+  question: string;
+}
+
+export interface ScheduledDevotional extends DevotionalDraft {
+  id: string;
+  publishOn: string;
+  /** Cuántas personas lo leyeron. Si es mayor que cero, ya no se puede tocar. */
+  reads: number;
+  isPast: boolean;
+  isToday: boolean;
+}
+
+/**
+ * El calendario de devocionales. `runwayDays` es el número que importa: los
+ * días consecutivos programados a partir de hoy. Cuando llega a cero la app
+ * repite el último para siempre.
+ */
+export interface DevotionalSchedule {
+  today: string;
+  runwayDays: number;
+  items: ScheduledDevotional[];
+}
+
 /** Una petición propia, incluidas las que siguen en revisión. */
 export interface MyPrayerRequest {
   id: string;
@@ -145,6 +195,8 @@ export interface MyPrayerRequest {
   intercessions: number;
   answeredAt: string | null;
   answeredNote: string | null;
+  /** Null si no dejó testimonio; si quedó retenido, la persona debe saberlo. */
+  answeredNoteStatus: string | null;
   createdAt: string;
 }
 
@@ -974,6 +1026,22 @@ export class YugoApiClient {
       this.http.post<{ done: boolean }>(`/admin/moderation/cases/${id}/decision`, { decision, reason }),
     resolveHeldMessage: (id: string, approve: boolean) =>
       this.http.post<{ done: boolean }>(`/admin/moderation/messages/${id}/resolve`, { approve }),
+    /** Lo retenido por la IA con el contenido delante, de cualquier tipo. */
+    heldContent: () => this.http.get<HeldContentItem[]>('/admin/moderation/held'),
+    /** Autoría de devocionales: calendario, crear/corregir por fecha, borrar. */
+    devotionalSchedule: () => this.http.get<DevotionalSchedule>('/admin/devocionales'),
+    upsertDevotional: (date: string, input: DevotionalDraft) =>
+      this.http.put<{ id: string; publishOn: string; created: boolean }>(
+        `/admin/devocionales/${date}`,
+        input,
+      ),
+    removeDevotional: (id: string) =>
+      this.http.delete<{ deleted: boolean }>(`/admin/devocionales/${id}`),
+    resolveHeldContent: (caseId: string, approve: boolean) =>
+      this.http.post<{ done: boolean; approved: boolean }>(
+        `/admin/moderation/held/${caseId}/resolve`,
+        { approve },
+      ),
     pendingChurches: () => this.http.get<unknown[]>('/admin/churches/pending'),
     decideChurch: (id: string, approve: boolean, note?: string) =>
       this.http.post<{ done: boolean }>(`/admin/churches/${id}/decision`, { approve, note }),

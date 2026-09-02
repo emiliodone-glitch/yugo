@@ -9,7 +9,9 @@ import {
   demoCurrentUser,
   demoDailySummary,
   demoDevotional,
+  demoDevotionalSchedule,
   demoEvents,
+  demoHeldContent,
   demoPrayerRequests,
   demoMessages,
   seatFor,
@@ -19,8 +21,11 @@ import {
   type ChatMessage,
   type CoupleAccompaniment,
   type CoupleStory,
+  type DevotionalDraft,
+  type DevotionalSchedule,
   type DevotionalToday,
   type DevotionalReadResult,
+  type HeldContentItem,
   type PrayerRequestItem,
   type StageQuestionsView,
   canReveal,
@@ -110,11 +115,20 @@ interface DemoState {
   devotional: DevotionalToday;
   readDevotional: (reflection?: string) => DevotionalReadResult;
 
+  /** Cola de retenidos del panel, para que la demo enseñe el flujo completo. */
+  held: HeldContentItem[];
+  resolveHeld: (caseId: string, approve: boolean) => { done: boolean; approved: boolean };
+
+  /** Calendario de devocionales del panel. */
+  devotionalSchedule: DevotionalSchedule;
+  upsertDevotional: (date: string, draft: DevotionalDraft) => { id: string; publishOn: string; created: boolean };
+  removeDevotional: (id: string) => void;
+
   /** Muro de oración. */
   prayers: PrayerRequestItem[];
   intercede: (id: string) => { iPrayed: boolean; intercessions: number };
   createPrayer: (body: string, anonymous: boolean) => { id: string; published: boolean };
-  markPrayerAnswered: (id: string, note?: string) => void;
+  markPrayerAnswered: (id: string, note?: string) => { noteHeld: boolean };
 }
 
 /**
@@ -281,6 +295,18 @@ const demoQuestionAnswers: Record<string, Record<string, { mine?: string; theirs
     },
   },
 };
+
+/** Días consecutivos programados desde hoy; un hueco corta la cuenta. */
+function demoRunway(items: Array<{ publishOn: string }>, today: string): number {
+  const dates = new Set(items.map((d) => d.publishOn));
+  let days = 0;
+  let cursor = Date.parse(`${today}T00:00:00Z`);
+  while (dates.has(new Date(cursor).toISOString().slice(0, 10))) {
+    days += 1;
+    cursor += 86_400_000;
+  }
+  return days;
+}
 
 /** Mirrors the API's stub classifier so demo mode shows real moderation UX. */
 function demoModerationStatus(body: string): ChatMessage['moderationStatus'] {
@@ -452,6 +478,69 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     };
   },
 
+  held: demoHeldContent,
+
+  devotionalSchedule: demoDevotionalSchedule,
+
+  /**
+   * Guardar el de una fecha. Recalcula la reserva igual que la API: días
+   * consecutivos desde hoy, y un hueco la corta.
+   */
+  upsertDevotional: (date, draft) => {
+    const current = get().devotionalSchedule;
+    const existing = current.items.find((d) => d.publishOn === date);
+    const item = existing
+      ? { ...existing, ...draft }
+      : {
+          id: `dv-${date}`,
+          publishOn: date,
+          ...draft,
+          reads: 0,
+          isPast: date < current.today,
+          isToday: date === current.today,
+        };
+    const items = [...current.items.filter((d) => d.publishOn !== date), item].sort((a, b) =>
+      a.publishOn.localeCompare(b.publishOn),
+    );
+    set({ devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) } });
+    return { id: item.id, publishOn: date, created: !existing };
+  },
+
+  removeDevotional: (id) => {
+    const current = get().devotionalSchedule;
+    const items = current.items.filter((d) => d.id !== id);
+    set({ devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) } });
+  },
+
+  resolveHeld: (caseId, approve) => {
+    const item = get().held.find((h) => h.caseId === caseId);
+    set((state) => ({ held: state.held.filter((h) => h.caseId !== caseId) }));
+    // Si era una petición de oración y se aprueba, aparece en el muro: es el
+    // cierre del ciclo que antes no existía.
+    if (item && approve && item.kind === 'prayer' && item.text) {
+      set((state) => ({
+        prayers: [
+          {
+            id: `pr-${caseId}`,
+            body: item.text as string,
+            anonymous: item.context.includes('anónima'),
+            authorName: item.context.includes('anónima') ? null : item.authorName,
+            authorId: item.context.includes('anónima') ? null : item.authorId,
+            churchName: null,
+            sameChurch: false,
+            intercessions: 0,
+            iPrayed: false,
+            answeredAt: null,
+            answeredNote: null,
+            createdAt: new Date().toISOString(),
+          },
+          ...state.prayers,
+        ],
+      }));
+    }
+    return { done: true, approved: approve };
+  },
+
   prayers: demoPrayerRequests,
 
   intercede: (id) => {
@@ -497,14 +586,22 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     return { id, published: !held };
   },
 
+  /**
+   * Marcarla contestada. El testimonio pasa por la misma moderación imitada:
+   * si queda retenido, la petición se cierra igual y el texto no se muestra,
+   * exactamente como hace la API.
+   */
   markPrayerAnswered: (id, note) => {
+    const text = note?.trim() || null;
+    const held = !!text && demoModerationStatus(text) !== 'APPROVED';
     set((state) => ({
       prayers: state.prayers.map((p) =>
         p.id === id
-          ? { ...p, answeredAt: new Date().toISOString(), answeredNote: note?.trim() || null }
+          ? { ...p, answeredAt: new Date().toISOString(), answeredNote: held ? null : text }
           : p,
       ),
     }));
+    return { noteHeld: held };
   },
 
   accompaniment: demoAccompaniment,

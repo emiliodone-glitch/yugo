@@ -80,7 +80,8 @@ export class PrayerService {
         intercessions: row.intercessions.length,
         iPrayed: row.intercessions.some((i) => i.userId === userId),
         answeredAt: row.answeredAt?.toISOString() ?? null,
-        answeredNote: row.answeredNote,
+        // Un testimonio retenido no sale del servidor. La pantalla no decide.
+        answeredNote: row.answeredNoteStatus === 'APPROVED' ? row.answeredNote : null,
         createdAt: row.createdAt.toISOString(),
       };
     });
@@ -105,6 +106,7 @@ export class PrayerService {
       intercessions: row.intercessions.length,
       answeredAt: row.answeredAt?.toISOString() ?? null,
       answeredNote: row.answeredNote,
+      answeredNoteStatus: row.answeredNoteStatus,
       createdAt: row.createdAt.toISOString(),
     }));
   }
@@ -123,13 +125,14 @@ export class PrayerService {
     const text = body.trim();
     if (text.length > PRAYER_BODY_MAX) throw new BadRequestException('prayer_too_long');
 
+    // Nunca se rechaza sola. Si el clasificador dice «rechazar», queda
+    // retenida con prioridad alta y la decide una persona: la pantalla promete
+    // «se publica cuando alguien la apruebe», y un rechazo automático dejaría
+    // esa promesa sin nadie detrás. En el chat es distinto —ahí se le dice a
+    // la persona al instante que no se entregó—; aquí se le dijo que espere.
     const verdict = await this.moderation.moderate(text, 'petición de oración');
-    const status =
-      verdict.decision === 'APPROVE'
-        ? 'APPROVED'
-        : verdict.decision === 'HOLD'
-          ? 'HELD'
-          : 'REJECTED';
+    const status = verdict.decision === 'APPROVE' ? 'APPROVED' : 'HELD';
+    const priority = verdict.decision === 'REJECT' ? 'HIGH' : 'NORMAL';
 
     // Una petición anónima no guarda iglesia. Es la invariante 1 y se cumple
     // en el dato, no en la consulta: así ninguna consulta futura puede
@@ -140,8 +143,16 @@ export class PrayerService {
     });
 
     if (status !== 'APPROVED') {
+      // El caso enlaza la petición: sin esto la cola ve que existe un caso y
+      // no puede ni leerlo ni aprobarlo, y a la persona se le prometió que
+      // «se publica cuando alguien la apruebe».
       await this.prisma.moderationCase.create({
-        data: { kind: 'AI_HELD', priority: 'NORMAL', subjectUserId: userId },
+        data: {
+          kind: 'AI_HELD',
+          priority,
+          subjectUserId: userId,
+          prayerRequestId: request.id,
+        },
       });
     }
 
@@ -213,21 +224,35 @@ export class PrayerService {
     if (request.answeredAt) throw new BadRequestException('already_answered');
 
     const text = note?.trim();
-    let status: 'APPROVED' | 'HELD' | 'REJECTED' = 'APPROVED';
+    let status: 'APPROVED' | 'HELD' = 'APPROVED';
+    let priority: 'NORMAL' | 'HIGH' = 'NORMAL';
     if (text) {
       const verdict = await this.moderation.moderate(text, 'testimonio de oración contestada');
-      status =
-        verdict.decision === 'APPROVE'
-          ? 'APPROVED'
-          : verdict.decision === 'HOLD'
-            ? 'HELD'
-            : 'REJECTED';
+      status = verdict.decision === 'APPROVE' ? 'APPROVED' : 'HELD';
+      priority = verdict.decision === 'REJECT' ? 'HIGH' : 'NORMAL';
     }
 
+    // El testimonio se guarda siempre y solo se muestra si está aprobado.
+    // Antes, uno retenido se descartaba en silencio mientras la pantalla decía
+    // «quedó en revisión»: era una promesa sin nadie detrás.
     const updated = await this.prisma.prayerRequest.update({
       where: { id: requestId },
-      data: { answeredAt: new Date(), answeredNote: status === 'APPROVED' ? (text ?? null) : null },
+      data: {
+        answeredAt: new Date(),
+        answeredNote: text ?? null,
+        answeredNoteStatus: text ? status : null,
+      },
     });
+    if (text && status !== 'APPROVED') {
+      await this.prisma.moderationCase.create({
+        data: {
+          kind: 'AI_HELD',
+          priority,
+          subjectUserId: userId,
+          prayerAnsweredNoteId: requestId,
+        },
+      });
+    }
 
     // A quienes oraron se les dice cómo terminó. Es la única notificación de
     // este módulo que la gente agradece recibir.
@@ -248,7 +273,7 @@ export class PrayerService {
     return {
       id: updated.id,
       answeredAt: updated.answeredAt?.toISOString() ?? null,
-      answeredNote: updated.answeredNote,
+      answeredNote: status === 'APPROVED' ? updated.answeredNote : null,
       noteHeld: !!text && status !== 'APPROVED',
     };
   }

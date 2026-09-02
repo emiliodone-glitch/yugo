@@ -20,7 +20,7 @@ test.describe('Yugo Plus y Oro', () => {
 
   test('cambiar a mensual actualiza el precio mostrado', async ({ page }) => {
     await page.goto('/plus');
-    await page.getByRole('button', { name: 'Mensual' }).click();
+    await page.getByRole('tab', { name: 'Mensual' }).click();
     await expect(page.getByText('RD$ 399 / mes')).toBeVisible();
     await expect(page.getByText('RD$ 899 / mes')).toBeVisible();
   });

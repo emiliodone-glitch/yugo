@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   localDay,
   readingConstancy,
@@ -20,6 +20,18 @@ import { TextModerationService } from '../moderation/text-moderation.service';
  * llegara una lista de lectores al cliente, ese dato estaría fuera del
  * servidor aunque nadie lo pintara.
  */
+/**
+ * El día de una columna DATE.
+ *
+ * Postgres guarda `publishOn` sin hora y Prisma lo entrega como medianoche
+ * UTC. Pasarlo por la zona de Santo Domingo (UTC-4) lo convierte en las 8 de
+ * la noche del día anterior, y el devocional de hoy aparecería como el de
+ * ayer. Un DATE no tiene zona: se lee tal cual.
+ */
+function dateOnly(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
 @Injectable()
 export class DevotionalService {
   constructor(
@@ -87,9 +99,9 @@ export class DevotionalService {
 
     return {
       id: devotional.id,
-      publishOn: localDay(devotional.publishOn),
+      publishOn: dateOnly(devotional.publishOn),
       /** Si el de hoy todavía no existe, la pantalla lo dice en vez de mentir. */
-      isToday: localDay(devotional.publishOn) === today,
+      isToday: dateOnly(devotional.publishOn) === today,
       reference: devotional.reference,
       title: devotional.title,
       body: devotional.body,
@@ -123,15 +135,14 @@ export class DevotionalService {
       throw new BadRequestException('reflection_too_long');
     }
 
-    let status: 'PENDING' | 'APPROVED' | 'HELD' | 'REJECTED' | null = null;
+    // Igual que las peticiones: nunca se rechaza sola. «Rechazar» del
+    // clasificador se convierte en retenida con prioridad alta para una persona.
+    let status: 'APPROVED' | 'HELD' | null = null;
+    let priority: 'NORMAL' | 'HIGH' = 'NORMAL';
     if (text) {
       const verdict = await this.moderation.moderate(text, 'reflexión sobre el devocional');
-      status =
-        verdict.decision === 'APPROVE'
-          ? 'APPROVED'
-          : verdict.decision === 'HOLD'
-            ? 'HELD'
-            : 'REJECTED';
+      status = verdict.decision === 'APPROVE' ? 'APPROVED' : 'HELD';
+      priority = verdict.decision === 'REJECT' ? 'HIGH' : 'NORMAL';
     }
 
     const read = await this.prisma.devotionalRead.upsert({
@@ -143,8 +154,16 @@ export class DevotionalService {
     });
 
     if (text && status !== 'APPROVED') {
+      // La clave de DevotionalRead es compuesta, así que el caso guarda las
+      // dos partes: sin ellas la cola no podría cargar el texto ni aprobarlo.
       await this.prisma.moderationCase.create({
-        data: { kind: 'AI_HELD', priority: 'NORMAL', subjectUserId: userId },
+        data: {
+          kind: 'AI_HELD',
+          priority,
+          subjectUserId: userId,
+          reflectionDevotionalId: devotionalId,
+          reflectionUserId: userId,
+        },
       });
     }
 
@@ -155,6 +174,105 @@ export class DevotionalService {
       /** Honesto: si quedó retenida, la persona tiene que saberlo. */
       published: reflectionIsPublic(read.reflectionStatus),
     };
+  }
+
+  // ---------------------------------------------------------------- Autoría
+
+  /**
+   * Cuántos días hay programados a partir de hoy, contando hoy.
+   *
+   * Es el número que el panel tiene que enseñar en grande: el día que llegue a
+   * cero, la app empieza a repetir el último devocional y a decir «el de hoy
+   * todavía no está publicado» para siempre. Construir la función y no
+   * construir quién la alimenta fue el defecto; este número es el aviso.
+   */
+  async runwayDays(now = new Date()): Promise<number> {
+    const today = localDay(now);
+    const upcoming = await this.prisma.devotional.findMany({
+      where: { publishOn: { gte: new Date(`${today}T00:00:00.000Z`) } },
+      select: { publishOn: true },
+      orderBy: { publishOn: 'asc' },
+    });
+    // Cuenta días consecutivos desde hoy: un hueco corta la reserva, porque
+    // ese día ya sería un día sin devocional aunque haya más después.
+    let days = 0;
+    let cursor = Date.parse(`${today}T00:00:00.000Z`);
+    for (const d of upcoming) {
+      if (d.publishOn.getTime() !== cursor) break;
+      days += 1;
+      cursor += 86_400_000;
+    }
+    return days;
+  }
+
+  /** El calendario: la última semana y todo lo programado hacia adelante. */
+  async schedule(now = new Date()) {
+    const today = localDay(now);
+    const from = new Date(Date.parse(`${today}T00:00:00.000Z`) - 7 * 86_400_000);
+    const items = await this.prisma.devotional.findMany({
+      where: { publishOn: { gte: from } },
+      orderBy: { publishOn: 'asc' },
+      include: { _count: { select: { reads: true } } },
+    });
+    return {
+      today,
+      runwayDays: await this.runwayDays(now),
+      items: items.map((d) => ({
+        id: d.id,
+        publishOn: dateOnly(d.publishOn),
+        reference: d.reference,
+        title: d.title,
+        body: d.body,
+        question: d.question,
+        reads: d._count.reads,
+        isPast: dateOnly(d.publishOn) < today,
+        isToday: dateOnly(d.publishOn) === today,
+      })),
+    };
+  }
+
+  /**
+   * Crear o corregir el de una fecha.
+   *
+   * Un devocional ya leído por alguien no se reescribe: lo que esa persona leyó
+   * fue lo que leyó, y «142 de tu iglesia lo leyeron hoy» tiene que seguir
+   * significando que leyeron lo mismo. Se permite corregir el de hoy solo si
+   * nadie lo ha abierto todavía.
+   */
+  async upsertForDate(
+    publishOn: string,
+    data: { reference: string; title: string; body: string; question: string },
+  ) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(publishOn)) throw new BadRequestException('bad_date');
+    const date = new Date(`${publishOn}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) throw new BadRequestException('bad_date');
+
+    const existing = await this.prisma.devotional.findUnique({
+      where: { publishOn: date },
+      include: { _count: { select: { reads: true } } },
+    });
+    if (existing && existing._count.reads > 0) {
+      throw new ForbiddenException('devotional_already_read');
+    }
+
+    const saved = await this.prisma.devotional.upsert({
+      where: { publishOn: date },
+      update: data,
+      create: { publishOn: date, ...data },
+    });
+    return { id: saved.id, publishOn, created: !existing };
+  }
+
+  /** Borrar uno futuro. Uno ya leído no se borra: la lectura de alguien lo ancla. */
+  async remove(id: string) {
+    const existing = await this.prisma.devotional.findUnique({
+      where: { id },
+      include: { _count: { select: { reads: true } } },
+    });
+    if (!existing) throw new NotFoundException('devotional_not_found');
+    if (existing._count.reads > 0) throw new ForbiddenException('devotional_already_read');
+    await this.prisma.devotional.delete({ where: { id } });
+    return { deleted: true };
   }
 
   /** La congregación de alguien: la de su perfil, o la que administra. */

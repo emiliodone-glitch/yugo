@@ -6,7 +6,7 @@
  */
 import { affinityReason } from '../affinity/reason';
 import { relativeDayLabel } from '../events/when';
-import type { DevotionalToday } from '../api/client';
+import type { DevotionalSchedule, DevotionalToday, HeldContentItem } from '../api/client';
 import type { PrayerRequestItem } from '../prayer/wall';
 import type {
   AffinityBreakdown,
@@ -1007,3 +1007,66 @@ export const demoPrayerRequests: PrayerRequestItem[] = [
     createdAt: new Date(Date.now() - 30 * 3600000).toISOString(),
   },
 ];
+
+/**
+ * Lo retenido, para el panel en modo demo. Trae una petición anónima a
+ * propósito: quien modera debe ver quién la escribió (es personal del equipo y
+ * lo necesita), pero la etiqueta le recuerda que para la comunidad no tiene
+ * nombre, o sea, lo grave que sería filtrarla.
+ */
+export const demoHeldContent: HeldContentItem[] = [
+  {
+    caseId: 'held-1',
+    kind: 'prayer',
+    text: 'Necesito que oren por mi hija. Si alguien puede ayudar con la operación, escríbanme al whatsapp.',
+    authorId: 'u-ramon',
+    authorName: 'Ramón',
+    context: 'Petición de oración · anónima para la comunidad',
+    risk: null,
+    priority: 'NORMAL',
+    createdAt: new Date(Date.now() - 40 * 60000).toISOString(),
+  },
+  {
+    caseId: 'held-2',
+    kind: 'message',
+    text: 'Mejor seguimos por telegram, aquí revisan todo.',
+    authorId: 'u-carlos',
+    authorName: 'Carlos',
+    context: 'Mensaje en una conversación',
+    risk: 0.71,
+    priority: 'HIGH',
+    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+  },
+  {
+    caseId: 'held-3',
+    kind: 'reflection',
+    text: 'Este devocional me recordó que tengo que perdonar a mi hermano. Lo llamé.',
+    authorId: 'u-lucia',
+    authorName: 'Lucía',
+    context: 'Reflexión sobre «Colosenses 3:13 · Soportándoos»',
+    risk: null,
+    priority: 'NORMAL',
+    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
+  },
+];
+
+/**
+ * El calendario de devocionales para el panel en modo demo. Trae reserva para
+ * cuatro días a propósito: es el estado que dispara el aviso y el que quien
+ * administra tiene que aprender a reconocer.
+ */
+const demoDay = (offset: number) =>
+  new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
+
+export const demoDevotionalSchedule: DevotionalSchedule = {
+  today: demoDay(0),
+  runwayDays: 4,
+  items: [
+    { id: 'dv-m2', publishOn: demoDay(-2), reference: 'Rut 1:16', title: 'Donde tú vayas', body: 'Rut no eligió un país: eligió una lealtad. Antes de que existiera un futuro claro, hubo alguien dispuesto a quedarse.', question: '¿Con quién te has quedado cuando no era conveniente?', reads: 231, isPast: true, isToday: false },
+    { id: 'dv-m1', publishOn: demoDay(-1), reference: '1 Corintios 13:4', title: 'El amor es paciente', body: 'La paciencia es la única virtud que no se puede demostrar rápido. Es la prueba de que lo demás es cierto.', question: '¿En qué se te nota a ti la prisa?', reads: 264, isPast: true, isToday: false },
+    { id: 'dv-0', publishOn: demoDay(0), reference: 'Proverbios 4:23', title: 'Guarda tu corazón', body: 'Sobre toda cosa guardada, guarda tu corazón, porque de él mana la vida. Guardar no es cerrar: es saber a quién le abres, y en qué orden.', question: '¿A quién le has abierto el corazón esta semana, y por qué a esa persona?', reads: 312, isPast: false, isToday: true },
+    { id: 'dv-1', publishOn: demoDay(1), reference: 'Eclesiastés 4:9', title: 'Mejores son dos', body: 'Mejores son dos que uno, porque tienen mejor paga de su trabajo. No dice que sea más fácil: dice que rinde más.', question: '¿Qué cosa estás cargando solo que no tendrías que cargar solo?', reads: 0, isPast: false, isToday: false },
+    { id: 'dv-2', publishOn: demoDay(2), reference: 'Salmo 37:4', title: 'Deléitate', body: 'Los deseos del corazón cambian cuando cambia de qué se deleita el corazón. Ese es el orden, y casi siempre lo invertimos.', question: '¿Qué deseo tuyo ha cambiado en el último año?', reads: 0, isPast: false, isToday: false },
+    { id: 'dv-3', publishOn: demoDay(3), reference: 'Filipenses 2:3', title: 'Estimando al otro', body: 'Nada por contienda ni por vanagloria. En una relación, la vanagloria se ve en quién cuenta la historia y cómo queda cada quien en ella.', question: '¿Cómo cuentas tú la última discusión que tuviste?', reads: 0, isPast: false, isToday: false },
+  ],
+};

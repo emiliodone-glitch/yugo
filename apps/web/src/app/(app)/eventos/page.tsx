@@ -9,12 +9,18 @@ import { FilterIcon } from '@/components/icons';
 function dayParts(iso: string): { weekday: string; day: number } {
   const date = new Date(iso);
   return {
-    weekday: new Intl.DateTimeFormat('es-DO', { weekday: 'short', timeZone: 'America/Santo_Domingo' })
+    weekday: new Intl.DateTimeFormat('es-DO', {
+      weekday: 'short',
+      timeZone: 'America/Santo_Domingo',
+    })
       .format(date)
       .replace('.', '')
       .toUpperCase(),
     day: Number(
-      new Intl.DateTimeFormat('es-DO', { day: 'numeric', timeZone: 'America/Santo_Domingo' }).format(date),
+      new Intl.DateTimeFormat('es-DO', {
+        day: 'numeric',
+        timeZone: 'America/Santo_Domingo',
+      }).format(date),
     ),
   };
 }
@@ -106,82 +112,90 @@ export default function EventsPage() {
         <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
       ) : null}
 
-      {events.map((event) => {
-        const { weekday, day } = dayParts(event.startsAt);
-        const mine = event.myStatus;
-        return (
-          <div key={event.id} className="card p-3">
-            <div className="flex items-start gap-2.5">
-              <div className="min-w-[40px] text-center">
-                <div className="text-[11px] text-muted">{weekday}</div>
-                <div className="font-display text-[22px] font-semibold leading-tight text-ink">{day}</div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className={`chip ${TYPE_CHIP[event.type] ?? ''}`}>{event.typeName}</span>
-                  <span className="text-[11px] text-muted">
-                    {timeLabel(event.startsAt)} · {event.costLabel}
-                  </span>
+      <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-4">
+        {events.map((event) => {
+          const { weekday, day } = dayParts(event.startsAt);
+          const mine = event.myStatus;
+          return (
+            <div key={event.id} className="card p-3 xl:mb-0">
+              <div className="flex items-start gap-2.5">
+                <div className="min-w-[40px] text-center">
+                  <div className="text-[11px] text-muted">{weekday}</div>
+                  <div className="font-display text-[22px] font-semibold leading-tight text-ink">
+                    {day}
+                  </div>
                 </div>
-                <Link href={`/eventos/${event.id}`} className="mt-1 block">
-                  <b className="text-[12.5px]">{event.title}</b>
-                </Link>
-                <div className="text-[11px] text-muted">
-                  {event.churchName}
-                  {event.distanceKm !== undefined ? ` · ${event.distanceKm} km` : ''}
-                  {event.city && event.distanceKm !== undefined && event.distanceKm > 50
-                    ? ` · ${event.city}`
-                    : ''}
-                </div>
-                <div className="mt-1.5 flex items-center justify-between">
-                  {event.connectionsGoing.length > 0 ? (
-                    <span className="flex items-center">
-                      {event.connectionsGoing.slice(0, 2).map((connection, index) => (
-                        <span key={connection.userId} className={index > 0 ? '-ml-2' : ''}>
-                          <Avatar name={connection.displayName} size="xs" />
-                        </span>
-                      ))}
-                      <span className="ml-1.5 text-[11px] text-muted">
-                        {es.events.connectionsGoing(event.connectionsGoing.length)}
-                      </span>
-                    </span>
-                  ) : (
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className={`chip ${TYPE_CHIP[event.type] ?? ''}`}>{event.typeName}</span>
                     <span className="text-[11px] text-muted">
-                      {es.events.interestedCount(event.interestedCount)}
+                      {timeLabel(event.startsAt)} · {event.costLabel}
                     </span>
-                  )}
-                  {mine === 'GOING' ? (
-                    <button
-                      type="button"
-                      className="chip chip-olive"
-                      onClick={() => setAttendance.mutate({ eventId: event.id, status: null })}
-                    >
-                      {es.events.goingMarked}
-                    </button>
-                  ) : (
-                    <div className="flex gap-1.5">
+                  </div>
+                  <Link href={`/eventos/${event.id}`} className="mt-1 block">
+                    <b className="text-[12.5px]">{event.title}</b>
+                  </Link>
+                  <div className="text-[11px] text-muted">
+                    {event.churchName}
+                    {event.distanceKm !== undefined ? ` · ${event.distanceKm} km` : ''}
+                    {event.city && event.distanceKm !== undefined && event.distanceKm > 50
+                      ? ` · ${event.city}`
+                      : ''}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    {event.connectionsGoing.length > 0 ? (
+                      <span className="flex items-center">
+                        {event.connectionsGoing.slice(0, 2).map((connection, index) => (
+                          <span key={connection.userId} className={index > 0 ? '-ml-2' : ''}>
+                            <Avatar name={connection.displayName} size="xs" />
+                          </span>
+                        ))}
+                        <span className="ml-1.5 text-[11px] text-muted">
+                          {es.events.connectionsGoing(event.connectionsGoing.length)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted">
+                        {es.events.interestedCount(event.interestedCount)}
+                      </span>
+                    )}
+                    {mine === 'GOING' ? (
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setAttendance.mutate({ eventId: event.id, status: 'INTERESTED' })}
+                        className="chip chip-olive"
+                        onClick={() => setAttendance.mutate({ eventId: event.id, status: null })}
                       >
-                        {es.events.interested}
+                        {es.events.goingMarked}
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-olive btn-sm"
-                        onClick={() => setAttendance.mutate({ eventId: event.id, status: 'GOING' })}
-                      >
-                        {es.events.going}
-                      </button>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() =>
+                            setAttendance.mutate({ eventId: event.id, status: 'INTERESTED' })
+                          }
+                        >
+                          {es.events.interested}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-olive btn-sm"
+                          onClick={() =>
+                            setAttendance.mutate({ eventId: event.id, status: 'GOING' })
+                          }
+                        >
+                          {es.events.going}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
       <p className="pb-4 pt-1 text-center text-[11px] text-muted">{es.events.reminder}</p>
     </div>
   );

@@ -30,6 +30,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
+  // En pantallas anchas, las listas usan el ancho; lo que se lee o se escribe
+  // —un chat, un perfil, un formulario— se queda en una columna cómoda. Una
+  // conversación estirada a 1000 px se lee peor, no mejor.
+  const wide = ['/inicio', '/descubrir', '/eventos'].includes(pathname);
+
   return (
     <div className="min-h-dvh md:flex">
       {/* Desktop rail */}
@@ -69,7 +74,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Content column */}
-      <main className="mx-auto w-full max-w-xl flex-1 pb-24 md:ml-[220px] md:max-w-2xl md:pb-8">
+      <main
+        className={`mx-auto w-full max-w-xl flex-1 pb-24 md:ml-[220px] md:max-w-2xl md:pb-8 ${
+          wide ? 'xl:max-w-5xl' : ''
+        }`}
+      >
         {children}
       </main>
 

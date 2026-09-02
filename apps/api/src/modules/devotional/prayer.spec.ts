@@ -165,6 +165,18 @@ describe('PrayerService — moderación previa', () => {
     expect(cases).toHaveLength(1);
   });
 
+  it('una petición nunca se rechaza sola: «rechazar» queda retenida con prioridad alta', async () => {
+    // La pantalla promete «se publica cuando alguien la apruebe». Un rechazo
+    // automático dejaría esa promesa sin nadie detrás.
+    const { service, created, cases } = buildService({ decision: 'REJECT' });
+
+    const result = await service.create(ME, 'Deposita el dinero en esta cuenta y oro por ti.', false);
+
+    expect(result.moderationStatus).toBe('HELD');
+    expect(created[0].moderationStatus).toBe('HELD');
+    expect(cases[0].priority).toBe('HIGH');
+  });
+
   it('no se puede orar por una petición que no está aprobada', async () => {
     const { service } = buildService({ rows: [row({ id: 'p1', moderationStatus: 'HELD' })] });
 

@@ -132,14 +132,21 @@ export function Segment<T extends string>({
   onChange: (value: T) => void;
   dark?: boolean;
 }) {
+  // Roles de pestañas de verdad, como ya hace la app móvil: sin ellos un
+  // lector de pantalla anuncia tres botones sueltos y no sabe cuál está activo.
   return (
-    <div className={`flex rounded-field p-[3px] ${dark ? 'bg-white/10' : 'bg-linen-2'}`}>
+    <div
+      role="tablist"
+      className={`flex rounded-field p-[3px] ${dark ? 'bg-white/10' : 'bg-linen-2'}`}
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
           <button
             key={option.value}
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={() => onChange(option.value)}
             className={`flex-1 rounded-[10px] px-2 py-[7px] text-xs font-semibold transition ${
               active

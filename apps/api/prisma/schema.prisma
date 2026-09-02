@@ -204,6 +204,10 @@ model PrayerRequest {
   /// Cuando Dios contestó. Se celebra: es lo que sostiene el muro.
   answeredAt   DateTime?
   answeredNote String?
+  /// El testimonio es texto de una persona y pasa por moderación como todo.
+  /// Antes se descartaba en silencio si quedaba retenido; ahora se guarda y
+  /// solo se muestra cuando está aprobado.
+  answeredNoteStatus ModerationStatus?
   createdAt    DateTime  @default(now())
 
   intercessions PrayerIntercession[]
@@ -1202,6 +1206,15 @@ model ModerationCase {
   messageId   String?
   postId      String?
   photoId     String?
+  /// Petición de oración retenida (el cuerpo).
+  prayerRequestId String?
+  /// Testimonio de «fue contestada» retenido. Guarda el id de la petición, en
+  /// un campo aparte porque la decisión afecta a otro texto que el de arriba.
+  prayerAnsweredNoteId String?
+  /// Reflexión sobre el devocional retenida. La clave de DevotionalRead es
+  /// compuesta, así que hacen falta las dos partes.
+  reflectionDevotionalId String?
+  reflectionUserId       String?
   subjectUserId String?
   assigneeId  String?
   assignee    User?                @relation("Assignee", fields: [assigneeId], references: [id])

@@ -6,6 +6,7 @@ import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
 import { SettingsService } from '../../common/settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../media/storage.service';
 
 @Injectable()
 export class AdminService {
@@ -14,6 +15,7 @@ export class AdminService {
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ---------------------------------------------------------------- Dashboard
@@ -44,7 +46,11 @@ export class AdminService {
       }),
       this.prisma.verification.count({ where: { status: 'PENDING', level: 2 } }),
       this.prisma.moderationCase.count({ where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'REPORT' } }),
-      this.prisma.message.count({ where: { moderationStatus: 'HELD' } }),
+      // Todo lo retenido, no solo mensajes: una petición de oración o una
+      // reflexión esperando aprobación cuenta igual, y antes no contaba.
+      this.prisma.moderationCase.count({
+        where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'AI_HELD' },
+      }),
       this.prisma.church.count({ where: { status: 'PENDING' } }),
       this.prisma.payment.aggregate({
         where: { status: 'SUCCEEDED', createdAt: { gte: thirtyDaysAgo }, currency: 'DOP' },
@@ -55,6 +61,9 @@ export class AdminService {
     const criticalUnassigned = await this.prisma.moderationCase.count({
       where: { priority: 'CRITICAL', assigneeId: null, status: 'OPEN' },
     });
+    // Días de devocional programados a partir de hoy. Cuando llega a cero la
+    // app repite el último para siempre; el aviso sale con una semana.
+    const devotionalRunway = await this.devotionalRunwayDays();
     const staleVerifications = await this.prisma.verification.count({
       where: { status: 'PENDING', level: 2, createdAt: { lt: new Date(Date.now() - 24 * 3600_000) } },
     });
@@ -72,6 +81,18 @@ export class AdminService {
           priority: 'CRITICAL',
           text: `${criticalUnassigned} casos críticos sin asignar`,
         },
+        devotionalRunway === 0 && {
+          priority: 'CRITICAL',
+          text: 'No hay devocional para hoy: la app está repitiendo el último',
+        },
+        devotionalRunway > 0 &&
+          devotionalRunway < 7 && {
+            priority: 'HIGH',
+            text:
+              devotionalRunway === 1
+                ? 'Queda 1 día de devocional programado'
+                : `Quedan ${devotionalRunway} días de devocional programados`,
+          },
         staleVerifications > 0 && {
           priority: 'HIGH',
           text: `${staleVerifications} verificaciones esperan más de 24 h`,
@@ -82,11 +103,34 @@ export class AdminService {
         },
         heldMessages > 0 && {
           priority: 'NORMAL',
-          text: `Cola de moderación IA: ${heldMessages} mensajes retenidos`,
+          text: `Cola de moderación IA: ${heldMessages} contenidos retenidos`,
         },
       ].filter(Boolean),
-      queues: { pendingVerifications, openReports, heldMessages, pendingChurches },
+      queues: { pendingVerifications, openReports, heldMessages, pendingChurches, devotionalRunway },
     };
+  }
+
+  /** Espejo de DevotionalService.runwayDays, sin acoplar el módulo. */
+  private async devotionalRunwayDays(): Promise<number> {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const upcoming = await this.prisma.devotional.findMany({
+      where: { publishOn: { gte: new Date(`${today}T00:00:00.000Z`) } },
+      select: { publishOn: true },
+      orderBy: { publishOn: 'asc' },
+    });
+    let days = 0;
+    let cursor = Date.parse(`${today}T00:00:00.000Z`);
+    for (const d of upcoming) {
+      if (d.publishOn.getTime() !== cursor) break;
+      days += 1;
+      cursor += 86_400_000;
+    }
+    return days;
   }
 
   // ---------------------------------------------------------------- Members
@@ -378,6 +422,29 @@ export class AdminService {
           data: { moderationStatus: 'REJECTED' },
         });
       }
+      if (moderationCase.prayerRequestId) {
+        await this.prisma.prayerRequest.update({
+          where: { id: moderationCase.prayerRequestId },
+          data: { moderationStatus: 'REJECTED' },
+        });
+      }
+      if (moderationCase.prayerAnsweredNoteId) {
+        await this.prisma.prayerRequest.update({
+          where: { id: moderationCase.prayerAnsweredNoteId },
+          data: { answeredNoteStatus: 'REJECTED' },
+        });
+      }
+      if (moderationCase.reflectionDevotionalId && moderationCase.reflectionUserId) {
+        await this.prisma.devotionalRead.update({
+          where: {
+            devotionalId_userId: {
+              devotionalId: moderationCase.reflectionDevotionalId,
+              userId: moderationCase.reflectionUserId,
+            },
+          },
+          data: { reflectionStatus: 'REJECTED' },
+        });
+      }
     }
 
     await this.prisma.moderationCase.update({
@@ -397,6 +464,259 @@ export class AdminService {
       after: { reason },
     });
     return { done: true };
+  }
+
+  /**
+   * Lo retenido por la IA, con el texto delante.
+   *
+   * Existe porque la cola anterior devolvía casos sin contenido: el moderador
+   * veía que había algo que revisar y no podía leerlo ni aprobarlo. Para una
+   * petición de oración eso significaba que a la persona se le decía «se
+   * publica cuando alguien la apruebe» y nadie podía.
+   *
+   * El moderador sí ve quién escribió una petición anónima —es personal del
+   * equipo y lo necesita para decidir—; la invariante de anonimato es frente a
+   * los demás miembros, no frente a moderación. Se etiqueta como anónima para
+   * que quien revisa sepa qué tan grave sería filtrarla.
+   */
+  async heldContent(): Promise<HeldContentItem[]> {
+    const cases = await this.prisma.moderationCase.findMany({
+      where: { kind: 'AI_HELD', status: { in: ['OPEN', 'IN_REVIEW'] } },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+      take: 100,
+    });
+
+    const items: HeldContentItem[] = [];
+    for (const c of cases) {
+      const item = await this.describeHeld(c);
+      if (item) items.push(item);
+    }
+    return items;
+  }
+
+  private async describeHeld(c: {
+    id: string;
+    priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+    createdAt: Date;
+    subjectUserId: string | null;
+    messageId: string | null;
+    postId: string | null;
+    photoId: string | null;
+    prayerRequestId: string | null;
+    prayerAnsweredNoteId: string | null;
+    reflectionDevotionalId: string | null;
+    reflectionUserId: string | null;
+  }): Promise<HeldContentItem | null> {
+    const base = {
+      caseId: c.id,
+      priority: c.priority,
+      createdAt: c.createdAt.toISOString(),
+    };
+    const nameOf = async (userId: string | null) => {
+      if (!userId) return 'Miembro';
+      const profile = await this.prisma.profile.findUnique({
+        where: { userId },
+        select: { displayName: true },
+      });
+      return profile?.displayName ?? 'Miembro';
+    };
+
+    if (c.messageId) {
+      const message = await this.prisma.message.findUnique({ where: { id: c.messageId } });
+      if (!message || message.moderationStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'message',
+        text: message.body,
+        authorId: message.senderId,
+        authorName: await nameOf(message.senderId),
+        context: 'Mensaje en una conversación',
+        risk: message.moderationRisk,
+      };
+    }
+    if (c.postId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: c.postId },
+        include: { group: { select: { name: true } } },
+      });
+      if (!post || post.moderationStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'post',
+        text: post.body,
+        authorId: post.authorId,
+        authorName: await nameOf(post.authorId),
+        context: `Publicación en «${post.group.name}»`,
+        risk: post.moderationRisk,
+      };
+    }
+    if (c.photoId) {
+      const photo = await this.prisma.photo.findUnique({ where: { id: c.photoId } });
+      if (!photo || photo.moderationStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'photo',
+        text: null,
+        photoKey: photo.storageKey,
+        // Firmada y corta: la foto está retenida precisamente porque puede no
+        // ser publicable, así que no se expone una URL permanente.
+        photoUrl: await this.storage.signDownload(photo.storageKey).catch(() => undefined),
+        authorId: photo.userId,
+        authorName: await nameOf(photo.userId),
+        context: 'Foto de perfil',
+        risk: photo.moderationRisk,
+      };
+    }
+    if (c.prayerRequestId) {
+      const prayer = await this.prisma.prayerRequest.findUnique({
+        where: { id: c.prayerRequestId },
+      });
+      if (!prayer || prayer.moderationStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'prayer',
+        text: prayer.body,
+        authorId: prayer.userId,
+        authorName: await nameOf(prayer.userId),
+        context: prayer.anonymous
+          ? 'Petición de oración · anónima para la comunidad'
+          : 'Petición de oración',
+        risk: null,
+      };
+    }
+    if (c.prayerAnsweredNoteId) {
+      const prayer = await this.prisma.prayerRequest.findUnique({
+        where: { id: c.prayerAnsweredNoteId },
+      });
+      if (!prayer || prayer.answeredNoteStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'prayer_note',
+        text: prayer.answeredNote,
+        authorId: prayer.userId,
+        authorName: await nameOf(prayer.userId),
+        context: `Testimonio de petición contestada · «${prayer.body.slice(0, 60)}…»`,
+        risk: null,
+      };
+    }
+    if (c.reflectionDevotionalId && c.reflectionUserId) {
+      const read = await this.prisma.devotionalRead.findUnique({
+        where: {
+          devotionalId_userId: {
+            devotionalId: c.reflectionDevotionalId,
+            userId: c.reflectionUserId,
+          },
+        },
+        include: { devotional: { select: { title: true } } },
+      });
+      if (!read || read.reflectionStatus !== 'HELD') return null;
+      return {
+        ...base,
+        kind: 'reflection',
+        text: read.reflection,
+        authorId: read.userId,
+        authorName: await nameOf(read.userId),
+        context: `Reflexión sobre «${read.devotional.title}»`,
+        risk: null,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Aprobar o rechazar cualquier contenido retenido, sea lo que sea.
+   *
+   * Una sola puerta para todos los tipos: así, cuando aparezca el siguiente
+   * texto que pasa por moderación, se añade aquí y la cola ya sabe qué hacer,
+   * en vez de repetir la historia de las peticiones de oración.
+   */
+  async resolveHeldContent(actorId: string, caseId: string, approve: boolean) {
+    const c = await this.prisma.moderationCase.findUnique({ where: { id: caseId } });
+    if (!c) throw new NotFoundException('case_not_found');
+    if (c.kind !== 'AI_HELD') throw new BadRequestException('not_held_content');
+
+    const status = approve ? 'APPROVED' : 'REJECTED';
+    let authorId: string | null = c.subjectUserId;
+    let what = 'contenido';
+
+    if (c.messageId) {
+      await this.resolveHeldMessage(actorId, c.messageId, approve);
+      what = 'mensaje';
+    } else if (c.postId) {
+      const post = await this.prisma.post.update({
+        where: { id: c.postId },
+        data: { moderationStatus: status },
+      });
+      authorId = post.authorId;
+      what = 'publicación';
+    } else if (c.photoId) {
+      const photo = await this.prisma.photo.update({
+        where: { id: c.photoId },
+        data: { moderationStatus: status },
+      });
+      authorId = photo.userId;
+      what = 'foto';
+    } else if (c.prayerRequestId) {
+      const prayer = await this.prisma.prayerRequest.update({
+        where: { id: c.prayerRequestId },
+        data: { moderationStatus: status },
+      });
+      authorId = prayer.userId;
+      what = 'petición de oración';
+    } else if (c.prayerAnsweredNoteId) {
+      const prayer = await this.prisma.prayerRequest.update({
+        where: { id: c.prayerAnsweredNoteId },
+        data: { answeredNoteStatus: status },
+      });
+      authorId = prayer.userId;
+      what = 'testimonio';
+    } else if (c.reflectionDevotionalId && c.reflectionUserId) {
+      const read = await this.prisma.devotionalRead.update({
+        where: {
+          devotionalId_userId: {
+            devotionalId: c.reflectionDevotionalId,
+            userId: c.reflectionUserId,
+          },
+        },
+        data: { reflectionStatus: status },
+      });
+      authorId = read.userId;
+      what = 'reflexión';
+    } else {
+      throw new BadRequestException('case_has_no_content');
+    }
+
+    await this.prisma.moderationCase.update({
+      where: { id: caseId },
+      data: {
+        status: 'RESOLVED',
+        decision: approve ? 'APPROVE_CONTENT' : 'REMOVE_CONTENT',
+        resolvedAt: new Date(),
+        assigneeId: c.assigneeId ?? actorId,
+      },
+    });
+    await this.audit.log({
+      actorId,
+      action: approve ? 'HELD_CONTENT_APPROVED' : 'HELD_CONTENT_REJECTED',
+      targetType: 'MODERATION_CASE',
+      targetId: caseId,
+    });
+
+    // El mensaje ya avisa por su cuenta en resolveHeldMessage. Para lo demás,
+    // la persona esperaba una respuesta y hay que dársela en los dos sentidos:
+    // «se publicó» es tan importante como «no se publicó».
+    if (!c.messageId && authorId) {
+      await this.notifications.notify(
+        authorId,
+        'MODERATION',
+        approve ? `Tu ${what} ya está publicada` : `Tu ${what} no se publicó`,
+        approve
+          ? 'Una persona del equipo la revisó y ya la puede ver la comunidad.'
+          : 'Una persona del equipo la revisó y no cumple el Pacto de conducta.',
+      );
+    }
+
+    return { done: true, approved: approve };
   }
 
   /** Approve or deliver an AI-held message after human review. */
@@ -636,4 +956,19 @@ export class AdminService {
     await this.audit.log({ actorId, action: 'REFUND_COMPLETED', targetType: 'PAYMENT', targetId: paymentId });
     return { status: 'refunded' };
   }
+}
+
+/** Un contenido retenido, tal como lo ve quien modera. */
+export interface HeldContentItem {
+  caseId: string;
+  kind: 'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
+  text: string | null;
+  photoKey?: string;
+  photoUrl?: string;
+  authorId: string | null;
+  authorName: string;
+  context: string;
+  risk: number | null;
+  priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+  createdAt: string;
 }

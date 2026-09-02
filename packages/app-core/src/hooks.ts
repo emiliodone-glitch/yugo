@@ -27,6 +27,7 @@ import {
   isExclusive,
   nextStage,
   rankPrayerRequests,
+  type DevotionalDraft,
   type PrayerScope,
   type ChatMessage,
   type AccompaniedBond,
@@ -1443,11 +1444,107 @@ export function useMarkPrayerAnswered() {
   return useMutation({
     mutationFn: async ({ id, note }: { id: string; note?: string }) => {
       if (isDemoMode()) {
-        markDemo(id, note);
-        return { id, answeredAt: new Date().toISOString(), answeredNote: note ?? null, noteHeld: false };
+        const { noteHeld } = markDemo(id, note);
+        return {
+          id,
+          answeredAt: new Date().toISOString(),
+          answeredNote: noteHeld ? null : (note ?? null),
+          noteHeld,
+        };
       }
       return api().prayer.markAnswered(id, note);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['prayer-wall'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Panel: contenido retenido por la moderación automática
+// ---------------------------------------------------------------------------
+
+/**
+ * Lo retenido, con el texto delante.
+ *
+ * Antes la cola devolvía casos sin contenido y quien moderaba no podía ni
+ * leerlos ni aprobarlos. Para una petición de oración eso significaba que a la
+ * persona se le decía «se publica cuando alguien la apruebe» y nadie podía.
+ */
+export function useHeldContent() {
+  const demo = useDemoStore((s) => s.held);
+  const live = useQuery({
+    queryKey: ['admin-held'],
+    enabled: !isDemoMode(),
+    queryFn: () => api().admin.heldContent(),
+    refetchInterval: 30_000,
+  });
+
+  if (!isDemoMode()) return live;
+  return { ...live, data: demo, isLoading: false } as typeof live;
+}
+
+export function useResolveHeld() {
+  const queryClient = useQueryClient();
+  const resolveDemo = useDemoStore((s) => s.resolveHeld);
+  return useMutation({
+    mutationFn: async ({ caseId, approve }: { caseId: string; approve: boolean }) => {
+      if (isDemoMode()) return resolveDemo(caseId, approve);
+      return api().admin.resolveHeldContent(caseId, approve);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-held'] });
+      queryClient.invalidateQueries({ queryKey: ['prayer-wall'] });
+      queryClient.invalidateQueries({ queryKey: ['devotional'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Panel: autoría de devocionales
+// ---------------------------------------------------------------------------
+
+/**
+ * El calendario y, sobre todo, la reserva: días consecutivos programados a
+ * partir de hoy. Es el número que evita que la app repita el último devocional
+ * para siempre sin que nadie se entere.
+ */
+export function useDevotionalSchedule() {
+  const demo = useDemoStore((s) => s.devotionalSchedule);
+  const live = useQuery({
+    queryKey: ['admin-devotionals'],
+    enabled: !isDemoMode(),
+    queryFn: () => api().admin.devotionalSchedule(),
+  });
+
+  if (!isDemoMode()) return live;
+  return { ...live, data: demo, isLoading: false } as typeof live;
+}
+
+export function useUpsertDevotional() {
+  const queryClient = useQueryClient();
+  const upsertDemo = useDemoStore((s) => s.upsertDevotional);
+  return useMutation({
+    mutationFn: async ({ date, draft }: { date: string; draft: DevotionalDraft }) => {
+      if (isDemoMode()) return upsertDemo(date, draft);
+      return api().admin.upsertDevotional(date, draft);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-devotionals'] });
+      queryClient.invalidateQueries({ queryKey: ['devotional'] });
+    },
+  });
+}
+
+export function useRemoveDevotional() {
+  const queryClient = useQueryClient();
+  const removeDemo = useDemoStore((s) => s.removeDevotional);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (isDemoMode()) {
+        removeDemo(id);
+        return { deleted: true };
+      }
+      return api().admin.removeDevotional(id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-devotionals'] }),
   });
 }

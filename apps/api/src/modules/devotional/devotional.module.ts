@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DevotionalController } from './devotional.controller';
+import { DevotionalAdminController, DevotionalController } from './devotional.controller';
 import { DevotionalService } from './devotional.service';
 import { PrayerController } from './prayer.controller';
 import { PrayerService } from './prayer.service';
@@ -13,7 +13,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
  */
 @Module({
   imports: [ModerationModule, NotificationsModule],
-  controllers: [DevotionalController, PrayerController],
+  controllers: [DevotionalController, DevotionalAdminController, PrayerController],
   providers: [DevotionalService, PrayerService],
   exports: [DevotionalService, PrayerService],
 })

@@ -165,7 +165,7 @@ function DevotionalReflection() {
 // Muro de oración
 // ---------------------------------------------------------------------------
 
-export function PrayerWall() {
+export function PrayerWall({ showTitle = true }: { showTitle?: boolean }) {
   const [scope, setScope] = useState<'community' | 'church'>('community');
   const { data } = usePrayerWall(scope);
   const viewerId = useCurrentUserId();
@@ -173,9 +173,13 @@ export function PrayerWall() {
 
   return (
     <section aria-label={es.prayer.title}>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="h-display text-[15px]">{es.prayer.title}</h2>
-      </div>
+      {/* La página propia ya lleva el título en su encabezado; repetirlo
+          justo debajo era lo primero que se veía al entrar. */}
+      {showTitle ? (
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="h-display text-[15px]">{es.prayer.title}</h2>
+        </div>
+      ) : null}
 
       <Segment
         value={scope}
@@ -281,6 +285,7 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
   const markAnswered = useMarkPrayerAnswered();
   const [closing, setClosing] = useState(false);
   const [note, setNote] = useState('');
+  const [noteHeld, setNoteHeld] = useState(false);
 
   // La autoría se decide por id y nunca por nombre: dos personas se pueden
   // llamar Ana, y cada una vería la petición de la otra como suya.
@@ -306,6 +311,7 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
           {item.answeredNote}
         </p>
       ) : null}
+      {noteHeld ? <p className="mt-2 text-[11px] text-wine">{es.prayer.answeredNoteHeld}</p> : null}
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
         {/* Nunca imprime un cero: eso lo resuelve `intercessionCount`. */}
@@ -341,8 +347,14 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
               <button
                 type="button"
                 className="btn btn-sm btn-olive flex-1"
-                onClick={() => {
-                  markAnswered.mutate({ id: item.id, note: note.trim() || undefined });
+                onClick={async () => {
+                  const result = await markAnswered.mutateAsync({
+                    id: item.id,
+                    note: note.trim() || undefined,
+                  });
+                  // Si el testimonio quedó retenido, la persona lo tiene que
+                  // saber: la petición sí se cerró, el texto espera revisión.
+                  setNoteHeld(result.noteHeld);
                   setClosing(false);
                 }}
               >

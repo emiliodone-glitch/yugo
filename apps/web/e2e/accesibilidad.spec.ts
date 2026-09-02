@@ -31,6 +31,9 @@ const SURFACES = [
   { name: 'legal', path: '/legal/pacto' },
   { name: 'panel admin', path: '/admin' },
   { name: 'moderación', path: '/admin/moderacion' },
+  { name: 'devocionales admin', path: '/admin/devocionales' },
+  { name: 'devocional', path: '/devocional' },
+  { name: 'muro de oración', path: '/oracion' },
   { name: 'portal de iglesias', path: '/iglesias' },
   { name: 'ministerio de solteros', path: '/iglesias/solteros' },
 ];

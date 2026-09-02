@@ -17,19 +17,21 @@ export default function HomeScreen() {
   const displayName = session?.displayName ?? '';
   const summary = data?.summary;
   const featured = data?.featuredEvent;
-  const today = new Intl.DateTimeFormat('es-DO', {
+  const todayText = new Intl.DateTimeFormat('es-DO', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     timeZone: 'America/Santo_Domingo',
   }).format(new Date());
+  // Solo la primera letra en mayúscula: «Miércoles, 2 de septiembre».
+  const today = todayText.charAt(0).toUpperCase() + todayText.slice(1);
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <View>
-            <Sub style={{ textTransform: 'capitalize' }}>{today}</Sub>
+            <Sub>{today}</Sub>
             <H>{es.home.greeting(displayName)}</H>
           </View>
           <Pressable onPress={() => router.push('/perfil')}>

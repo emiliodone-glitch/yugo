@@ -19,6 +19,8 @@ test.describe('Panel administrativo', () => {
     await page.goto('/admin/moderacion');
 
     await expect(page.getByRole('heading', { name: 'Cola de moderación' })).toBeVisible();
+    // La cola abre en retenidos; los reportes están en su pestaña.
+    await page.getByRole('tab', { name: /Reportes/ }).click();
     await expect(page.getByText('Posible menor de edad')).toBeVisible();
     await expect(page.getByText('Crítico').first()).toBeVisible();
     // Toda decisión exige motivo y queda auditada

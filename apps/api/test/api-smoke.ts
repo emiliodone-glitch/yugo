@@ -72,6 +72,54 @@ async function login(identifier: string): Promise<string> {
   return result.body.accessToken;
 }
 
+
+/**
+ * Entrar como personal del equipo, pasando el 2FA de verdad.
+ *
+ * Los roles administrativos exigen segundo factor (RF-AUT-07) y el código va
+ * hasheado a la base, así que no se puede leer de vuelta. La suite hace lo
+ * mismo que haría una persona con la consola delante: acuña un código, lo deja
+ * donde el servicio lo busca y lo escribe. Nada del control se relaja; el
+ * camino que se ejercita es el real.
+ */
+async function loginStaff(email: string): Promise<string> {
+  const cached = tokens.get(email);
+  if (cached) return cached;
+
+  const first = await call('POST', '/auth/login', { body: { identifier: email, password: PASSWORD } });
+  if (first.body?.accessToken) {
+    tokens.set(email, first.body.accessToken);
+    return first.body.accessToken;
+  }
+  if (!first.body?.twoFactorRequired) {
+    throw new Error(`login failed for ${email}: ${JSON.stringify(first.body)}`);
+  }
+
+  const { PrismaClient } = await import('@prisma/client');
+  const { createHash } = await import('crypto');
+  const prisma = new PrismaClient();
+  const code = '424242';
+  try {
+    await prisma.otpCode.create({
+      data: {
+        identifier: email,
+        purpose: 'LOGIN',
+        codeHash: createHash('sha256').update(code).digest('hex'),
+        expiresAt: new Date(Date.now() + 5 * 60_000),
+      },
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+
+  const second = await call('POST', '/auth/login/2fa', { body: { identifier: email, code } });
+  if (!second.body?.accessToken) {
+    throw new Error(`2fa failed for ${email}: ${JSON.stringify(second.body)}`);
+  }
+  tokens.set(email, second.body.accessToken);
+  return second.body.accessToken;
+}
+
 /**
  * The e-mail behind a user id, read from the database.
  *
@@ -903,6 +951,72 @@ async function main() {
     }
   }
 
+
+  console.log('\nDevocional — autoría desde el panel y aviso de reserva');
+  {
+    const adminToken = await loginStaff('admin@yugo.do');
+    const schedule = await call('GET', '/admin/devocionales', { token: adminToken });
+    check('el calendario responde', Array.isArray(schedule.body?.items), schedule.status);
+    check(
+      'la reserva se cuenta en días consecutivos desde hoy',
+      typeof schedule.body?.runwayDays === 'number',
+      schedule.body?.runwayDays,
+    );
+
+    // Escribir el primer día libre después de lo programado.
+    const taken = new Set((schedule.body?.items ?? []).map((d: { publishOn: string }) => d.publishOn));
+    let free = schedule.body?.today as string;
+    const next = (d: string) =>
+      new Date(Date.parse(`${d}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    while (taken.has(free)) free = next(free);
+
+    const before = schedule.body?.runwayDays as number;
+    const written = await call('PUT', `/admin/devocionales/${free}`, {
+      token: adminToken,
+      body: {
+        reference: 'Miqueas 6:8',
+        title: 'Qué pide de ti',
+        body: 'Hacer justicia, amar misericordia y humillarte ante tu Dios. Tres verbos, y ninguno es «sentir»: los tres se hacen.',
+        question: '¿Cuál de los tres te cuesta más esta semana?',
+      },
+    });
+    check('se puede escribir el de un día libre', written.body?.created === true, written.body);
+
+    const after = await call('GET', '/admin/devocionales', { token: adminToken });
+    check(
+      'la reserva sube en un día si el nuevo va pegado',
+      after.body?.runwayDays === before + 1,
+      { before, after: after.body?.runwayDays },
+    );
+
+    // El de hoy ya lo leyó gente en esta misma suite: no se reescribe.
+    const today = schedule.body?.today as string;
+    const overwrite = await call('PUT', `/admin/devocionales/${today}`, {
+      token: adminToken,
+      body: {
+        reference: 'Salmo 1:1',
+        title: 'Reescrito',
+        body: 'b'.repeat(60),
+        question: 'q'.repeat(20),
+      },
+    });
+    check('uno ya leído no se reescribe', overwrite.status === 403, overwrite.status);
+
+    // Y se puede quitar el que se acaba de escribir, porque nadie lo leyó.
+    if (written.body?.id) {
+      const removed = await call('DELETE', `/admin/devocionales/${written.body.id}`, { token: adminToken });
+      check('uno sin lecturas se puede quitar', removed.body?.deleted === true, removed.body);
+    }
+
+    // Un miembro no escribe devocionales.
+    const forbidden = await call('GET', '/admin/devocionales', { token });
+    check('un miembro no ve el calendario', forbidden.status === 403, forbidden.status);
+
+    // El tablero avisa cuando la reserva es corta.
+    const dashboard = await call('GET', '/admin/dashboard', { token: adminToken });
+    check('el tablero informa la reserva', typeof dashboard.body?.queues?.devotionalRunway === 'number', dashboard.body?.queues);
+  }
+
   console.log('\nMuro de oración — anonimato real y nadie en cero');
   {
     const wall = await call('GET', '/oracion', { token });
@@ -1001,6 +1115,48 @@ async function main() {
       body: { body: 'Necesito que me deposites dinero por transferencia para la operación.', anonymous: false },
     });
     check('una petición con pedido de dinero no se publica', scam.body?.published === false, scam.body);
+    // La petición con pedido de dinero quedó retenida. Antes moría ahí: el
+    // caso no enlazaba el contenido y nadie podía verlo ni aprobarlo, mientras
+    // a la persona se le decía «se publica cuando alguien la apruebe».
+    console.log('\nModeración — lo retenido se puede ver y aprobar');
+    if (scam.body?.id) {
+      const adminToken = await loginStaff('admin@yugo.do');
+      const held = await call('GET', '/admin/moderation/held', { token: adminToken });
+      check('la cola de retenidos responde', Array.isArray(held.body), held.status);
+
+      const mine = (held.body ?? []).find(
+        (h: { kind: string; text: string | null }) =>
+          h.kind === 'prayer' && (h.text ?? '').includes('deposites dinero'),
+      );
+      check('la petición retenida aparece con su texto', !!mine, held.body?.length);
+      check('y dice quién la escribió, para poder decidir', !!mine?.authorName, mine?.authorName);
+
+      if (mine) {
+        const approved = await call('POST', `/admin/moderation/held/${mine.caseId}/resolve`, {
+          token: adminToken,
+          body: { approve: true },
+        });
+        check('un moderador puede aprobarla', approved.body?.approved === true, approved.body);
+
+        // Y ahora sí está en el muro: el ciclo que antes no cerraba.
+        const wallAfter = await call('GET', '/oracion', { token });
+        const published = (wallAfter.body ?? []).find(
+          (p: { id: string }) => p.id === scam.body.id,
+        );
+        check('aprobada, aparece en el muro', !!published, wallAfter.body?.length);
+
+        const heldAfter = await call('GET', '/admin/moderation/held', { token: adminToken });
+        const stillThere = (heldAfter.body ?? []).some(
+          (h: { caseId: string }) => h.caseId === mine.caseId,
+        );
+        check('y sale de la cola', !stillThere, heldAfter.body?.length);
+      }
+
+      // Un miembro no puede tocar la cola.
+      const forbidden = await call('GET', '/admin/moderation/held', { token });
+      check('un miembro no ve la cola', forbidden.status === 403, forbidden.status);
+    }
+
 
     // Van dos gastadas en este bloque (la anónima y la del dinero). La
     // retenida sí ocupó su lugar, que es la parte que importa: si no contara,
