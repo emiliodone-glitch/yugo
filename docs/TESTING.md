@@ -126,6 +126,28 @@ pnpm --filter @yugo/mobile start   # abre en Expo Go
 Recorrido: Bienvenida → Registro (8 pasos, pacto en el 3) → tabs Inicio/Descubrir/
 Conexiones/Comunidad/Eventos → Perfil → Paywall → Visibilidad. Funciona con datos demo.
 
+### La app real en un navegador real
+
+```bash
+pnpm --filter @yugo/mobile test        # Jest: cada pantalla se monta, módulos nativos simulados
+pnpm --filter @yugo/mobile test:web    # Chromium: el bundle de Metro, sin simulaciones
+```
+
+`test:web` exporta la app con Metro para web (React Native Web), la sirve, la
+abre en Chromium con viewport de teléfono y recorre las 32 rutas más un flujo
+con toques: entrar, leer el devocional, Descubrir, guardar, afinidad, marcar
+interés, Conexiones, abrir un chat, enviar un mensaje y las cinco pestañas.
+Falla si alguna ruta lanza un error de JavaScript, escribe `console.error` o
+queda en blanco. Deja una captura y el texto de cada paso en
+`apps/mobile/.web-smoke/`.
+
+Necesita el Chromium de Playwright (`pnpm --filter @yugo/web exec playwright
+install chromium`); si está en otra ruta, `YUGO_CHROMIUM=/ruta/al/binario`.
+
+Lo que no cubre ninguna de las dos: la capa nativa —permisos, cámara,
+SecureStore, Hermes en ARM—. Eso solo lo prueba el APK instalado en un
+dispositivo, con los flujos de Maestro.
+
 ### Privacidad y cumplimiento (RF-SEG-06/07/08, Hito 14)
 1. `GET /v1/privacy/export` devuelve la copia completa de datos personales del titular
    (perfil, fotos, intereses, conversaciones aprobadas, pagos, sanciones) citando la Ley 172-13.

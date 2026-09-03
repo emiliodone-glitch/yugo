@@ -71,6 +71,15 @@ jobs:
       - name: Cada pantalla se monta sin lanzar
         run: pnpm --filter @yugo/mobile test
 
+      # La app real en Chromium con viewport de teléfono: todas las rutas y un
+      # flujo con toques, sin módulos simulados. Es lo más cercano a abrir el
+      # APK que se puede hacer sin un dispositivo.
+      - name: Chromium para la prueba en navegador
+        run: pnpm --filter @yugo/web exec playwright install --with-deps chromium
+
+      - name: La app abre y navega en un navegador real
+        run: pnpm --filter @yugo/mobile test:web
+
       - name: El bundle de Android resuelve todos sus módulos
         env:
           EXPO_PUBLIC_DEMO_MODE: ${{ inputs.profile == 'preview-demo' && 'true' || 'false' }}

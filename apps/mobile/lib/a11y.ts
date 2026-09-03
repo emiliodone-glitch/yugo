@@ -7,7 +7,7 @@
  * helpers let a screen ask for the current scale and size around it.
  */
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, PixelRatio } from 'react-native';
+import { AccessibilityInfo, AppState, PixelRatio } from 'react-native';
 
 /**
  * The system font scale, clamped.
@@ -21,9 +21,14 @@ export function useFontScale(max = 1.6): number {
   const [scale, setScale] = useState(() => Math.min(PixelRatio.getFontScale(), max));
 
   useEffect(() => {
-    // The setting can change while the app is backgrounded.
+    // The setting can change while the app is backgrounded. React Native has
+    // no event for the font scale itself, so re-read it whenever the app comes
+    // back to the foreground. (An earlier version listened to a non-existent
+    // AccessibilityInfo event, which never fired.)
     const update = () => setScale(Math.min(PixelRatio.getFontScale(), max));
-    const subscription = AccessibilityInfo.addEventListener('change', update);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') update();
+    });
     update();
     return () => subscription.remove();
   }, [max]);

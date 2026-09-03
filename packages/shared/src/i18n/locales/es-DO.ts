@@ -783,6 +783,11 @@ export const es = {
     },
   },
 
+  notFound: {
+    title: 'Esta pantalla no existe',
+    body: 'El enlace que abriste ya no lleva a ningún lado. Puede que la persona, el grupo o el evento ya no estén disponibles.',
+    home: 'Ir al inicio',
+  },
   errors: {
     generic: 'Algo salió mal. Inténtalo de nuevo.',
     network: 'Sin conexión. Revisa tu internet.',

@@ -45,3 +45,6 @@ apps/web/.playwright/
 
 # Reportes del escáner de secretos
 gitleaks-report.json
+
+# Capturas de la prueba de la app móvil en navegador (pnpm --filter @yugo/mobile test:web)
+apps/mobile/.web-smoke/

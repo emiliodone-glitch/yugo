@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { APP_TIMEZONE, es } from '@yugo/shared';
 import { useDemoStore, useEvents, useSetAttendance } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
@@ -10,16 +10,21 @@ const { colors, fonts } = theme;
 
 function dayParts(iso: string) {
   const date = new Date(iso);
+  // Events happen in the Dominican Republic; the detail screen and the shared
+  // helpers already format in APP_TIMEZONE. Without it, a phone set to another
+  // zone showed "SÁB" here and "viernes" on the detail for the same event.
+  const timeZone = APP_TIMEZONE;
   return {
-    weekday: new Intl.DateTimeFormat('es-DO', { weekday: 'short' })
+    weekday: new Intl.DateTimeFormat('es-DO', { weekday: 'short', timeZone })
       .format(date)
       .replace('.', '')
       .toUpperCase(),
-    day: new Intl.DateTimeFormat('es-DO', { day: 'numeric' }).format(date),
+    day: new Intl.DateTimeFormat('es-DO', { day: 'numeric', timeZone }).format(date),
     time: new Intl.DateTimeFormat('es-DO', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone,
     }).format(date),
   };
 }

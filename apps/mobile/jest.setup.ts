@@ -107,3 +107,12 @@ jest.mock('expo-router', () => {
 
 // El `Animated` de RN avisa por el driver nativo en Jest; silencio solo eso.
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { virtual: true });
+
+// El mock de React Native para AccessibilityInfo devuelve `undefined` en
+// addEventListener; en un teléfono devuelve una suscripción. Sin esto, cada
+// desmontaje de una pantalla que usa useReduceMotion imprime un error de
+// React que no existe en el dispositivo y vuelve la suite intermitente.
+{
+  const { AccessibilityInfo } = require('react-native');
+  (AccessibilityInfo.addEventListener as jest.Mock).mockImplementation(() => ({ remove: jest.fn() }));
+}

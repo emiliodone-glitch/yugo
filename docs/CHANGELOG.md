@@ -23,6 +23,37 @@ Lo que este entorno no puede hacer y queda dicho: no hay token de Railway ni de
 Expo aquí. Todo está preparado y verificado; el despliegue y el build los lanza
 quien tenga las cuentas, con los comandos de las guías.
 
+### La app real en un navegador real, y lo que salió de ahí
+La pregunta era «¿el APK abre sin cerrarse?». Sin teléfono, emulador (no hay
+KVM) ni SDK de Android (la descarga está bloqueada), se hizo lo más cercano:
+
+- **`pnpm --filter @yugo/mobile test:web`.** Exporta el bundle de Metro para
+  web con React Native Web —el mismo código que va al APK, con expo-router,
+  React Query y los stores de verdad, sin ninguna simulación— y lo abre en
+  Chromium con viewport de teléfono. Recorre las 32 rutas y un flujo con
+  toques: entrar, leer el devocional, Descubrir, guardar, afinidad, marcar
+  interés, Conexiones, abrir el chat, enviar un mensaje, las cinco pestañas.
+  Resultado: 45 pasos sin un solo error de JavaScript ni pantalla en blanco.
+- **`expo prebuild --platform android`** genera el proyecto nativo completo
+  (Hermes activado, `do.yugo.app`, permisos de cámara y notificaciones). Es el
+  primer paso que EAS ejecuta y donde fallan los plugins mal configurados.
+- El bundle de Android que produce `expo export` es **bytecode de Hermes**
+  (versión 96), compilado por el mismo `hermesc` que usa el APK.
+
+Lo que apareció y se corrigió:
+
+- **Ruta inexistente en inglés.** Un enlace o una notificación a algo borrado
+  mostraba la página por defecto de expo-router («Unmatched Route»). Ahora
+  hay `+not-found` en español con un botón al inicio.
+- **`useFontScale` escuchaba un evento que no existe.** `AccessibilityInfo`
+  no emite `change`; el listener nunca disparaba y en Jest producía un error
+  intermitente al desmontar. Ahora relee la escala al volver al primer plano.
+- **La lista de Eventos usaba la zona horaria del teléfono** y el detalle la
+  de República Dominicana: para un dominicano fuera del país, «SÁB 5» arriba y
+  «viernes» abajo para el mismo evento. Las dos formatean en `APP_TIMEZONE`.
+- `expo-system-ui` instalado: `userInterfaceStyle: light` no se aplicaba en
+  Android sin él (lo avisaba el prebuild).
+
 ### Desplegar y generar el APK desde GitHub, con un secreto y un clic
 Para que no haga falta instalar nada en una máquina propia:
 

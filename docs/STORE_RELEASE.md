@@ -127,7 +127,21 @@ Es la prueba más barata contra una app que se cierra al abrirla. `expo export`
 es la que atrapó, en la primera corrida, un módulo que faltaba por la
 estructura del monorepo y habría roto el build en EAS.
 
-Lo que solo se puede comprobar en un dispositivo: los flujos de Maestro
+Y lo más parecido a un teléfono sin tener uno:
+
+```bash
+pnpm --filter @yugo/mobile test:web             # la app real en Chromium, sin simulaciones
+npx expo prebuild --platform android --no-install && rm -rf android   # los plugins generan el proyecto nativo
+```
+
+`test:web` abre el bundle de Metro en Chromium con viewport de teléfono
+(React Native Web), recorre todas las rutas y hace un flujo completo con toques
+(ver `docs/TESTING.md`, «La app real en un navegador real»). El `prebuild` es
+el primer paso que EAS ejecuta: si un plugin de configuración está mal, falla
+aquí en treinta segundos en vez de en la nube.
+
+Lo que solo se puede comprobar en un dispositivo: la capa nativa (permisos,
+cámara, SecureStore, Hermes en ARM) y los flujos de Maestro
 (`maestro test apps/mobile/.maestro`) contra el APK instalado.
 
 ## Pasos de publicación
