@@ -13,7 +13,8 @@ name: Railway
 
 on:
   push:
-    branches: [main]
+    # Cualquier rama; el trabajo de abajo solo corre en la rama por defecto del
+    # repositorio (hoy no se llama `main`), así no hay que tocar esto si cambia.
     paths:
       - 'apps/api/**'
       - 'apps/web/**'
@@ -27,6 +28,14 @@ on:
         type: choice
         default: ambos
         options: [ambos, api, web]
+      seed:
+        description: 'Sembrar catálogo y datos de demo (solo la primera vez; necesita el secreto SEED_DATABASE_URL)'
+        type: boolean
+        default: false
+      smoke:
+        description: 'Correr la suite de humo contra la API desplegada (base recién sembrada)'
+        type: boolean
+        default: false
 
 concurrency:
   group: railway-${{ github.ref }}
@@ -34,6 +43,8 @@ concurrency:
 
 jobs:
   deploy:
+    # A mano desde cualquier rama; por push, solo desde la rama por defecto.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     environment:
       name: railway
@@ -79,3 +90,66 @@ jobs:
           done
           echo "::error::La API no respondió sana en $API_URL tras ~7 minutos. Revisa los logs del servicio en Railway."
           exit 1
+
+  # La semilla crea el catálogo que la app necesita (denominaciones, áreas de
+  # servicio, documentos legales, ajustes) y además 40 perfiles ficticios para
+  # la demo. Corre desde el runner de GitHub, así que la base tiene que ser
+  # alcanzable desde fuera: en Railway, servicio postgres → Settings →
+  # Networking → TCP Proxy, y esa URL pública va en el secreto SEED_DATABASE_URL.
+  # El proxy se puede apagar después de sembrar.
+  seed:
+    needs: deploy
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.seed }}
+    runs-on: ubuntu-latest
+    environment:
+      name: railway
+    steps:
+      - name: Comprobar que hay SEED_DATABASE_URL
+        env:
+          SEED_DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+        run: |
+          if [ -z "$SEED_DATABASE_URL" ]; then
+            echo "::error::Falta el secreto SEED_DATABASE_URL (la URL pública de Postgres, vía TCP Proxy de Railway)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @yugo/ui-tokens build && pnpm --filter @yugo/shared build && pnpm --filter @yugo/api prisma:generate
+      - name: Sembrar
+        env:
+          DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+        run: pnpm --filter @yugo/api db:seed
+
+  # 130 comprobaciones de extremo a extremo contra la API desplegada: registro,
+  # Descubrir, conexión, chat, etapas, devocional, oración y moderación. Pide
+  # una base recién sembrada; el limitador de inicio de sesión (10 por hora)
+  # hace que repetirla enseguida falle por diseño, no por un defecto.
+  smoke:
+    needs: [deploy, seed]
+    if: ${{ always() && needs.deploy.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.smoke && vars.RAILWAY_API_URL != '' && (needs.seed.result == 'success' || needs.seed.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: railway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @yugo/ui-tokens build && pnpm --filter @yugo/shared build && pnpm --filter @yugo/api prisma:generate
+      - name: Suite de humo
+        env:
+          API_BASE_URL: ${{ vars.RAILWAY_API_URL }}/v1
+          DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+        run: pnpm --filter @yugo/api test:smoke

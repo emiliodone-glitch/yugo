@@ -162,9 +162,23 @@ pueden salir solos desde GitHub con `.github/workflows/railway.yml`:
    la API (para que el flujo espere a que esté sana), y `RAILWAY_API_SERVICE` /
    `RAILWAY_WEB_SERVICE` si los servicios no se llaman `api` y `web`.
 
-A partir de ahí, cada push a `main` que toque la API, la web o los paquetes
-despliega; y en **Actions → Railway → Run workflow** se puede lanzar a mano
-eligiendo qué servicio.
+A partir de ahí, cada push a la rama por defecto que toque la API, la web o
+los paquetes despliega; y en **Actions → Railway → Run workflow** se puede
+lanzar a mano eligiendo qué servicio, con dos casillas más:
+
+- **Sembrar** (`seed`): corre `prisma/seed.ts` desde GitHub, una sola vez.
+  Como el runner está fuera de Railway, Postgres tiene que ser alcanzable:
+  servicio `postgres` → Settings → Networking → **TCP Proxy**. La URL pública
+  resultante (`postgresql://yugo:<pass>@<host>.proxy.rlwy.net:<puerto>/yugo`)
+  va en el secreto `SEED_DATABASE_URL`. El proxy se puede apagar después.
+- **Suite de humo** (`smoke`): las 130 comprobaciones contra la API
+  desplegada, con la base recién sembrada. Usa `RAILWAY_API_URL` y el mismo
+  secreto. Repetirla enseguida falla por el limitador de inicio de sesión
+  (10 por hora), que es correcto: no lo debilites.
+
+Con los servicios creados como **Empty Service** (sin conectar el repo de
+GitHub en Railway), este flujo es el único que despliega y no hay
+despliegues dobles.
 
 El flujo `deploy.yml` que ya existía apunta a un proveedor genérico por
 webhook (`STAGING_DEPLOY_HOOK`, `PRODUCTION_DEPLOY_HOOK`). Si Railway es el
