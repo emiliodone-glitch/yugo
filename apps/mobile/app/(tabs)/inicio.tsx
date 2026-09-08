@@ -5,6 +5,7 @@ import { es } from '@yugo/shared';
 import { useHomeSummary, usePrayerWall, useSession, useSetAttendance } from '@yugo/app-core';
 import { AffinityRing, AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { DevotionalCard } from '../../components/devotional';
+import { CompleteProfileCard } from '../../components/complete-profile-card';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
@@ -38,6 +39,8 @@ export default function HomeScreen() {
             <AvatarCircle name={displayName || 'Y'} size={34} />
           </Pressable>
         </View>
+
+        <CompleteProfileCard compact />
 
         {/*
           El devocional y el muro son la razón para volver mañana. Van arriba
@@ -119,9 +122,7 @@ export default function HomeScreen() {
                     label={es.home.willAttend}
                     tone="olive"
                     small
-                    onPress={() =>
-                      setAttendance.mutate({ eventId: featured.id, status: 'GOING' })
-                    }
+                    onPress={() => setAttendance.mutate({ eventId: featured.id, status: 'GOING' })}
                   />
                 </View>
               </View>
@@ -236,5 +237,11 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eventBanner: { height: 92, backgroundColor: colors.wine },
   suggestionCard: { minWidth: 130, marginBottom: 0, padding: 10 },
-  prayerBody: { fontFamily: fonts.body, fontSize: 13, color: colors.ink, marginTop: 8, lineHeight: 19 },
+  prayerBody: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.ink,
+    marginTop: 8,
+    lineHeight: 19,
+  },
 });

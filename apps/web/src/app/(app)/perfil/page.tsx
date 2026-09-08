@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks';
 import { Avatar, Toggle } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { CheckIcon } from '@/components/icons';
 
 function shortDate(iso?: string | null): string | null {
@@ -65,9 +66,6 @@ export default function ProfilePage() {
   const identityApproved = identity?.status === 'APPROVED';
   const endorsement = verification?.level3;
   const endorsed = endorsement?.status === 'APPROVED';
-  const nextField = user.completenessNext
-    ? (es.profile.fields[user.completenessNext.key] ?? user.completenessNext.key)
-    : null;
 
   return (
     // En escritorio, dos columnas: a la izquierda quién soy y cómo voy
@@ -101,28 +99,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Completeness (RF-PER-10) */}
-        <div className="card mt-3.5">
-          <div className="flex items-center justify-between text-[12.5px]">
-            <span>{es.profile.completeness}</span>
-            <b>{user.completeness}%</b>
-          </div>
-          <div className="bar mt-1.5">
-            <i style={{ width: `${user.completeness}%` }} />
-          </div>
-          <div className="mt-1.5 text-[11px] text-muted">
-            {nextField && user.completenessNext
-              ? es.profile.completenessHint(nextField, user.completenessNext.targetPct)
-              : es.profile.complete}
-          </div>
-          {user.completeness < 100 ? (
-            <Link
-              href="/perfil/fotos"
-              className="mt-2 inline-block text-[12px] font-semibold text-olive-text underline"
-            >
-              {es.onboarding.photosTitle} ›
-            </Link>
-          ) : null}
+        {/* Completeness (RF-PER-10): la misma tarjeta que Inicio, completa. */}
+        <div className="mt-3.5 mb-3">
+          <CompleteProfileCard />
         </div>
 
         {/* Verification ladder (RF-VER-04) */}

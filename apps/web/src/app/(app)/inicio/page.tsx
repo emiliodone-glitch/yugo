@@ -9,6 +9,7 @@ import { QueryError } from '@/components/query-error';
 import { usePrayerWall } from '@/lib/hooks';
 import { PinIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
+import { CompleteProfileCard } from '@/components/complete-profile-card';
 
 function formatDate(date: Date): string {
   const text = new Intl.DateTimeFormat('es-DO', {
@@ -106,6 +107,12 @@ export default function HomePage() {
         <Link href="/perfil" aria-label={es.profile.title}>
           <Avatar name={displayName} size="s" />
         </Link>
+      </div>
+
+      {/* Lo que falta del perfil, antes que nada: es lo que el registro
+          corto dejó para después (RF-PER-10). */}
+      <div className="mb-3 xl:col-start-1">
+        <CompleteProfileCard compact />
       </div>
 
       {/* Daily summary */}

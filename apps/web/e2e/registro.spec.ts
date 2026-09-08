@@ -59,7 +59,7 @@ test.describe('Registro', () => {
     await expect(commit).toBeEnabled();
     await commit.click();
 
-    await expect(page.getByRole('heading', { name: 'Tu dimensión de fe' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Lo esencial' })).toBeVisible();
   });
 
   test('el rango de edad respeta la amplitud mínima (RF-DES-11)', async ({ page }) => {

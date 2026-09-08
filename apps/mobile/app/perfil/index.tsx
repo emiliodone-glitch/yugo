@@ -25,6 +25,7 @@ import {
   Toggle,
 } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { CompleteProfileCard } from '../../components/complete-profile-card';
 
 const { colors, fonts } = theme;
 
@@ -118,6 +119,10 @@ export default function ProfileScreen() {
             </Sub>
           </Card>
         ) : null}
+
+        <View style={{ marginBottom: 12 }}>
+          <CompleteProfileCard />
+        </View>
 
         <H size={15} style={{ marginBottom: 8 }}>
           {es.profile.verification}
