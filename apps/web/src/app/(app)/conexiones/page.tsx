@@ -55,7 +55,7 @@ export default function ConnectionsPage() {
         {fresh.map((connection) => (
           <Link
             key={connection.matchId}
-            href={`/conexiones/${connection.matchId}`}
+            href={`/conexiones/${connection.conversationId ?? connection.matchId}`}
             className="text-center"
           >
             <Avatar
@@ -75,7 +75,11 @@ export default function ConnectionsPage() {
       </div>
       <div>
         {conversations.map((connection) => (
-          <Link key={connection.matchId} href={`/conexiones/${connection.matchId}`} className="list-row">
+          <Link
+            key={connection.matchId}
+            href={`/conexiones/${connection.conversationId ?? connection.matchId}`}
+            className="list-row"
+          >
             <Avatar
               name={connection.otherUser.displayName}
               size="m"

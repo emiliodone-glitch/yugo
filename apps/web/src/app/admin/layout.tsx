@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { es } from '@yugo/shared';
 import { YugoMark } from '@/components/icons';
 import { Avatar } from '@/components/ui';
+import { StaffGate } from '@/components/staff-gate';
 
 const NAV: Array<
   | { kind: 'link'; href: string; label: string; badge?: number; badgeClass?: string }
@@ -110,7 +111,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Un landmark real: sin <main> el lector de pantalla no tiene
           dónde saltar y hay que recorrer el menú en cada página. */}
-      <main className="w-full pt-[92px] lg:ml-[210px] lg:pt-0">{children}</main>
+      <main className="w-full pt-[92px] lg:ml-[210px] lg:pt-0">
+        <StaffGate>{children}</StaffGate>
+      </main>
     </div>
   );
 }

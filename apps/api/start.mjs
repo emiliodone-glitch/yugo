@@ -33,7 +33,13 @@ if (!process.env.DATABASE_URL) {
 }
 
 run('migraciones', 'npx', ['prisma', 'migrate', 'deploy']);
-if (process.env.SEED_ON_BOOT === 'true') {
+// SEED_ON_BOOT=true → solo si la base está vacía (primer arranque).
+// SEED_ON_BOOT=always → en cada arranque: la semilla es idempotente (upserts)
+// y así un piloto recibe los datos de prueba nuevos con cada despliegue. No
+// dejarlo así con usuarios reales: reescribe los perfiles de demo.
+if (process.env.SEED_ON_BOOT === 'always') {
+  run('semilla (siempre)', 'npx', ['tsx', 'prisma/seed.ts']);
+} else if (process.env.SEED_ON_BOOT === 'true') {
   run('semilla si la base está vacía', 'npx', ['tsx', 'prisma/seed-if-empty.ts']);
 }
 console.log('[yugo] arrancando la API');

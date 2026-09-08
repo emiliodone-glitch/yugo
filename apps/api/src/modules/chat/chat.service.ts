@@ -110,9 +110,16 @@ export class ChatService {
     );
   }
 
-  private async assertParticipant(conversationId: string, userId: string) {
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
+  /**
+   * Resolves a conversation by its own id or by the match id, and checks the
+   * caller belongs to it. Clients hold either one — the connections list is
+   * keyed by match, deep links and push payloads by conversation — and
+   * answering 404 to a valid match id made the web chat unusable against the
+   * real API. Callers must use the returned `conversation.id` from here on.
+   */
+  private async assertParticipant(ref: string, userId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { OR: [{ id: ref }, { matchId: ref }] },
       include: { match: true },
     });
     if (!conversation) throw new NotFoundException('conversation_not_found');
@@ -124,8 +131,8 @@ export class ChatService {
     return conversation;
   }
 
-  async messages(conversationId: string, userId: string) {
-    await this.assertParticipant(conversationId, userId);
+  async messages(ref: string, userId: string) {
+    const { id: conversationId } = await this.assertParticipant(ref, userId);
     // The sender sees their own HELD messages ("en revisión"); the other side
     // only ever sees APPROVED content (RF-CON-06, 7.3).
     const messages = await this.prisma.message.findMany({
@@ -151,8 +158,9 @@ export class ChatService {
    * delivery. APPROVE → deliver in real time; HOLD → sender sees "en
    * revisión" and a case opens; REJECT → educational notice + escalation.
    */
-  async sendMessage(conversationId: string, senderId: string, body: string) {
-    const conversation = await this.assertParticipant(conversationId, senderId);
+  async sendMessage(ref: string, senderId: string, body: string) {
+    const conversation = await this.assertParticipant(ref, senderId);
+    const conversationId = conversation.id;
     const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
     if (sender?.status === 'SUSPENDED') throw new ForbiddenException('account_suspended');
 
@@ -209,8 +217,8 @@ export class ChatService {
    * RF-CON-10: share an event from the chat so they can attend together. The
    * invitation is a normal moderated message, so it follows the same rules.
    */
-  async inviteToEvent(conversationId: string, senderId: string, eventId: string) {
-    await this.assertParticipant(conversationId, senderId);
+  async inviteToEvent(ref: string, senderId: string, eventId: string) {
+    const { id: conversationId } = await this.assertParticipant(ref, senderId);
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { church: { select: { name: true } } },
@@ -370,13 +378,13 @@ export class ChatService {
   }
 
   /** RF-CON-09 (Plus): archive a conversation. */
-  async archive(conversationId: string, userId: string, archived: boolean) {
+  async archive(ref: string, userId: string, archived: boolean) {
     const tier = await this.subscriptions.tierOf(userId);
     if (tier === 'FREE') throw new ForbiddenException('plus_required');
-    const conversation = await this.assertParticipant(conversationId, userId);
+    const conversation = await this.assertParticipant(ref, userId);
     const isA = conversation.match.userAId === userId;
     await this.prisma.conversation.update({
-      where: { id: conversationId },
+      where: { id: conversation.id },
       data: isA ? { archivedByA: archived } : { archivedByB: archived },
     });
     return { archived };

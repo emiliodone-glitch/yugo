@@ -280,18 +280,50 @@ export class EventsService {
   }
 
   /** RF-EVE-08: public payload for the shareable link (no member data). */
+  /** Modo explorar: los próximos eventos publicados, en el formato público. */
+  async publicAgenda() {
+    const events = await this.prisma.event.findMany({
+      where: { status: 'PUBLISHED', startsAt: { gte: new Date() } },
+      include: { church: { select: { name: true, city: true } }, _count: { select: { attendances: true } } },
+      orderBy: { startsAt: 'asc' },
+      take: 12,
+    });
+    return events.map((event) => this.toPublic(event));
+  }
+
   async publicEvent(eventId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { church: { select: { name: true, city: true } }, _count: { select: { attendances: true } } },
     });
     if (!event || event.status !== 'PUBLISHED') throw new NotFoundException();
+    return this.toPublic(event);
+  }
+
+  /** Lo que se puede contar de un evento a quien no es miembro: nada de gente. */
+  private toPublic(event: {
+    id: string;
+    title: string;
+    description: string | null;
+    type: string;
+    startsAt: Date;
+    endsAt: Date | null;
+    address: string | null;
+    city: string | null;
+    lat: number | null;
+    lng: number | null;
+    costAmount: unknown;
+    costCurrency: string | null;
+    externalUrl: string | null;
+    church: { name: string };
+    _count: { attendances: number };
+  }) {
     return {
       id: event.id,
       title: event.title,
       description: event.description,
       type: event.type,
-      typeName: this.typeName(event.type),
+      typeName: this.typeName(event.type as never),
       startsAt: event.startsAt,
       endsAt: event.endsAt,
       address: event.address,

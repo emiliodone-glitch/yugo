@@ -29,6 +29,13 @@ export class EventsController {
     return this.events.featured(user.id);
   }
 
+  /** Modo explorar: la agenda pública próxima, sin datos de miembros. */
+  @Public()
+  @Get('publicos')
+  publicAgenda() {
+    return this.events.publicAgenda();
+  }
+
   /** RF-EVE-08: enlace público compartible, sin datos de miembros. */
   @Public()
   @Get(':id/public')

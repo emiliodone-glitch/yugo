@@ -39,6 +39,24 @@ export class CommunityService {
     );
   }
 
+  /**
+   * Lo que se puede enseñar de la comunidad sin cuenta: que existe. Grupos
+   * activos con nombre, categoría, ciudad y cuántos son; oficiales primero.
+   * Ni publicaciones ni miembros: eso es de puertas adentro.
+   */
+  async publicGroups() {
+    const groups = await this.prisma.group.findMany({
+      where: { status: 'ACTIVE' },
+      include: { category: true, church: { select: { name: true } }, _count: { select: { members: true } } },
+      orderBy: { members: { _count: 'desc' } },
+      take: 24,
+    });
+    return groups
+      .map((g) => this.toSummary(g))
+      .sort((a, b) => Number(b.isOfficial) - Number(a.isOfficial))
+      .slice(0, 12);
+  }
+
   /** RF-COM-09: suggestions by denomination, city and service areas. */
   async suggestedGroups(userId: string) {
     const profile = await this.prisma.profile.findUnique({

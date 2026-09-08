@@ -2,8 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { demoChurch, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import { YugoMark } from '@/components/icons';
+import { ChurchGate } from '@/components/church-gate';
+import { useChurchMe } from '@/lib/hooks';
+
+/** Nombre y estado de la iglesia de quien entró, no el de la demo. */
+function ChurchFooter() {
+  const { data } = useChurchMe();
+  if (!data) return null;
+  const status =
+    data.church.status === 'APPROVED'
+      ? es.church.approved
+      : data.church.status === 'PENDING'
+        ? es.gate.churchPendingTitle
+        : data.church.status;
+  return (
+    <div className="mt-auto px-2.5 py-2 text-xs">
+      <b>{data.church.name}</b>
+      <br />
+      {status}
+    </div>
+  );
+}
 
 const NAV = [
   { href: '/iglesias', label: es.church.home },
@@ -43,11 +64,7 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
             {item.label}
           </Link>
         ))}
-        <div className="mt-auto px-2.5 py-2 text-xs">
-          <b>{demoChurch.name}</b>
-          <br />
-          {demoChurch.denomination} · {es.church.approved}
-        </div>
+        <ChurchFooter />
       </aside>
 
       <div className="fixed inset-x-0 top-0 z-20 flex items-center gap-2 bg-olive px-4 py-2.5 text-white lg:hidden">
@@ -60,7 +77,9 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
 
       {/* Un landmark real: sin <main> el lector de pantalla no tiene
           dónde saltar y hay que recorrer el menú en cada página. */}
-      <main className="w-full pt-12 lg:ml-[210px] lg:pt-0">{children}</main>
+      <main className="w-full pt-12 lg:ml-[210px] lg:pt-0">
+        <ChurchGate>{children}</ChurchGate>
+      </main>
     </div>
   );
 }

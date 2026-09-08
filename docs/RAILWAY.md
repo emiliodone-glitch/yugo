@@ -89,7 +89,7 @@ Variables:
 | `DATABASE_URL` | `postgresql://yugo:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/yugo?schema=public` | Referencias al servicio `postgres` del paso 2; no hay que copiar la contraseña |
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` | Referencia al plugin; omitir si no hay Redis |
 | `NODE_ENV` | `production` | |
-| `SEED_ON_BOOT` | `true` | **Primer arranque.** Si la base está vacía, siembra el catálogo y los datos de demo (`prisma/seed-if-empty.ts`); con datos, no hace nada. Quítala después del piloto |
+| `SEED_ON_BOOT` | `always` durante el piloto; `true` después | `true`: siembra solo si la base está vacía (primer arranque). `always`: reaplica la semilla en cada despliegue (es idempotente) para que los datos de prueba nuevos lleguen solos. Nunca `always` con usuarios reales: reescribe los perfiles de demo |
 | `WEB_URL` | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | **CORS.** Referencia al dominio del servicio `web`; se resuelve sola cuando la web tenga dominio |
 | `JWT_ACCESS_SECRET` | 48+ caracteres aleatorios | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | otros 48+ caracteres, distintos | Rotar el de refresco invalida sesiones |
@@ -132,6 +132,18 @@ railway run --service api sh -c "cd apps/api && npx tsx prisma/seed.ts"
 
 Las cuentas sembradas usan la contraseña `Yugo.demo1` y el admin exige 2FA por
 correo. Con `OTP_PROVIDER=console` el código aparece en los logs del servicio.
+
+### Cuentas para validar
+
+| Cuenta | Contraseña | Para qué |
+| --- | --- | --- |
+| `prueba@yugo.do` | `Yugo.prueba1` | **La cuenta de prueba.** Llega con conexiones en tres etapas, una propuesta de noviazgo esperando respuesta, mensajes sin leer, intereses recibidos, un evento con una conexión, constancia en el devocional, una petición de oración acompañada y notificaciones. Es la que hay que abrir para ver la app viva |
+| `demo1@yugo.do` … `demo40@yugo.do` | `Yugo.demo1` | Los 40 perfiles ficticios. Sirven para entrar «como la otra persona» de una conexión (`demo3` y `demo5` conversan con la cuenta de prueba) |
+| `admin@yugo.do` | `Yugo.demo1` + código | El panel admin (`/admin`). Pide 2FA: con `OTP_PROVIDER=console`, el código sale en **Deploy Logs** del servicio `api` en una línea `OTP for admin@yugo.do (LOGIN): 123456`. Búscalo con el filtro `OTP for` |
+
+El portal de iglesias (`/iglesias`) se abre con cualquier cuenta: si no está
+vinculada a una iglesia, la propia pantalla ofrece registrarla; la solicitud
+aparece en `/admin/organizaciones` para aprobarla.
 
 ## 5. La web
 

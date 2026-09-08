@@ -35,6 +35,12 @@ export default function WelcomePage() {
           >
             {es.welcome.haveAccount}
           </Link>
+          <Link
+            href="/explorar"
+            className="mt-3 block text-center text-[13px] font-semibold text-ink-muted underline-offset-4 hover:text-white hover:underline"
+          >
+            {es.explore.cta} ›
+          </Link>
           <p className="mt-3 text-center text-[11px] text-ink-muted2">{es.welcome.socialHint}</p>
           <div className="mt-6 flex justify-center gap-5 text-[11px] text-ink-muted2">
             <Link href="/admin" className="hover:text-white">

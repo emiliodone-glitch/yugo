@@ -109,6 +109,40 @@ export interface StageQuestionsView {
   lockedAhead: number;
 }
 
+/** El devocional del día tal como lo ve quien todavía no tiene cuenta. */
+export interface PublicDevotional {
+  id: string;
+  publishOn: string;
+  isToday: boolean;
+  reference: string;
+  title: string;
+  body: string;
+  question: string;
+  readCount: number;
+}
+
+/** Un evento tal como lo ve la iglesia que lo organiza (portal). */
+export interface ChurchPortalEvent {
+  id: string;
+  title: string;
+  type: string;
+  status: 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'CANCELLED' | string;
+  startsAt: string;
+  endsAt?: string;
+  city?: string;
+  audience: string;
+  capacity?: number;
+  goingCount: number;
+  featured: boolean;
+}
+
+/** Lo que el portal sabe de su propia iglesia. */
+export interface ChurchPortalMe {
+  church: { id: string; name: string; status: string; denominationId: string | null; city?: string | null };
+  role: string;
+  stats: { endorsedMembers: number; activeCodes: number; pendingRequests: number };
+}
+
 /** El devocional del día, con lo que la persona ya hizo con él. */
 export interface DevotionalToday {
   id: string;
@@ -746,6 +780,13 @@ export class YugoApiClient {
   };
 
   // ---- Historias de parejas que se casaron --------------------------------
+  // ---- Modo explorar: sin sesión, sin datos de nadie ----------------------
+  readonly explore = {
+    devotional: () => this.http.get<PublicDevotional | null>('/devocional/publico', { anonymous: true }),
+    events: () => this.http.get<PublicEvent[]>('/events/publicos', { anonymous: true }),
+    groups: () => this.http.get<GroupSummary[]>('/community/groups/publicos', { anonymous: true }),
+  };
+
   readonly stories = {
     /** Público a propósito: quien no tiene cuenta también debería poder verlas. */
     published: (limit?: number) =>
@@ -955,13 +996,8 @@ export class YugoApiClient {
   // ---- Church portal (RF-IGL-01..06) --------------------------------------
   readonly church = {
     register: (input: Record<string, unknown>) => this.http.post<{ id: string }>('/church-portal/register', input),
-    me: () =>
-      this.http.get<{
-        church: { id: string; name: string; status: string; denominationId: string | null };
-        role: string;
-        stats: { endorsedMembers: number; activeCodes: number; pendingRequests: number };
-      }>('/church-portal/me'),
-    events: () => this.http.get<Array<{ id: string; title: string; status: string; startsAt: string }>>('/church-portal/events'),
+    me: () => this.http.get<ChurchPortalMe>('/church-portal/me'),
+    events: () => this.http.get<ChurchPortalEvent[]>('/church-portal/events'),
     createEvent: (input: CreateEventInput & { submit: boolean }) =>
       this.http.post<{ id: string; status: string }>('/church-portal/events', input),
     submitEvent: (eventId: string) =>

@@ -3,6 +3,55 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.7.0 — Explorar sin cuenta, panel y portal reales, cuenta de prueba
+
+### Auditoría contra la API real: lo que la demo tapaba
+Se recorrieron las 48 rutas de la web en Chromium con sesión de miembro, de
+staff y anónima contra la API de verdad (no fixtures). Lo que apareció y se
+corrigió:
+
+- **El chat no abría en producción.** La lista de conexiones enlazaba con el
+  `matchId` y la API solo aceptaba el id de la conversación: 404 en todas las
+  conversaciones. Ahora la lista usa el id correcto y la API acepta cualquiera
+  de los dos (la app móvil y los enlaces de notificación también los mezclan).
+- **El tablero admin mostraba cifras inventadas a cualquiera.** `/admin` no
+  llamaba a la API: 4.812 miembros activos en un piloto de 40, y un miembro
+  común veía la cáscara del panel. Ahora hay una puerta por rol (`StaffGate`)
+  y el tablero lee `/admin/dashboard`.
+- **El portal de iglesias era de utilería.** Portada, eventos y «nuevo evento»
+  vivían de fixtures (con errores de hidratación de React por las fechas de
+  demo) y nadie comprobaba a qué iglesia pertenece quien entra. Ahora
+  `ChurchGate` pregunta a `/church-portal/me`: sin sesión, a entrar; sin
+  iglesia vinculada, el formulario para registrarla; con iglesia pendiente,
+  aviso claro. Portada y eventos leen el portal real; «nuevo evento» crea de
+  verdad (ciudad con coordenadas, cupo, público, costo) y respeta el flujo
+  borrador → revisión → publicado.
+- `/events/featured` devolvía filas crudas (ya corregido en 0.6.0); el mismo
+  patrón se corrigió en `/church-portal/events`, que ahora devuelve un resumen
+  limpio.
+
+### Explorar sin cuenta
+Desde la bienvenida, «Explorar sin cuenta ›» abre `/explorar`: el devocional
+del día, los próximos encuentros publicados, las historias, los grupos que
+existen y cómo funciona Descubrir, explicado con una tarjeta de ejemplo
+marcada como ilustración. **Ningún dato de una persona real sale por ahí**:
+los endpoints públicos nuevos (`/devocional/publico`, `/events/publicos`,
+`/community/groups/publicos`) devuelven texto y conteos, nunca perfiles ni
+reflexiones. «Entrar» y «Crear mi perfil» están siempre a la vista. Además,
+`/e/:id` existe por fin: es la página a la que apuntaba el enlace para
+compartir un evento que la API genera desde el primer día.
+
+### Cuenta de prueba con un mundo alrededor
+`prueba@yugo.do` / `Yugo.prueba1` llega con lo que una cuenta nueva no tiene:
+tres conexiones en etapas distintas (una nueva de hoy, una conversación con
+mensajes sin leer, una amistad intencional con una propuesta de noviazgo
+esperando respuesta), tres personas que marcaron interés, un perfil guardado,
+un evento al que va con una conexión, constancia en el devocional con una
+reflexión, una petición de oración acompañada por cinco personas y
+notificaciones. Todo idempotente. Con `SEED_ON_BOOT=always` la API reaplica
+la semilla en cada despliegue del piloto, así los datos de prueba nuevos
+llegan solos; con `true` solo siembra la primera vez.
+
 ## v0.6.0 — Listo para Railway, y la app validada antes del APK
 
 ### Lo que hacía falta para desplegar, y no estaba

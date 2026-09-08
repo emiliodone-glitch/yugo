@@ -8,6 +8,7 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { seedTester } from './seed-tester';
 import {
   COVENANT_V1,
   DEFAULT_AFFINITY_WEIGHTS,
@@ -637,6 +638,9 @@ async function main() {
       });
     }
   }
+
+  // --- Cuenta de prueba con mundo alrededor (ver seed-tester.ts) ----------------
+  await seedTester(prisma);
 
   console.log(`Devocionales: ${await prisma.devotional.count()}`);
   console.log(`Peticiones de oración: ${await prisma.prayerRequest.count()}`);

@@ -45,6 +45,27 @@ export class DevotionalService {
    * Si hoy no hay ninguno publicado devuelve el último anterior, no un vacío:
    * un hueco en la programación no debería castigar a quien sí abrió la app.
    */
+  /** Versión pública del devocional del día: texto y conteo, nada personal. */
+  async publicToday(now = new Date()) {
+    const today = localDay(now);
+    const devotional = await this.prisma.devotional.findFirst({
+      where: { publishOn: { lte: new Date(`${today}T00:00:00.000Z`) } },
+      orderBy: { publishOn: 'desc' },
+    });
+    if (!devotional) return null;
+    const readCount = await this.prisma.devotionalRead.count({ where: { devotionalId: devotional.id } });
+    return {
+      id: devotional.id,
+      publishOn: dateOnly(devotional.publishOn),
+      isToday: dateOnly(devotional.publishOn) === today,
+      reference: devotional.reference,
+      title: devotional.title,
+      body: devotional.body,
+      question: devotional.question,
+      readCount,
+    };
+  }
+
   async today(userId: string, now = new Date()) {
     const today = localDay(now);
     const devotional = await this.prisma.devotional.findFirst({

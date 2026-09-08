@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common'
 import { z } from 'zod';
 import { REFLECTION_MAX_LENGTH } from '@yugo/shared';
 import { DevotionalService } from './devotional.service';
-import { CurrentUser, Roles, type AuthUser } from '../../common/decorators';
+import { CurrentUser, Public, Roles, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const readSchema = z.object({
@@ -22,6 +22,18 @@ export class DevotionalController {
   @Get('hoy')
   today(@CurrentUser() user: AuthUser) {
     return this.devotional.today(user.id);
+  }
+
+  /**
+   * El devocional del día para quien todavía no tiene cuenta (modo explorar):
+   * el texto y cuántas personas lo leyeron, sin reflexiones ni nombres. Es el
+   * mismo texto que ven los miembros; lo comunal (quién de tu iglesia lo leyó)
+   * queda para dentro.
+   */
+  @Public()
+  @Get('publico')
+  publicToday() {
+    return this.devotional.publicToday();
   }
 
   @Post(':id/leido')

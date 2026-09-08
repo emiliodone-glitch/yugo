@@ -69,9 +69,17 @@ test.describe('Portal de iglesias', () => {
     await title.fill('Vigilia de jóvenes: Un solo yugo');
     await expect(page.getByText('Vigilia de jóvenes: Un solo yugo')).toBeVisible();
 
+    // Enviar sin lo mínimo no manda nada: lo dice, no lo esconde.
     await page.getByRole('button', { name: 'Enviar a revisión' }).click();
-    await expect(page.getByText('En revisión')).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'descripción' })).toBeVisible();
+
+    await page.getByPlaceholder('Qué va a pasar, quién dirige, qué traer…').fill('Una noche de alabanza dirigida por el ministerio de jóvenes adultos.');
+    await page.getByPlaceholder('Av. San Vicente de Paúl 45').fill('Av. San Vicente de Paúl 45');
+    await page.locator('input[type="datetime-local"]').first().fill('2026-12-05T20:00');
     await expect(page.getByText('tras la revisión del equipo de Yugo', { exact: false })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Enviar a revisión' }).click();
+    await expect(page.getByRole('status')).toContainText('Enviado a revisión');
   });
 
   test('el evento aprobado aparece en la agenda de la app (RF-EVE-03)', async ({ page }) => {

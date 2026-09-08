@@ -8,7 +8,7 @@ import {
   type CreateGroupInput,
 } from '@yugo/shared';
 import { CommunityService } from './community.service';
-import { CurrentUser, type AuthUser } from '../../common/decorators';
+import { CurrentUser, Public, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const commentSchema = z.object({ body: z.string().trim().min(1).max(600) });
@@ -22,6 +22,13 @@ const resolveJoinSchema = z.object({ accept: z.boolean() });
 @Controller('community')
 export class CommunityController {
   constructor(private readonly community: CommunityService) {}
+
+  /** Modo explorar: los grupos activos, solo nombre, categoría y tamaño. */
+  @Public()
+  @Get('groups/publicos')
+  publicGroups() {
+    return this.community.publicGroups();
+  }
 
   @Get('groups/mine')
   myGroups(@CurrentUser() user: AuthUser) {

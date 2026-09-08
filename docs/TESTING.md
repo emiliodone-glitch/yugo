@@ -28,6 +28,26 @@ EXPO_PUBLIC_DEMO_MODE=false EXPO_PUBLIC_API_URL=http://localhost:4000 \
   pnpm --filter @yugo/mobile dev
 ```
 
+## Cuentas y datos de prueba
+
+La semilla (`pnpm --filter @yugo/api db:seed`) deja tres tipos de cuenta:
+
+- **`prueba@yugo.do` / `Yugo.prueba1`**: la cuenta para validar. Viene con
+  un mundo alrededor (conexiones en tres etapas, propuesta de noviazgo
+  pendiente, mensajes sin leer, intereses recibidos, evento con una conexión,
+  devocional con constancia, petición de oración acompañada, notificaciones).
+  Se define en `prisma/seed-tester.ts` y es idempotente: volver a sembrar no
+  duplica nada. Para añadir más situaciones de prueba, ese es el archivo.
+- **`demo1@yugo.do` … `demo40@yugo.do` / `Yugo.demo1`**: perfiles ficticios.
+  `demo3` y `demo5` son las conexiones de la cuenta de prueba: entrando con
+  ellas se ve el otro lado de la conversación.
+- **`admin@yugo.do` / `Yugo.demo1`**: exige 2FA. En local, el código sale en
+  la consola de la API (`OTP for admin@yugo.do (LOGIN): 123456`).
+
+Contra la API real, la web se prueba de punta a punta con
+`NEXT_PUBLIC_DEMO_MODE=false` (ver «Auditoría contra la API real» en el
+changelog 0.7.0): es la única forma de ver lo que las fixtures tapan.
+
 ## Pruebas automatizadas
 
 ```bash

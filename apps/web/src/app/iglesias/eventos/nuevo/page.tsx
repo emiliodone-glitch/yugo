@@ -1,23 +1,52 @@
 'use client';
 
 import { useState } from 'react';
-import { demoChurch, es, EVENT_TYPES } from '@yugo/shared';
+import { useRouter } from 'next/navigation';
+import { es, EVENT_TYPES } from '@yugo/shared';
+import { useChurchMe, useCreateChurchEvent } from '@/lib/hooks';
+import { errorMessage } from '@/lib/api';
 import { BarTop, Panel } from '@/components/admin';
 
-/** Crear evento — form with live in-app preview and review flow (RF-IGL-03). */
+/**
+ * Ciudades con sus coordenadas: la agenda ordena por distancia y la API exige
+ * lat/lng. Un selector honesto (a nivel de ciudad) vale más que un mapa que
+ * nadie va a arrastrar con precisión desde la secretaría de una iglesia.
+ */
+const CITIES: Array<{ name: string; lat: number; lng: number }> = [
+  { name: 'Santo Domingo', lat: 18.4861, lng: -69.9312 },
+  { name: 'Santo Domingo Este', lat: 18.4885, lng: -69.8571 },
+  { name: 'Santo Domingo Norte', lat: 18.5787, lng: -69.9128 },
+  { name: 'Santo Domingo Oeste', lat: 18.4917, lng: -70.0086 },
+  { name: 'Santiago de los Caballeros', lat: 19.4517, lng: -70.697 },
+  { name: 'La Vega', lat: 19.2226, lng: -70.5297 },
+  { name: 'San Pedro de Macorís', lat: 18.4616, lng: -69.2973 },
+  { name: 'La Romana', lat: 18.4273, lng: -68.9728 },
+  { name: 'San Francisco de Macorís', lat: 19.3008, lng: -70.2525 },
+  { name: 'Puerto Plata', lat: 19.7934, lng: -70.6884 },
+  { name: 'Higüey', lat: 18.6151, lng: -68.7079 },
+  { name: 'San Cristóbal', lat: 18.4167, lng: -70.1064 },
+  { name: 'Moca', lat: 19.3939, lng: -70.5258 },
+  { name: 'Baní', lat: 18.2796, lng: -70.3312 },
+];
+
+/** Crear evento: formulario con vista previa y flujo de revisión (RF-IGL-03). */
 export default function NewEventPage() {
-  const [title, setTitle] = useState('Noche de adoración de jóvenes adultos');
-  const [type, setType] = useState('VIGILIA');
-  const [cost, setCost] = useState('Gratis');
-  const [start, setStart] = useState('2026-09-04T20:00');
-  const [end, setEnd] = useState('2026-09-04T23:00');
-  const [place, setPlace] = useState('Av. San Vicente de Paúl 45, Santo Domingo Este');
+  const router = useRouter();
+  const me = useChurchMe();
+  const create = useCreateChurchEvent();
+
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState('CULTO_ESPECIAL');
+  const [cost, setCost] = useState('0');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [place, setPlace] = useState('');
+  const [city, setCity] = useState(CITIES[0].name);
   const [audience, setAudience] = useState<'CONGREGATION' | 'SINGLES'>('CONGREGATION');
   const [capacity, setCapacity] = useState('');
-  const [description, setDescription] = useState(
-    'Una noche de alabanza dirigida por el ministerio de jóvenes adultos. Trae a un amigo…',
-  );
-  const [status, setStatus] = useState<'DRAFT' | 'IN_REVIEW'>('DRAFT');
+  const [description, setDescription] = useState('');
+  const [done, setDone] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const typeName = EVENT_TYPES.find((t) => t.slug === type)?.name ?? type;
   const startLabel = start
@@ -31,27 +60,70 @@ export default function NewEventPage() {
       }).format(new Date(start))
     : '';
 
+  const save = (submit: boolean) => {
+    setFormError(null);
+    if (title.trim().length < 3) return setFormError('El título necesita al menos 3 caracteres.');
+    if (description.trim().length < 10) return setFormError('La descripción necesita al menos 10 caracteres.');
+    if (place.trim().length < 5) return setFormError('Indica la dirección del lugar.');
+    if (!start) return setFormError('Indica cuándo empieza.');
+    const coords = CITIES.find((c) => c.name === city) ?? CITIES[0];
+    const amount = Number(cost.replace(/[^\d.]/g, ''));
+    create.mutate(
+      {
+        title: title.trim(),
+        description: description.trim(),
+        type: type as never,
+        startsAt: new Date(start),
+        endsAt: end ? new Date(end) : undefined,
+        address: place.trim(),
+        city,
+        lat: coords.lat,
+        lng: coords.lng,
+        capacity: capacity ? Number(capacity) : undefined,
+        audience,
+        costAmount: amount > 0 ? amount : undefined,
+        costCurrency: amount > 0 ? 'DOP' : undefined,
+        submit,
+      },
+      {
+        onSuccess: (result) => {
+          setDone(result.status);
+          setTimeout(() => router.push('/iglesias/eventos'), 1200);
+        },
+      },
+    );
+  };
+
   return (
     <div>
       <BarTop
         title={es.church.newEvent}
         right={
           <div className="flex gap-2">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStatus('DRAFT')}>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={create.isPending} onClick={() => save(false)}>
               {es.church.saveDraft}
             </button>
-            <button type="button" className="btn btn-olive btn-sm" onClick={() => setStatus('IN_REVIEW')}>
+            <button type="button" className="btn btn-olive btn-sm" disabled={create.isPending} onClick={() => save(true)}>
               {es.church.sendToReview}
             </button>
           </div>
         }
       />
       <div className="p-6">
+        {done ? (
+          <div role="status" className="mb-4 rounded-card bg-olive-soft px-4 py-3 text-sm text-olive-text">
+            {es.church.saved(done)}
+          </div>
+        ) : null}
+        {formError || create.isError ? (
+          <div role="alert" className="mb-4 rounded-card bg-wine-soft px-4 py-3 text-sm text-wine">
+            {formError ?? errorMessage(create.error)}
+          </div>
+        ) : null}
         <div className="grid items-start gap-4 xl:grid-cols-[1.4fr_1fr]">
-          {/* Form */}
           <Panel>
             <FieldLabel>{es.church.fieldTitle}</FieldLabel>
-            <input className="field mb-3" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input className="field mb-3" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Noche de adoración de jóvenes adultos" />
 
             <div className="mb-3 flex gap-2.5">
               <div className="flex-1">
@@ -65,29 +137,20 @@ export default function NewEventPage() {
                 </select>
               </div>
               <div className="flex-1">
-                <FieldLabel>{es.church.fieldCost}</FieldLabel>
-                <input className="field" value={cost} onChange={(e) => setCost(e.target.value)} />
+                <FieldLabel>{es.church.fieldCost} (RD$)</FieldLabel>
+                <input className="field" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} />
+                <p className="mt-1 text-[11px] text-muted">{es.church.costHint}</p>
               </div>
             </div>
 
             <div className="mb-3 flex gap-2.5">
               <div className="flex-1">
                 <FieldLabel>{es.church.fieldStart}</FieldLabel>
-                <input
-                  type="datetime-local"
-                  className="field"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
+                <input type="datetime-local" className="field" value={start} onChange={(e) => setStart(e.target.value)} />
               </div>
               <div className="flex-1">
                 <FieldLabel>{es.church.fieldEnd}</FieldLabel>
-                <input
-                  type="datetime-local"
-                  className="field"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
+                <input type="datetime-local" className="field" value={end} onChange={(e) => setEnd(e.target.value)} />
               </div>
             </div>
 
@@ -96,57 +159,39 @@ export default function NewEventPage() {
             <div className="mb-3 flex gap-2.5">
               <div className="flex-1">
                 <FieldLabel>Convoca para</FieldLabel>
-                <select
-                  className="field"
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value as 'CONGREGATION' | 'SINGLES')}
-                >
+                <select className="field" value={audience} onChange={(e) => setAudience(e.target.value as 'CONGREGATION' | 'SINGLES')}>
                   <option value="CONGREGATION">Toda la congregación</option>
                   <option value="SINGLES">{es.events.singlesBadge}</option>
                 </select>
               </div>
               <div className="flex-1">
                 <FieldLabel>Cupo</FieldLabel>
-                <input
-                  className="field"
-                  inputMode="numeric"
-                  placeholder="Sin límite"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value.replace(/\D/g, ''))}
-                />
+                <input className="field" inputMode="numeric" placeholder="Sin límite" value={capacity} onChange={(e) => setCapacity(e.target.value.replace(/\D/g, ''))} />
                 <p className="mt-1 text-[11px] text-muted">{es.events.capacityHonest}</p>
               </div>
             </div>
 
-            <FieldLabel>{es.church.fieldPlace}</FieldLabel>
-            <input className="field mb-3" value={place} onChange={(e) => setPlace(e.target.value)} />
-
-            {/* Map preview with olive pin */}
-            <div
-              className="relative mb-3 h-[110px] overflow-hidden rounded-lg"
-              style={{
-                background:
-                  'linear-gradient(#e6e2d6 1px,transparent 1px) 0 0/22px 22px,' +
-                  'linear-gradient(90deg,#e6e2d6 1px,transparent 1px) 0 0/22px 22px,#EFECE3',
-              }}
-              role="img"
-              aria-label="Ubicación del evento"
-            >
-              <span
-                className="absolute h-[26px] w-[26px] border-[3px] border-white bg-olive shadow-md"
-                style={{ left: '55%', top: '36%', borderRadius: '50% 50% 50% 0', transform: 'rotate(-45deg)' }}
-              />
+            <div className="mb-3 flex gap-2.5">
+              <div className="flex-[2]">
+                <FieldLabel>{es.church.fieldPlace}</FieldLabel>
+                <input className="field" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Av. San Vicente de Paúl 45" />
+              </div>
+              <div className="flex-1">
+                <FieldLabel>{es.church.fieldCity}</FieldLabel>
+                <select className="field" value={city} onChange={(e) => setCity(e.target.value)}>
+                  {CITIES.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <FieldLabel>{es.church.fieldDescription}</FieldLabel>
-            <textarea
-              className="field h-[70px] resize-none"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <textarea className="field h-[90px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Qué va a pasar, quién dirige, qué traer…" />
           </Panel>
 
-          {/* Preview + status */}
           <div className="grid gap-4">
             <Panel title={es.church.appPreview}>
               <div className="card overflow-hidden p-0">
@@ -158,19 +203,14 @@ export default function NewEventPage() {
                   </div>
                   <b className="mt-1 block text-[12.5px]">{title || 'Título del evento'}</b>
                   <div className="text-[11px] text-muted">
-                    {demoChurch.name} · Santo Domingo Este
+                    {me.data?.church.name ?? '…'} · {city}
                   </div>
                 </div>
               </div>
             </Panel>
 
             <Panel title={es.church.statusTitle}>
-              <div className="flex items-start gap-2.5">
-                <span className={`chip ${status === 'IN_REVIEW' ? 'chip-wheat' : ''}`}>
-                  {status === 'IN_REVIEW' ? es.church.inReview : es.church.draft}
-                </span>
-                <span className="text-[11px] text-muted">{es.church.reviewNote}</span>
-              </div>
+              <span className="text-[11px] text-muted">{es.church.reviewNote}</span>
             </Panel>
 
             <Panel title={es.church.checkInTitle}>

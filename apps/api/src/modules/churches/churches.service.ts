@@ -109,11 +109,26 @@ export class ChurchesService {
 
   async myEvents(userId: string) {
     const membership = await this.requireMembership(userId);
-    return this.prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: { churchId: membership.churchId },
       orderBy: { startsAt: 'desc' },
-      include: { _count: { select: { attendances: true } } },
+      include: { _count: { select: { attendances: { where: { status: 'GOING' } } } } },
     });
+    // A clean shape for the portal: what the church needs to run its agenda,
+    // never raw rows (the same lesson as /events/featured).
+    return events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      type: event.type,
+      status: event.status,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt ?? undefined,
+      city: event.city ?? undefined,
+      audience: event.audience,
+      capacity: event.capacity ?? undefined,
+      goingCount: event._count.attendances,
+      featured: event.featured,
+    }));
   }
 
   async submitEvent(userId: string, eventId: string) {
