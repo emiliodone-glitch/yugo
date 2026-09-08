@@ -121,7 +121,11 @@ function buildService(options: {
     post: { findUnique: async () => null },
     photo: { findUnique: async () => null },
   };
-  const audit = { log: async ({ action }: { action: string }) => { audits.push(action); } };
+  const audit = {
+    log: async ({ action }: { action: string }) => {
+      audits.push(action);
+    },
+  };
   const notifier = {
     notify: async (userId: string, _c: string, title: string) => {
       notifications.push({ userId, title });
@@ -129,12 +133,14 @@ function buildService(options: {
   };
 
   const storage = { signDownload: async (key: string) => `https://firmada/${key}` };
+  const profiles = { recomputeCompleteness: async () => undefined };
   const service = new AdminService(
     prisma as never,
     audit as never,
     {} as never,
     notifier as never,
     storage as never,
+    profiles as never,
   );
   return { service, notifications, audits, prayers, reads, cases };
 }
@@ -144,7 +150,13 @@ describe('heldContent — la cola trae el contenido', () => {
     const { service } = buildService({
       cases: [caseRow({ id: 'c1', prayerRequestId: 'p1' })],
       prayers: [
-        { id: 'p1', userId: 'u-ana', body: 'Por mi deuda.', anonymous: true, moderationStatus: 'HELD' },
+        {
+          id: 'p1',
+          userId: 'u-ana',
+          body: 'Por mi deuda.',
+          anonymous: true,
+          moderationStatus: 'HELD',
+        },
       ],
     });
 
@@ -182,7 +194,9 @@ describe('heldContent — la cola trae el contenido', () => {
     // Se resolvió por otra vía (por ejemplo, la persona borró la petición).
     const { service } = buildService({
       cases: [caseRow({ id: 'c1', prayerRequestId: 'p1' })],
-      prayers: [{ id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'APPROVED' }],
+      prayers: [
+        { id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'APPROVED' },
+      ],
     });
 
     expect(await service.heldContent()).toEqual([]);
@@ -200,7 +214,9 @@ describe('resolveHeldContent — aprobar publica, rechazar retira', () => {
   it('aprobar una petición la publica en el muro y avisa a quien la escribió', async () => {
     const { service, prayers, notifications, cases } = buildService({
       cases: [caseRow({ id: 'c1', prayerRequestId: 'p1' })],
-      prayers: [{ id: 'p1', userId: 'u-ana', body: 'x', anonymous: true, moderationStatus: 'HELD' }],
+      prayers: [
+        { id: 'p1', userId: 'u-ana', body: 'x', anonymous: true, moderationStatus: 'HELD' },
+      ],
     });
 
     const result = await service.resolveHeldContent(ACTOR, 'c1', true);
@@ -208,13 +224,17 @@ describe('resolveHeldContent — aprobar publica, rechazar retira', () => {
     expect(result.approved).toBe(true);
     expect(prayers[0].moderationStatus).toBe('APPROVED');
     expect(cases[0].status).toBe('RESOLVED');
-    expect(notifications).toEqual([{ userId: 'u-ana', title: 'Tu petición de oración ya está publicada' }]);
+    expect(notifications).toEqual([
+      { userId: 'u-ana', title: 'Tu petición de oración ya está publicada' },
+    ]);
   });
 
   it('rechazarla la retira y también avisa', async () => {
     const { service, prayers, notifications } = buildService({
       cases: [caseRow({ id: 'c1', prayerRequestId: 'p1' })],
-      prayers: [{ id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'HELD' }],
+      prayers: [
+        { id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'HELD' },
+      ],
     });
 
     await service.resolveHeldContent(ACTOR, 'c1', false);
@@ -259,7 +279,9 @@ describe('resolveHeldContent — aprobar publica, rechazar retira', () => {
   it('queda en la bitácora', async () => {
     const { service, audits } = buildService({
       cases: [caseRow({ id: 'c1', prayerRequestId: 'p1' })],
-      prayers: [{ id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'HELD' }],
+      prayers: [
+        { id: 'p1', userId: 'u-ana', body: 'x', anonymous: false, moderationStatus: 'HELD' },
+      ],
     });
 
     await service.resolveHeldContent(ACTOR, 'c1', true);

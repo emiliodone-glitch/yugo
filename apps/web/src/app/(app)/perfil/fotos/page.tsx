@@ -12,7 +12,7 @@ const MODERATION_COPY: Record<string, { label: string; tone: string; hint: strin
   PENDING: {
     label: 'En revisión',
     tone: 'bg-wheat-soft text-wheat-text',
-    hint: 'La revisamos antes de mostrarla. Suele tardar menos de una hora.',
+    hint: 'La revisamos antes de mostrarla; normalmente en menos de 24 horas.',
   },
   APPROVED: {
     label: 'Publicada',
@@ -27,7 +27,7 @@ const MODERATION_COPY: Record<string, { label: string; tone: string; hint: strin
   REJECTED: {
     label: 'No aprobada',
     tone: 'bg-wine-soft text-wine',
-    hint: 'No cumple el Pacto de conducta. Puedes subir otra.',
+    hint: es.onboarding.photoRejectedHint,
   },
 };
 
@@ -43,7 +43,12 @@ export default function PhotosPage() {
 
   // An object URL is a live handle to memory; releasing it avoids leaking a
   // full-size bitmap for every photo the member tries out.
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
@@ -90,6 +95,16 @@ export default function PhotosPage() {
           <div className="card border-0 bg-wine-soft text-[12px] text-wine">{error}</div>
         ) : null}
 
+        {/* Guía de composición: lo que hace que una foto reciba respuestas. */}
+        <div className="card">
+          <b className="text-[12.5px]">{es.onboarding.photoTipsTitle}</b>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[12px] text-muted">
+            {es.onboarding.photoTips.map((tip) => (
+              <li key={tip}>{tip}</li>
+            ))}
+          </ul>
+        </div>
+
         {DEMO_MODE ? (
           <div className="card border-0 bg-linen-2 text-[12px] text-muted">
             En modo demo las fotos no se suben a ningún servidor: la pantalla muestra el flujo
@@ -124,9 +139,23 @@ export default function PhotosPage() {
                       </span>
                     ) : null}
                   </div>
-                  <figcaption className={`mt-1 rounded-full px-1.5 py-[2px] text-center text-[9.5px] ${state.tone}`}>
+                  <figcaption
+                    className={`mt-1 rounded-full px-1.5 py-[2px] text-center text-[9.5px] ${state.tone}`}
+                  >
                     {state.label}
                   </figcaption>
+                  {photo.moderationStatus === 'REJECTED' ? (
+                    <p className="mt-1 text-[10px] leading-snug text-wine">{state.hint}</p>
+                  ) : null}
+                  {photo.moderationStatus === 'REJECTED' && canAddMore ? (
+                    <button
+                      type="button"
+                      onClick={() => inputRef.current?.click()}
+                      className="mt-1 w-full text-[10.5px] font-semibold text-olive-text underline"
+                    >
+                      {es.onboarding.photoUploadAnother}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => remove.mutate(photo.id)}
@@ -146,11 +175,7 @@ export default function PhotosPage() {
                 className="flex aspect-square items-center justify-center rounded-card border border-dashed border-line bg-white text-2xl text-line disabled:opacity-60"
                 aria-label="Agregar una foto"
               >
-                {upload.isPending ? (
-                  <span className="text-[11px] text-muted">Subiendo…</span>
-                ) : (
-                  '+'
-                )}
+                {upload.isPending ? <span className="text-[11px] text-muted">Subiendo…</span> : '+'}
               </button>
             ) : null}
           </div>
@@ -167,9 +192,9 @@ export default function PhotosPage() {
 
         <p className="mt-3 text-[11px] text-muted">
           {photos.length} de {LIMITS.PHOTOS_MAX}. Recortamos al cuadrado en tu dispositivo, así ves
-          exactamente el encuadre que verán los demás. Cada foto pasa por moderación antes de
-          publicarse.
+          exactamente el encuadre que verán los demás.
         </p>
+        <p className="mt-1.5 text-[11px] text-muted">{es.onboarding.photoModerationEta}</p>
       </div>
     </div>
   );

@@ -71,6 +71,15 @@ export default function PhotosScreen() {
 
         {error ? <Notice tone="wine" text={error} /> : null}
 
+        <Card>
+          <Text style={styles.tipsTitle}>{es.onboarding.photoTipsTitle}</Text>
+          {es.onboarding.photoTips.map((tip) => (
+            <Text key={tip} style={styles.tip}>
+              {'\u2022'} {tip}
+            </Text>
+          ))}
+        </Card>
+
         {DEMO_MODE ? (
           <Notice
             tone="wheat"
@@ -105,6 +114,9 @@ export default function PhotosScreen() {
                     ) : null}
                   </View>
                   <Chip label={state.label} tone={state.tone} style={{ marginTop: 6 }} />
+                  {photo.moderationStatus === 'REJECTED' ? (
+                    <Text style={styles.rejectedHint}>{es.onboarding.photoRejectedHint}</Text>
+                  ) : null}
                   <Pressable onPress={() => confirmRemove(photo.id)}>
                     <Text style={styles.removeText}>Quitar</Text>
                   </Pressable>
@@ -134,9 +146,9 @@ export default function PhotosScreen() {
 
         <Sub style={{ fontSize: 11, marginTop: 10 }}>
           {photos.length} de {LIMITS.PHOTOS_MAX}. Recortamos al cuadrado en tu teléfono, así ves
-          exactamente el encuadre que verán los demás. Cada foto pasa por moderación antes de
-          publicarse.
+          exactamente el encuadre que verán los demás.
         </Sub>
+        <Sub style={{ fontSize: 11, marginTop: 6 }}>{es.onboarding.photoModerationEta}</Sub>
       </ScrollView>
     </SafeAreaView>
   );
@@ -144,6 +156,21 @@ export default function PhotosScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 18, paddingBottom: 24 },
+  tipsTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12.5,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  tip: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.muted },
+  rejectedHint: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    lineHeight: 13,
+    color: colors.wine,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: { width: '30%', alignItems: 'center' },
   frame: {

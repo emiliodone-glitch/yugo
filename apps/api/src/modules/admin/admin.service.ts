@@ -7,6 +7,7 @@ import { AuditService } from '../../common/audit.service';
 import { SettingsService } from '../../common/settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StorageService } from '../media/storage.service';
+import { ProfilesService } from '../profiles/profiles.service';
 
 @Injectable()
 export class AdminService {
@@ -16,6 +17,7 @@ export class AdminService {
     private readonly settings: SettingsService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly profiles: ProfilesService,
   ) {}
 
   // ---------------------------------------------------------------- Dashboard
@@ -31,6 +33,7 @@ export class AdminService {
       pendingVerifications,
       openReports,
       heldMessages,
+      heldPhotos,
       pendingChurches,
       revenue,
     ] = await Promise.all([
@@ -52,6 +55,9 @@ export class AdminService {
       // reflexión esperando aprobación cuenta igual, y antes no contaba.
       this.prisma.moderationCase.count({
         where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'AI_HELD' },
+      }),
+      this.prisma.moderationCase.count({
+        where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'AI_HELD', photoId: { not: null } },
       }),
       this.prisma.church.count({ where: { status: 'PENDING' } }),
       this.prisma.payment.aggregate({
@@ -116,6 +122,7 @@ export class AdminService {
         pendingVerifications,
         openReports,
         heldMessages,
+        heldPhotos,
         pendingChurches,
         devotionalRunway,
       },
@@ -576,6 +583,21 @@ export class AdminService {
     return items;
   }
 
+  /** Solo fotos, con el contexto para decidir rápido (cola dedicada del panel). */
+  async heldPhotos(): Promise<HeldContentItem[]> {
+    const cases = await this.prisma.moderationCase.findMany({
+      where: { kind: 'AI_HELD', status: { in: ['OPEN', 'IN_REVIEW'] }, photoId: { not: null } },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+      take: 100,
+    });
+    const items: HeldContentItem[] = [];
+    for (const c of cases) {
+      const item = await this.describeHeld(c);
+      if (item) items.push(item);
+    }
+    return items;
+  }
+
   private async describeHeld(c: {
     id: string;
     priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
@@ -634,7 +656,31 @@ export class AdminService {
     }
     if (c.photoId) {
       const photo = await this.prisma.photo.findUnique({ where: { id: c.photoId } });
-      if (!photo || photo.moderationStatus !== 'HELD') return null;
+      // HELD es lo esperado. REJECTED y PENDING también se muestran: antes
+      // quedaban fuera de la lista y, como el caso seguía abierto, contaban
+      // en el globo sin que nadie pudiera verlos. Una foto rechazada por el
+      // clasificador tiene que poder rescatarse; una que el clasificador no
+      // pudo procesar no puede quedarse oculta para siempre.
+      if (!photo || photo.moderationStatus === 'APPROVED') return null;
+      const autoDecision =
+        photo.moderationStatus === 'REJECTED'
+          ? 'REJECTED'
+          : photo.moderationStatus === 'PENDING'
+            ? 'PENDING'
+            : 'HELD';
+      const [others, user] = await Promise.all([
+        this.prisma.photo.findMany({
+          where: { userId: photo.userId, moderationStatus: 'APPROVED', id: { not: photo.id } },
+          orderBy: { position: 'asc' },
+          take: 5,
+        }),
+        this.prisma.user.findUnique({ where: { id: photo.userId }, select: { createdAt: true } }),
+      ]);
+      const memberPhotos = (
+        await Promise.all(
+          others.map((other) => this.storage.signDownload(other.storageKey).catch(() => null)),
+        )
+      ).filter((url): url is string => !!url);
       return {
         ...base,
         kind: 'photo',
@@ -645,8 +691,16 @@ export class AdminService {
         photoUrl: await this.storage.signDownload(photo.storageKey).catch(() => undefined),
         authorId: photo.userId,
         authorName: await nameOf(photo.userId),
-        context: 'Foto de perfil',
+        context:
+          autoDecision === 'REJECTED'
+            ? 'Foto de perfil · rechazada en automático'
+            : autoDecision === 'PENDING'
+              ? 'Foto de perfil · sin clasificar'
+              : 'Foto de perfil',
         risk: photo.moderationRisk,
+        autoDecision,
+        memberPhotos,
+        memberSince: user?.createdAt.toISOString(),
       };
     }
     if (c.prayerRequestId) {
@@ -738,6 +792,9 @@ export class AdminService {
       });
       authorId = photo.userId;
       what = 'foto';
+      // Las fotos aprobadas valen 15 puntos de completitud (RF-PER-10): sin
+      // esto la persona veía «publicada» y la barra no se movía.
+      await this.profiles.recomputeCompleteness(photo.userId).catch(() => undefined);
     } else if (c.prayerRequestId) {
       const prayer = await this.prisma.prayerRequest.update({
         where: { id: c.prayerRequestId },
@@ -1231,6 +1288,11 @@ export interface HeldContentItem {
   risk: number | null;
   priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
   createdAt: string;
+  /** Fotos: qué decidió la moderación automática antes de llegar aquí. */
+  autoDecision?: 'HELD' | 'REJECTED' | 'PENDING';
+  /** Fotos: las demás aprobadas de la misma persona, firmadas. */
+  memberPhotos?: string[];
+  memberSince?: string;
 }
 
 /** Edad cumplida a partir de la fecha de nacimiento. */

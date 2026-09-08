@@ -360,6 +360,12 @@ export interface HeldContentItem {
   risk: number | null;
   priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
   createdAt: string;
+  /** Fotos: qué decidió la moderación automática antes de llegar aquí. */
+  autoDecision?: 'HELD' | 'REJECTED' | 'PENDING';
+  /** Fotos: las demás fotos aprobadas de la misma persona, para comparar. */
+  memberPhotos?: string[];
+  /** Fotos: desde cuándo es miembro (ISO). */
+  memberSince?: string;
 }
 
 /** Lo que se escribe para un día. */
@@ -1243,6 +1249,8 @@ export class YugoApiClient {
       this.http.post<{ done: boolean }>(`/admin/moderation/messages/${id}/resolve`, { approve }),
     /** Lo retenido por la IA con el contenido delante, de cualquier tipo. */
     heldContent: () => this.http.get<HeldContentItem[]>('/admin/moderation/held'),
+    /** Cola dedicada de fotos: retenidas, rechazadas en automático y sin clasificar. */
+    heldPhotos: () => this.http.get<HeldContentItem[]>('/admin/moderation/photos'),
     /** Autoría de devocionales: calendario, crear/corregir por fecha, borrar. */
     devotionalSchedule: () => this.http.get<DevotionalSchedule>('/admin/devocionales'),
     upsertDevotional: (date: string, input: DevotionalDraft) =>

@@ -183,6 +183,13 @@ export class AdminController {
     return this.admin.heldContent();
   }
 
+  /** Cola dedicada de fotos: retenidas, rechazadas en automático y sin clasificar. */
+  @Get('moderation/photos')
+  @Roles('MODERATOR', 'SUPERADMIN')
+  heldPhotos() {
+    return this.admin.heldPhotos();
+  }
+
   @Post('moderation/held/:caseId/resolve')
   @Roles('MODERATOR', 'SUPERADMIN')
   resolveHeldContent(

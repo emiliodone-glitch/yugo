@@ -1760,6 +1760,23 @@ export function useHeldContent() {
   return { ...live, data: demo, isLoading: false } as typeof live;
 }
 
+/** Cola dedicada de fotos del panel (RF-ADM-04): misma decisión, más contexto. */
+export function useHeldPhotos() {
+  const demo = useDemoStore((s) => s.held);
+  const live = useQuery({
+    queryKey: ['admin-held-photos'],
+    enabled: !isDemoMode(),
+    queryFn: () => api().admin.heldPhotos(),
+    refetchInterval: 30_000,
+  });
+  if (!isDemoMode()) return live;
+  return {
+    ...live,
+    data: demo.filter((item) => item.kind === 'photo'),
+    isLoading: false,
+  } as typeof live;
+}
+
 export function useResolveHeld() {
   const queryClient = useQueryClient();
   const resolveDemo = useDemoStore((s) => s.resolveHeld);
@@ -1770,6 +1787,7 @@ export function useResolveHeld() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-held'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-held-photos'] });
       queryClient.invalidateQueries({ queryKey: ['prayer-wall'] });
       queryClient.invalidateQueries({ queryKey: ['devotional'] });
     },

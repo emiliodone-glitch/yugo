@@ -8,7 +8,7 @@ import { YugoMark } from '@/components/icons';
 import { Avatar } from '@/components/ui';
 import { StaffGate } from '@/components/staff-gate';
 
-type QueueKey = 'verifications' | 'moderation' | 'churches';
+type QueueKey = 'verifications' | 'moderation' | 'photos' | 'churches';
 
 const NAV: Array<
   | { kind: 'link'; href: string; label: string; queue?: QueueKey }
@@ -23,6 +23,7 @@ const NAV: Array<
     queue: 'verifications',
   },
   { kind: 'link', href: '/admin/moderacion', label: es.admin.moderation, queue: 'moderation' },
+  { kind: 'link', href: '/admin/fotos', label: 'Fotos', queue: 'photos' },
   { kind: 'section', label: es.admin.community },
   { kind: 'link', href: '/admin/organizaciones', label: es.admin.organizations, queue: 'churches' },
   { kind: 'link', href: '/admin/eventos', label: es.admin.events },
@@ -47,6 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const badges: Record<QueueKey, number> = {
     verifications: queues.pendingVerifications ?? 0,
     moderation: (queues.openReports ?? 0) + (queues.heldMessages ?? 0),
+    photos: queues.heldPhotos ?? 0,
     churches: queues.pendingChurches ?? 0,
   };
 
