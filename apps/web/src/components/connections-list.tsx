@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { es } from '@yugo/shared';
+import { ListSkeleton } from './skeleton';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { StarIcon, CheckIcon } from '@/components/icons';
@@ -55,9 +56,7 @@ export function ConnectionsList({ activeId }: { activeId?: string }) {
         </Link>
       </div>
 
-      {isLoading ? (
-        <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
-      ) : null}
+      {isLoading ? <ListSkeleton rows={5} /> : null}
 
       {/* New connections */}
       <div className="mb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">

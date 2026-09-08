@@ -7,6 +7,7 @@ import { es, LIMITS } from '@yugo/shared';
 import { useDiscover, useMarkInterest, usePassProfile, useSaveProfile } from '@/lib/hooks';
 import { errorMessage } from '@/lib/api';
 import { AffinityRing, EndorsedBadge, PhotoPlaceholder } from '@/components/ui';
+import { ProfileGridSkeleton } from '@/components/skeleton';
 import { FilterIcon, StarIcon } from '@/components/icons';
 
 export default function DiscoverPage() {
@@ -106,7 +107,7 @@ export default function DiscoverPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="card py-10 text-center text-sm text-muted">{es.common.loading}</div>
+        <ProfileGridSkeleton count={3} />
       ) : items.length === 0 ? (
         /* La lista vacía no es un callejón: siempre ofrece a dónde ir. */
         <div className="card py-8 text-center">

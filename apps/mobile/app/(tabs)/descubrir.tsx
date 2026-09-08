@@ -14,6 +14,7 @@ import { AffinityRing, Button, Card, CheckMark, Chip, H, Notice, Sub } from '../
 import { errorMessage } from '../../lib/api';
 import { scaled, useFontScale } from '../../lib/a11y';
 import { theme } from '../../lib/theme';
+import { ProfileCardSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -181,7 +182,7 @@ export default function DiscoverScreen() {
         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
         ListEmptyComponent={
           isLoading ? (
-            <Sub style={{ textAlign: 'center', paddingVertical: 40 }}>{es.common.loading}</Sub>
+            <ProfileCardSkeleton />
           ) : (
             /* La lista vacía no es un callejón: siempre ofrece a dónde ir. */
             <Card style={{ paddingVertical: 24 }}>

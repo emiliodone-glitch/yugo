@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui';
 import { EventCover } from '@/components/event-cover';
 import { PageHeader } from '@/components/page-header';
 import { QueryError } from '@/components/query-error';
+import { PageSkeleton } from '@/components/skeleton';
 import { PinIcon } from '@/components/icons';
 
 /** Simple deterministic QR rendered as an SVG matrix (RF-EVE-06). */
@@ -89,7 +90,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     );
   }
   if (detail.isLoading) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <PageSkeleton cards={2} />;
   }
   if (!event) {
     return (

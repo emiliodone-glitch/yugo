@@ -23,6 +23,7 @@ import {
   Sub,
 } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { PageSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -65,7 +66,7 @@ export default function GroupDetailScreen() {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <ScreenHeader title={es.community.title} />
-        <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>{es.common.loading}</Sub>
+        <PageSkeleton cards={3} />
       </SafeAreaView>
     );
   }

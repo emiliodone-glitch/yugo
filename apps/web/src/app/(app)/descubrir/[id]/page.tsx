@@ -3,6 +3,7 @@
 import { es } from '@yugo/shared';
 import { useCurrentMember, useProfileCard } from '@/lib/hooks';
 import { ScoreBar, YugoLink } from '@/components/ui';
+import { PageSkeleton } from '@/components/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { QueryError } from '@/components/query-error';
 
@@ -32,7 +33,7 @@ export default function AffinityDetailPage({ params }: { params: { id: string } 
     );
   }
   if (card.isLoading) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <PageSkeleton cards={2} />;
   }
   if (!profile) {
     return (

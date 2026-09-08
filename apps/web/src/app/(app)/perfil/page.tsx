@@ -16,6 +16,7 @@ import {
 import { Avatar, Toggle } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
+import { PageSkeleton } from '@/components/skeleton';
 import { CheckIcon } from '@/components/icons';
 
 function shortDate(iso?: string | null): string | null {
@@ -52,7 +53,7 @@ export default function ProfilePage() {
     );
   }
   if (!member.data) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <PageSkeleton cards={3} />;
   }
 
   const user = member.data;

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { es, type GroupSummary } from '@yugo/shared';
 import { useGroups, useJoinGroup } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
+import { ListSkeleton } from '@/components/skeleton';
 import { PrayerWall } from '@/components/devotional';
 import { QueryError } from '@/components/query-error';
 
@@ -55,7 +56,7 @@ export default function CommunityPage() {
         <QueryError error={groups.error} onRetry={() => void groups.refetch()} />
       ) : null}
       {groups.isLoading && tab !== 'prayer' ? (
-        <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
+        <ListSkeleton rows={4} />
       ) : null}
 
       {tab === 'mine' && !groups.isLoading ? (

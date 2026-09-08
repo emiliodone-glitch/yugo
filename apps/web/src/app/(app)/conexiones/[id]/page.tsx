@@ -17,6 +17,7 @@ import {
   useConversationRealtime,
 } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
+import { ChatSkeleton } from '@/components/skeleton';
 import {
   AccompanimentCard,
   MeetingPlanCard,
@@ -60,7 +61,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   // Wait for the list before deciding the conversation does not exist,
   // otherwise the first render 404s while the query is still in flight.
   if (connectionsLoading) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <ChatSkeleton />;
   }
   if (!connection) notFound();
 

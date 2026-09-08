@@ -5,6 +5,7 @@ import { APP_TIMEZONE, es } from '@yugo/shared';
 import { useDemoStore, useEvents, useSetAttendance } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { CardSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -73,7 +74,7 @@ export default function EventsScreen() {
         </View>
 
         {isLoading ? (
-          <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>{es.common.loading}</Sub>
+          <CardSkeleton lines={2} />
         ) : null}
 
         {events.map((event) => {

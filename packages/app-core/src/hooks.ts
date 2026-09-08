@@ -54,6 +54,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation, subscribeNotifications } from './realtime';
+import type { DiscoverResponse, GroupDetail } from '@yugo/shared';
 import {
   demoAccompanimentFor,
   demoStageQuestions,
@@ -191,6 +192,25 @@ export function useProfileCard(userId: string) {
   });
 }
 
+/**
+ * Quita una tarjeta de todas las listas de Descubrir en caché, ahora mismo,
+ * y devuelve cómo deshacerlo. Marcar interés o pasar se siente instantáneo;
+ * si la API falla, la tarjeta vuelve y el error se muestra.
+ */
+function removeFromDiscoverCache(queryClient: ReturnType<typeof useQueryClient>, userId: string) {
+  const snapshots = queryClient.getQueriesData<DiscoverResponse>({ queryKey: ['discover'] });
+  for (const [key, data] of snapshots) {
+    if (!data?.items) continue;
+    queryClient.setQueryData<DiscoverResponse>(key, {
+      ...data,
+      items: data.items.filter((item) => item.userId !== userId),
+    });
+  }
+  return () => {
+    for (const [key, data] of snapshots) queryClient.setQueryData(key, data);
+  };
+}
+
 export function useMarkInterest() {
   const queryClient = useQueryClient();
   const markDemo = useDemoStore((s) => s.markInterest);
@@ -203,9 +223,16 @@ export function useMarkInterest() {
       }
       return api().interests.mark(userId, message);
     },
-    onSuccess: () => {
+    onMutate: async ({ userId }) => {
+      if (isDemoMode()) return undefined;
+      await queryClient.cancelQueries({ queryKey: ['discover'] });
+      return { rollback: removeFromDiscoverCache(queryClient, userId) };
+    },
+    onError: (_error, _vars, context) => context?.rollback?.(),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['discover'] });
       queryClient.invalidateQueries({ queryKey: ['connections'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
     },
   });
 }
@@ -221,11 +248,18 @@ export function usePassProfile() {
       }
       return api().interests.pass(userId);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['discover'] }),
+    onMutate: async (userId) => {
+      if (isDemoMode()) return undefined;
+      await queryClient.cancelQueries({ queryKey: ['discover'] });
+      return { rollback: removeFromDiscoverCache(queryClient, userId) };
+    },
+    onError: (_error, _vars, context) => context?.rollback?.(),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['discover'] }),
   });
 }
 
 export function useSaveProfile() {
+  const queryClient = useQueryClient();
   const saveDemo = useDemoStore((s) => s.saveProfile);
   return useMutation({
     mutationFn: async (userId: string) => {
@@ -235,6 +269,9 @@ export function useSaveProfile() {
       }
       return api().interests.save(userId);
     },
+    // Antes no invalidaba nada: en producción «Guardados» no se enteraba
+    // hasta que otra cosa recargaba la lista.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['saved'] }),
   });
 }
 
@@ -630,6 +667,7 @@ export function useCreatePost(groupId: string) {
 }
 
 export function useReactToPost() {
+  const queryClient = useQueryClient();
   const togglePraying = useDemoStore((s) => s.togglePraying);
   const toggleAmen = useDemoStore((s) => s.toggleAmen);
   return useMutation({
@@ -641,6 +679,35 @@ export function useReactToPost() {
       }
       return api().community.react(postId, type);
     },
+    // El contador sube al instante en el grupo abierto; el servidor confirma
+    // (o corrige, si era un toggle que quitaba la reacción) al invalidar.
+    onMutate: async ({ postId, type }) => {
+      if (isDemoMode()) return undefined;
+      await queryClient.cancelQueries({ queryKey: ['group'] });
+      const snapshots = queryClient.getQueriesData<GroupDetail>({ queryKey: ['group'] });
+      for (const [key, data] of snapshots) {
+        if (!data?.posts) continue;
+        queryClient.setQueryData<GroupDetail>(key, {
+          ...data,
+          posts: data.posts.map((post) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  prayingCount: post.prayingCount + (type === 'PRAYING' ? 1 : 0),
+                  amenCount: post.amenCount + (type === 'AMEN' ? 1 : 0),
+                }
+              : post,
+          ),
+        });
+      }
+      return {
+        rollback: () => {
+          for (const [key, data] of snapshots) queryClient.setQueryData(key, data);
+        },
+      };
+    },
+    onError: (_error, _vars, context) => context?.rollback?.(),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['group'] }),
   });
 }
 
@@ -732,9 +799,50 @@ export function useSetAttendance() {
       }
       return api().events.setAttendance(eventId, status);
     },
-    onSuccess: () => {
+    // «Asistiré» se refleja al instante. El servidor puede convertirlo en
+    // lista de espera si el encuentro está lleno: por eso se invalida al
+    // terminar y lo que queda es lo que él dijo, no lo que se pidió.
+    onMutate: async ({ eventId, status }) => {
+      if (isDemoMode()) return undefined;
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['events'] }),
+        queryClient.cancelQueries({ queryKey: ['event', eventId] }),
+      ]);
+      const lists = queryClient.getQueriesData<EventSummary[]>({ queryKey: ['events'] });
+      const details = queryClient.getQueriesData<EventSummary | null>({
+        queryKey: ['event', eventId],
+      });
+      const apply = (event: EventSummary): EventSummary => {
+        const was = event.myStatus === 'GOING' ? 1 : 0;
+        const now = status === 'GOING' ? 1 : 0;
+        return {
+          ...event,
+          myStatus: status ?? undefined,
+          goingCount: Math.max(0, event.goingCount + now - was),
+        };
+      };
+      for (const [key, data] of lists) {
+        if (!Array.isArray(data)) continue;
+        queryClient.setQueryData<EventSummary[]>(
+          key,
+          data.map((event) => (event.id === eventId ? apply(event) : event)),
+        );
+      }
+      for (const [key, data] of details) {
+        if (data) queryClient.setQueryData<EventSummary | null>(key, apply(data));
+      }
+      return {
+        rollback: () => {
+          for (const [key, data] of lists) queryClient.setQueryData(key, data);
+          for (const [key, data] of details) queryClient.setQueryData(key, data);
+        },
+      };
+    },
+    onError: (_error, _vars, context) => context?.rollback?.(),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['event'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
     },
   });
 }

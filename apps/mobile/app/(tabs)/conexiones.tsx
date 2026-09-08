@@ -5,6 +5,7 @@ import { es } from '@yugo/shared';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@yugo/app-core';
 import { AvatarCircle, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { ListSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -32,7 +33,7 @@ export default function ConnectionsScreen() {
         </View>
 
         {isLoading ? (
-          <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>{es.common.loading}</Sub>
+          <ListSkeleton rows={5} />
         ) : null}
 
         {fresh.length > 0 ? (

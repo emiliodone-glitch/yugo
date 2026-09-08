@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { es } from '@yugo/shared';
 import { useEvents, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
+import { CardSkeleton } from '@/components/skeleton';
 import { FilterIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
 
@@ -116,7 +117,7 @@ export default function EventsPage() {
         </aside>
         <div className="xl:order-1">
           {isLoading ? (
-            <div className="card py-8 text-center text-sm text-muted">{es.common.loading}</div>
+            <CardSkeleton lines={2} />
           ) : null}
 
           <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">

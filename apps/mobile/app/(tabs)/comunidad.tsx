@@ -7,6 +7,7 @@ import { useGroups, useJoinGroup } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, H, Notice, Segment, Sub } from '../../components/ui';
 import { errorMessage } from '../../lib/api';
 import { theme } from '../../lib/theme';
+import { ListSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -60,7 +61,7 @@ export default function CommunityScreen() {
         {error ? <Notice tone="wine" text={error} /> : null}
 
         {isLoading ? (
-          <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>{es.common.loading}</Sub>
+          <ListSkeleton rows={4} />
         ) : null}
 
         {groups.map((group) => (

@@ -6,6 +6,7 @@ import { es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
 import { useCreatePost, useCurrentMember, useGroupDetail, useJoinRequests } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
+import { PageSkeleton } from '@/components/skeleton';
 import { PageHeader } from '@/components/page-header';
 
 type Tab = 'wall' | 'activities' | 'members';
@@ -32,7 +33,7 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
   const { data: joinRequests = [] } = useJoinRequests(params.id, !!isAdmin);
 
   if (isLoading) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <PageSkeleton cards={3} />;
   }
   if (!group) notFound();
 

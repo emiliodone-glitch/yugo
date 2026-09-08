@@ -34,6 +34,7 @@ import {
   StageQuestionsCard,
 } from '../../components/relationship';
 import { theme } from '../../lib/theme';
+import { ChatSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
@@ -69,7 +70,7 @@ export default function ChatScreen() {
   if (connectionsLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.linen }}>
-        <Sub style={{ textAlign: 'center', paddingVertical: 40 }}>{es.common.loading}</Sub>
+        <ChatSkeleton />
       </SafeAreaView>
     );
   }
@@ -230,9 +231,7 @@ export default function ChatScreen() {
                     {es.connections.messageRejected}
                   </Sub>
                 ) : null}
-                {receipt ? (
-                  <Text style={styles.receipt}>{receipt}</Text>
-                ) : null}
+                {receipt ? <Text style={styles.receipt}>{receipt}</Text> : null}
               </View>
             );
           })}
@@ -378,7 +377,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   icebreakerText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text },
-  bubble: { maxWidth: '78%', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 8 },
+  bubble: {
+    maxWidth: '78%',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 8,
+  },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.ink, borderBottomRightRadius: 4 },
   bubbleTheirs: {
     alignSelf: 'flex-start',

@@ -10,6 +10,7 @@ import { usePrayerWall } from '@/lib/hooks';
 import { PinIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
+import { PageSkeleton } from '@/components/skeleton';
 
 function formatDate(date: Date): string {
   const text = new Intl.DateTimeFormat('es-DO', {
@@ -86,7 +87,7 @@ export default function HomePage() {
   const displayName = session?.displayName ?? 'hermano';
 
   if (isLoading) {
-    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+    return <PageSkeleton cards={3} />;
   }
   // Una petición fallida no es «cargando»: se dice, y se puede reintentar.
   if (isError || !summary) {
