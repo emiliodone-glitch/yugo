@@ -45,7 +45,9 @@ export class AdminService {
         },
       }),
       this.prisma.verification.count({ where: { status: 'PENDING', level: 2 } }),
-      this.prisma.moderationCase.count({ where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'REPORT' } }),
+      this.prisma.moderationCase.count({
+        where: { status: { in: ['OPEN', 'IN_REVIEW'] }, kind: 'REPORT' },
+      }),
       // Todo lo retenido, no solo mensajes: una petición de oración o una
       // reflexión esperando aprobación cuenta igual, y antes no contaba.
       this.prisma.moderationCase.count({
@@ -65,7 +67,11 @@ export class AdminService {
     // app repite el último para siempre; el aviso sale con una semana.
     const devotionalRunway = await this.devotionalRunwayDays();
     const staleVerifications = await this.prisma.verification.count({
-      where: { status: 'PENDING', level: 2, createdAt: { lt: new Date(Date.now() - 24 * 3600_000) } },
+      where: {
+        status: 'PENDING',
+        level: 2,
+        createdAt: { lt: new Date(Date.now() - 24 * 3600_000) },
+      },
     });
 
     return {
@@ -106,7 +112,13 @@ export class AdminService {
           text: `Cola de moderación IA: ${heldMessages} contenidos retenidos`,
         },
       ].filter(Boolean),
-      queues: { pendingVerifications, openReports, heldMessages, pendingChurches, devotionalRunway },
+      queues: {
+        pendingVerifications,
+        openReports,
+        heldMessages,
+        pendingChurches,
+        devotionalRunway,
+      },
     };
   }
 
@@ -147,7 +159,7 @@ export class AdminService {
           }
         : {}),
     };
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         include: {
@@ -162,6 +174,23 @@ export class AdminService {
       }),
       this.prisma.user.count({ where }),
     ]);
+    // Una fila limpia por miembro: lo que el panel necesita para decidir a
+    // quién mirar, nunca el usuario crudo (con hash y todo) al navegador.
+    const items = rows.map((user) => ({
+      id: user.id,
+      email: user.email,
+      displayName: user.profile?.displayName ?? 'Sin perfil',
+      city: user.profile?.city ?? null,
+      age: ageFrom(user.birthDate),
+      completeness: user.profile?.completeness ?? 0,
+      level: user.verifications.reduce((max, v) => Math.max(max, v.level), 0),
+      tier: user.subscriptions[0]?.tier ?? null,
+      reports: user._count.reportsReceived,
+      sanctions: user._count.sanctions,
+      status: user.status,
+      createdAt: user.createdAt,
+      lastActiveAt: user.lastActiveAt,
+    }));
     return { items, total, page };
   }
 
@@ -192,7 +221,10 @@ export class AdminService {
     reason: string,
     days?: number,
   ) {
-    const before = await this.prisma.user.findUnique({ where: { id: userId }, select: { status: true } });
+    const before = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true },
+    });
     if (!before) throw new NotFoundException();
 
     switch (action) {
@@ -220,7 +252,9 @@ export class AdminService {
       }
       case 'BAN':
         await this.prisma.$transaction([
-          this.prisma.sanction.create({ data: { userId, type: 'BAN', reason, createdById: actorId } }),
+          this.prisma.sanction.create({
+            data: { userId, type: 'BAN', reason, createdById: actorId },
+          }),
           this.prisma.user.update({ where: { id: userId }, data: { status: 'BANNED' } }),
         ]);
         break;
@@ -252,13 +286,43 @@ export class AdminService {
         user: {
           include: {
             profile: { select: { displayName: true, city: true } },
-            photos: { where: { moderationStatus: 'APPROVED' }, orderBy: { position: 'asc' }, take: 1 },
+            photos: {
+              where: { moderationStatus: 'APPROVED' },
+              orderBy: { position: 'asc' },
+              take: 1,
+            },
             _count: { select: { reportsReceived: true, sanctions: true } },
           },
         },
       },
     });
-    return items;
+    // La selfie y la foto principal llegan como URL firmada y de corta vida:
+    // quien revisa las ve, nadie más puede reutilizar el enlace.
+    return Promise.all(
+      items.map(async (item) => ({
+        id: item.id,
+        userId: item.userId,
+        displayName: item.user.profile?.displayName ?? 'Miembro',
+        city: item.user.profile?.city ?? null,
+        age: ageFrom(item.user.birthDate),
+        birthDate: item.user.birthDate,
+        selfieUrl: item.evidenceKey
+          ? await this.storage.signDownload(item.evidenceKey).catch(() => null)
+          : null,
+        photoUrl: item.user.photos[0]
+          ? await this.storage.signDownload(item.user.photos[0].storageKey).catch(() => null)
+          : null,
+        similarity: item.similarity,
+        livenessPassed: item.livenessPassed,
+        priority: item.priority,
+        createdAt: item.createdAt,
+        history: {
+          reports: item.user._count.reportsReceived,
+          sanctions: item.user._count.sanctions,
+          since: item.user.createdAt,
+        },
+      })),
+    );
   }
 
   async decideVerification(
@@ -267,7 +331,9 @@ export class AdminService {
     decision: 'APPROVE' | 'REJECT' | 'ESCALATE',
     note?: string,
   ) {
-    const verification = await this.prisma.verification.findUnique({ where: { id: verificationId } });
+    const verification = await this.prisma.verification.findUnique({
+      where: { id: verificationId },
+    });
     if (!verification) throw new NotFoundException();
 
     if (decision === 'ESCALATE') {
@@ -276,7 +342,9 @@ export class AdminService {
           kind: 'REPORT',
           priority: 'CRITICAL',
           subjectUserId: verification.userId,
-          internalNotes: [{ by: actorId, note: note ?? 'Escalado por posible menor', at: new Date() }] as never,
+          internalNotes: [
+            { by: actorId, note: note ?? 'Escalado por posible menor', at: new Date() },
+          ] as never,
           slaDueAt: new Date(Date.now() + 12 * 3600_000),
         },
       });
@@ -819,7 +887,13 @@ export class AdminService {
 
   async setEventFeatured(actorId: string, eventId: string, featured: boolean) {
     await this.prisma.event.update({ where: { id: eventId }, data: { featured } });
-    await this.audit.log({ actorId, action: 'EVENT_FEATURED', targetType: 'EVENT', targetId: eventId, after: { featured } });
+    await this.audit.log({
+      actorId,
+      action: 'EVENT_FEATURED',
+      targetType: 'EVENT',
+      targetId: eventId,
+      after: { featured },
+    });
     return { done: true };
   }
 
@@ -865,7 +939,13 @@ export class AdminService {
     const allowed = Object.values(SETTING_KEYS) as string[];
     if (!allowed.includes(key)) throw new BadRequestException('unknown_setting');
     await this.settings.update(key, value, actorId);
-    await this.audit.log({ actorId, action: 'SETTINGS_UPDATED', targetType: 'SETTING', targetId: key, after: value });
+    await this.audit.log({
+      actorId,
+      action: 'SETTINGS_UPDATED',
+      targetType: 'SETTING',
+      targetId: key,
+      after: value,
+    });
     return { saved: true };
   }
 
@@ -921,14 +1001,135 @@ export class AdminService {
     });
   }
 
+  // ---------------------------------------------------------------- Listados del panel
+  /** Eventos publicados con su alcance, para destacar o revisar (RF-ADM-06). */
+  async publishedEvents() {
+    const events = await this.prisma.event.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { startsAt: 'desc' },
+      take: 100,
+      include: {
+        church: { select: { name: true } },
+        _count: { select: { attendances: true } },
+      },
+    });
+    return events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      churchName: event.church.name,
+      startsAt: event.startsAt,
+      type: event.type,
+      attendances: event._count.attendances,
+      featured: event.featured,
+    }));
+  }
+
+  /** Todos los grupos, con estado: los pendientes se aprueban desde aquí. */
+  async allGroups() {
+    const groups = await this.prisma.group.findMany({
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      take: 200,
+      include: {
+        category: { select: { name: true } },
+        church: { select: { name: true } },
+        _count: { select: { members: true, posts: true } },
+      },
+    });
+    return groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      category: group.category?.name ?? '—',
+      type: group.type,
+      status: group.status,
+      memberCount: group._count.members,
+      postCount: group._count.posts,
+      isOfficial: group.type === 'OFFICIAL',
+      churchName: group.church?.name ?? null,
+      city: group.city,
+      createdAt: group.createdAt,
+    }));
+  }
+
+  /** Iglesias y ministerios registrados, pendientes primero (RF-ADM-05). */
+  async allChurches() {
+    const churches = await this.prisma.church.findMany({
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      take: 200,
+      include: {
+        denomination: { select: { name: true } },
+        _count: { select: { events: true, users: true } },
+      },
+    });
+    return churches.map((church) => ({
+      id: church.id,
+      name: church.name,
+      denomination: church.denomination?.name ?? null,
+      city: church.city,
+      contactName: church.contactName,
+      contactEmail: church.contactEmail,
+      status: church.status,
+      events: church._count.events,
+      users: church._count.users,
+      createdAt: church.createdAt,
+      approvedAt: church.approvedAt,
+    }));
+  }
+
+  /** Suscripciones: cuántas hay por nivel y qué entró este mes (RF-ADM-09). */
+  async subscriptionSummary() {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const [plus, oro, revenue, refundsPending] = await Promise.all([
+      this.prisma.subscription.count({ where: { status: 'ACTIVE', tier: 'PLUS' } }),
+      this.prisma.subscription.count({ where: { status: 'ACTIVE', tier: 'ORO' } }),
+      this.prisma.payment.aggregate({
+        where: { status: 'SUCCEEDED', currency: 'DOP', createdAt: { gte: monthStart } },
+        _sum: { amount: true },
+      }),
+      this.prisma.payment.count({ where: { status: 'REFUND_REQUESTED' } }),
+    ]);
+    return {
+      plus,
+      oro,
+      revenueMonthDop: Number(revenue._sum.amount ?? 0),
+      refundsPending,
+    };
+  }
+
+  /** Quién forma el equipo y con qué rol (RF-ADM-11). */
+  async staff() {
+    const users = await this.prisma.user.findMany({
+      where: { role: { not: 'MEMBER' } },
+      orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, email: true, role: true, twoFactorEnabled: true, lastActiveAt: true },
+    });
+    return users;
+  }
+
   // ---------------------------------------------------------------- Payments (RF-ADM-09)
   async payments(page = 1) {
-    return this.prisma.payment.findMany({
+    const rows = await this.prisma.payment.findMany({
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * 50,
       take: 50,
-      include: { user: { select: { email: true } }, subscription: { select: { tier: true, plan: true } } },
+      include: {
+        user: { select: { email: true } },
+        subscription: { select: { tier: true, plan: true } },
+      },
     });
+    return rows.map((payment) => ({
+      id: payment.id,
+      email: payment.user.email,
+      tier: payment.subscription?.tier ?? null,
+      plan: payment.subscription?.plan ?? null,
+      provider: payment.provider,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      status: payment.status,
+      firstApprovalGiven: !!payment.refundApprovedById,
+      createdAt: payment.createdAt,
+    }));
   }
 
   /** Refunds require double approval (RF-ADM-09). */
@@ -943,7 +1144,12 @@ export class AdminService {
         where: { id: paymentId },
         data: { status: 'REFUND_REQUESTED', refundApprovedById: actorId },
       });
-      await this.audit.log({ actorId, action: 'REFUND_FIRST_APPROVAL', targetType: 'PAYMENT', targetId: paymentId });
+      await this.audit.log({
+        actorId,
+        action: 'REFUND_FIRST_APPROVAL',
+        targetType: 'PAYMENT',
+        targetId: paymentId,
+      });
       return { status: 'awaiting_second_approval' };
     }
     if (payment.refundApprovedById === actorId) {
@@ -953,7 +1159,12 @@ export class AdminService {
       where: { id: paymentId },
       data: { status: 'REFUNDED', refundSecondApprovedById: actorId },
     });
-    await this.audit.log({ actorId, action: 'REFUND_COMPLETED', targetType: 'PAYMENT', targetId: paymentId });
+    await this.audit.log({
+      actorId,
+      action: 'REFUND_COMPLETED',
+      targetType: 'PAYMENT',
+      targetId: paymentId,
+    });
     return { status: 'refunded' };
   }
 }
@@ -971,4 +1182,15 @@ export interface HeldContentItem {
   risk: number | null;
   priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
   createdAt: string;
+}
+
+/** Edad cumplida a partir de la fecha de nacimiento. */
+function ageFrom(birthDate: Date): number {
+  const now = new Date();
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < birthDate.getMonth() ||
+    (now.getMonth() === birthDate.getMonth() && now.getDate() < birthDate.getDate());
+  if (beforeBirthday) age -= 1;
+  return age;
 }

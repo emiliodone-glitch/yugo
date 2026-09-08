@@ -40,7 +40,11 @@ const weightsSchema = z.object({
   age: z.number().min(0).max(100),
 });
 const settingSchema = z.object({ key: z.string().min(1), value: z.unknown() });
-const matrixSchema = z.object({ aId: z.string(), bId: z.string(), value: z.number().min(0).max(100) });
+const matrixSchema = z.object({
+  aId: z.string(),
+  bId: z.string(),
+  value: z.number().min(0).max(100),
+});
 const heldSchema = z.object({ approve: z.boolean() });
 const bannersSchema = z.object({
   banners: z.array(
@@ -73,6 +77,32 @@ export class AdminController {
   @Get('dashboard')
   dashboard() {
     return this.admin.dashboard();
+  }
+
+  // Listados del panel: eventos publicados, grupos, iglesias, equipo, resumen de suscripciones.
+  @Get('events')
+  publishedEvents() {
+    return this.admin.publishedEvents();
+  }
+
+  @Get('groups')
+  allGroups() {
+    return this.admin.allGroups();
+  }
+
+  @Get('churches')
+  allChurches() {
+    return this.admin.allChurches();
+  }
+
+  @Get('subscriptions/summary')
+  subscriptionSummary() {
+    return this.admin.subscriptionSummary();
+  }
+
+  @Get('staff')
+  staff() {
+    return this.admin.staff();
   }
 
   // Members (RF-ADM-02)

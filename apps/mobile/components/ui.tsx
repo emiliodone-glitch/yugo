@@ -85,7 +85,14 @@ export function AffinityRing({ value, size = 52 }: { value: number; size?: numbe
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.linen2} strokeWidth={stroke} fill="#fff" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={colors.linen2}
+          strokeWidth={stroke}
+          fill="#fff"
+        />
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -98,7 +105,9 @@ export function AffinityRing({ value, size = 52 }: { value: number; size?: numbe
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: size * 0.26, color: colors.ink }}>{value}</Text>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: size * 0.26, color: colors.ink }}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -159,9 +168,21 @@ export function Button({
   style?: ViewStyle;
 }) {
   const background =
-    tone === 'olive' ? colors.olive : tone === 'wheat' ? colors.wheat : tone === 'ink' ? colors.ink : 'transparent';
+    tone === 'olive'
+      ? colors.olive
+      : tone === 'wheat'
+        ? colors.wheat
+        : tone === 'ink'
+          ? colors.ink
+          : 'transparent';
   const textColor =
-    tone === 'wheat' ? colors.inkDeep : tone === 'ghost' ? colors.ink : tone === 'ghost-light' ? '#fff' : '#fff';
+    tone === 'wheat'
+      ? colors.inkDeep
+      : tone === 'ghost'
+        ? colors.ink
+        : tone === 'ghost-light'
+          ? '#fff'
+          : '#fff';
   return (
     <Pressable
       onPress={onPress}
@@ -200,9 +221,22 @@ export function ProgressBar({ value, style }: { value: number; style?: ViewStyle
   );
 }
 
-export function H({ children, size = 19, style }: { children: React.ReactNode; size?: number; style?: object }) {
+export function H({
+  children,
+  size = 19,
+  style,
+}: {
+  children: React.ReactNode;
+  size?: number;
+  style?: object;
+}) {
   return (
-    <Text style={[{ fontFamily: fonts.display, fontSize: size, color: colors.ink, letterSpacing: -0.2 }, style]}>
+    <Text
+      style={[
+        { fontFamily: fonts.display, fontSize: size, color: colors.ink, letterSpacing: -0.2 },
+        style,
+      ]}
+    >
       {children}
     </Text>
   );
@@ -403,15 +437,18 @@ export function Toggle({
   on,
   onChange,
   label,
+  disabled,
 }: {
   on: boolean;
   onChange: (value: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <Switch
       value={on}
       onValueChange={onChange}
+      disabled={disabled}
       accessibilityLabel={label}
       trackColor={{ true: colors.olive, false: '#D5D2C8' }}
       thumbColor="#fff"
@@ -487,7 +524,9 @@ export function ScoreBar({ label, value, note }: { label: string; value: number;
         <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text }}>
           {label}
         </Text>
-        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.ink }}>{value}</Text>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.ink }}>
+          {value}
+        </Text>
       </View>
       <ProgressBar value={value} style={{ marginTop: 5 }} />
       {note ? <Sub style={{ fontSize: 11, marginTop: 4 }}>{note}</Sub> : null}
@@ -527,11 +566,14 @@ export function QrCode({ value, size = 168 }: { value: string; size?: number }) 
   const cell = size / cells;
 
   const isFinder = (row: number, col: number): boolean | null => {
-    const inBox = (r0: number, c0: number) => row >= r0 && row < r0 + 7 && col >= c0 && col < c0 + 7;
+    const inBox = (r0: number, c0: number) =>
+      row >= r0 && row < r0 + 7 && col >= c0 && col < c0 + 7;
     const onRing = (r0: number, c0: number) => {
       const dr = row - r0;
       const dc = col - c0;
-      return dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4);
+      return (
+        dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)
+      );
     };
     if (inBox(0, 0)) return onRing(0, 0);
     if (inBox(0, cells - 7)) return onRing(0, cells - 7);

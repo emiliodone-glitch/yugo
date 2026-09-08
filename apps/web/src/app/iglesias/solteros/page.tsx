@@ -64,7 +64,8 @@ export default function SinglesMinistryPage() {
             {data.waitlisted > 0 ? (
               <div className="mb-4 rounded-[14px] border border-wheat bg-wheat-soft px-4 py-3">
                 <b className="text-[12.5px] text-wheat-text">
-                  {data.waitlisted.toLocaleString('es-DO')} {es.singlesMinistry.waitlisted.toLowerCase()}
+                  {data.waitlisted.toLocaleString('es-DO')}{' '}
+                  {es.singlesMinistry.waitlisted.toLowerCase()}
                 </b>
                 <p className="mt-0.5 text-[11.5px] text-wheat-text">
                   {es.singlesMinistry.demandHint}

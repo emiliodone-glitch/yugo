@@ -1,8 +1,15 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { demoCurrentUser, es } from '@yugo/shared';
-import { useDemoStore, useMyPhotos, useSession, useVerificationStatus } from '@yugo/app-core';
+import { es } from '@yugo/shared';
+import {
+  useCurrentMember,
+  useDemoStore,
+  useMyPhotos,
+  usePauseProfile,
+  useSession,
+  useVerificationStatus,
+} from '@yugo/app-core';
 import {
   AvatarCircle,
   Button,
@@ -11,6 +18,7 @@ import {
   Chip,
   H,
   ListRow,
+  Notice,
   ProgressBar,
   Sub,
   Toggle,
@@ -19,57 +27,107 @@ import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
+const shortDate = (iso?: string | null) =>
+  iso
+    ? new Intl.DateTimeFormat('es-DO', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'America/Santo_Domingo',
+      })
+        .format(new Date(iso))
+        .replace('.', '')
+    : '';
+
+const INTENTION_LABEL = {
+  MARRIAGE: es.discover.purposeMarriage,
+  FRIENDSHIP: es.onboarding.intentionFriendship,
+  BOTH: es.onboarding.intentionBoth,
+} as const;
+
+/** Mi perfil (RF-PER-01/10): la ficha real de quien entró, no la de demostración. */
 export default function ProfileScreen() {
+  const member = useCurrentMember();
   const { data: session } = useSession();
   const { data: verification } = useVerificationStatus();
   const { data: myPhotos = [] } = useMyPhotos();
-  const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
-  const paused = useDemoStore((s) => s.pausedProfile);
-  const setPaused = useDemoStore((s) => s.setPausedProfile);
+  const pausedDemo = useDemoStore((s) => s.pausedProfile);
+  const pauseProfile = usePauseProfile();
 
-  const user = demoCurrentUser;
-  const displayName = session?.displayName ?? user.displayName;
-  const identityApproved = verification?.level2?.status === 'APPROVED';
-  const endorsed = verification?.level3?.status === 'APPROVED';
+  const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
+  const user = member.data;
+  const displayName = user?.displayName ?? session?.displayName ?? '';
+  const paused = session && !session.demo ? session.me.status === 'PAUSED' : pausedDemo;
+
+  const contactOk = verification ? verification.level1?.status === 'APPROVED' : true;
+  const identity = verification?.level2;
+  const identityApproved = identity?.status === 'APPROVED';
+  const endorsement = verification?.level3;
+  const endorsed = endorsement?.status === 'APPROVED';
+  const nextField = user?.completenessNext
+    ? ((es.profile.fields as Record<string, string>)[user.completenessNext.key] ??
+      user.completenessNext.key)
+    : null;
+
+  if (member.isError) {
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.container}>
+          <Notice tone="wine" text={es.errors.generic} />
+          <Button label={es.common.retry} onPress={() => void member.refetch()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-          <AvatarCircle name={displayName} size={64} photoUrl={myPhotoUrl} />
+          <AvatarCircle name={displayName || '·'} size={64} photoUrl={myPhotoUrl} />
           <View style={{ flex: 1 }}>
             <H>
-              {displayName}, {user.age}
+              {user
+                ? user.age
+                  ? `${user.displayName}, ${user.age}`
+                  : user.displayName
+                : es.common.loading}
             </H>
-            <Sub>
-              {user.city} · {user.occupation}
-            </Sub>
-            <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-              <Chip label={user.denomination} tone="olive" />
-              <Chip label={es.discover.purposeMarriage} tone="wheat" />
+            {user ? <Sub>{[user.city, user.occupation].filter(Boolean).join(' · ')}</Sub> : null}
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              {user?.denomination ? <Chip label={user.denomination} tone="olive" /> : null}
+              {user ? <Chip label={INTENTION_LABEL[user.intention]} tone="wheat" /> : null}
             </View>
           </View>
         </View>
 
-        <Card style={{ marginTop: 14 }}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.rowText}>{es.profile.completeness}</Text>
-            <Text style={[styles.rowText, { fontFamily: fonts.bodyBold }]}>{user.completeness}%</Text>
-          </View>
-          <ProgressBar value={user.completeness} style={{ marginTop: 6 }} />
-          <Sub style={{ fontSize: 11, marginTop: 6 }}>
-            {es.profile.completenessHint(user.completenessNext.field, user.completenessNext.targetPct)}
-          </Sub>
-        </Card>
+        {user ? (
+          <Card style={{ marginTop: 14 }}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.rowText}>{es.profile.completeness}</Text>
+              <Text style={[styles.rowText, { fontFamily: fonts.bodyBold }]}>
+                {user.completeness}%
+              </Text>
+            </View>
+            <ProgressBar value={user.completeness} style={{ marginTop: 6 }} />
+            <Sub style={{ fontSize: 11, marginTop: 6 }}>
+              {nextField && user.completenessNext
+                ? es.profile.completenessHint(nextField, user.completenessNext.targetPct)
+                : es.profile.complete}
+            </Sub>
+          </Card>
+        ) : null}
 
         <H size={15} style={{ marginBottom: 8 }}>
           {es.profile.verification}
         </H>
         <Card style={{ paddingVertical: 6 }}>
           <VerificationRow
-            done
+            done={contactOk}
+            level={1}
             title={es.profile.verificationContact}
-            sub={es.profile.verificationContactDone}
+            sub={
+              contactOk ? es.profile.verificationContactDone : es.profile.verificationContactPending
+            }
           />
           <VerificationRow
             done={identityApproved}
@@ -77,8 +135,21 @@ export default function ProfileScreen() {
             title={es.profile.verificationIdentity}
             sub={
               identityApproved
-                ? es.profile.verificationIdentityDone('12 ago')
-                : es.profile.verificationIdentityPending
+                ? es.profile.verificationIdentityDone(shortDate(identity?.resolvedAt))
+                : identity?.status === 'PENDING'
+                  ? es.profile.verificationIdentityPending
+                  : identity?.status === 'REJECTED'
+                    ? es.profile.verificationIdentityRejected
+                    : es.profile.verificationIdentityStart
+            }
+            action={
+              identityApproved || identity?.status === 'PENDING' ? undefined : (
+                <Button
+                  label={es.profile.obtain}
+                  small
+                  onPress={() => router.push('/perfil/verificacion')}
+                />
+              )
             }
           />
           <VerificationRow
@@ -87,8 +158,12 @@ export default function ProfileScreen() {
             title={es.profile.verificationChurch}
             sub={
               endorsed
-                ? `Respaldado por ${verification?.level3?.church?.name ?? 'tu iglesia'}`
-                : es.profile.verificationChurchHint
+                ? es.profile.verificationChurchDone(
+                    endorsement?.church?.name ?? user?.churchName ?? 'tu iglesia',
+                  )
+                : endorsement?.status === 'PENDING'
+                  ? es.church.inReview
+                  : es.profile.verificationChurchHint
             }
             action={
               endorsed ? undefined : (
@@ -163,9 +238,20 @@ export default function ProfileScreen() {
         />
         <ListRow
           label={es.profile.pauseProfile}
-          hint="Dejas de aparecer en Descubrir; tus conexiones se conservan"
-          right={<Toggle on={paused} onChange={setPaused} label={es.profile.pauseProfile} />}
+          hint={
+            paused
+              ? es.profile.pausedHint
+              : 'Dejas de aparecer en Descubrir; tus conexiones se conservan'
+          }
+          right={
+            <Toggle
+              on={!!paused}
+              onChange={(value) => pauseProfile.mutate(value)}
+              label={es.profile.pauseProfile}
+            />
+          }
         />
+        {pauseProfile.isError ? <Notice tone="wine" text={es.errors.generic} /> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -216,5 +302,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  levelBadge: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  levelBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

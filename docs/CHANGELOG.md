@@ -3,6 +3,71 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.10.0 — Panel admin y portal de iglesias con datos reales
+
+### Lo que pasaba
+Diez páginas del panel y cuatro del portal de iglesias pintaban listas fijas:
+la cola de verificación siempre tenía a «Mariel Peña», los miembros eran
+cuarenta filas inventadas, «Generar 25 códigos» sumaba 25 a un número en
+memoria y «Aprobar» no llamaba a nadie. Contra la API real se veía lo mismo
+que en la demo, así que nadie podía moderar ni respaldar de verdad.
+
+### API (RF-ADM-02/03/05/06/09/10/11, RF-IGL-02/04/05/06)
+- Filas limpias para el navegador en `admin.members()` (edad, completitud,
+  nivel, plan, reportes, sanciones) y `admin.verificationQueue()` (selfie y
+  foto en URL firmada, similitud, prueba de vida, historial).
+- Endpoints nuevos: `GET /admin/events` (publicados con asistencias y
+  destacado), `GET /admin/groups`, `GET /admin/churches`,
+  `GET /admin/subscriptions/summary` (Plus, Oro, ingresos del mes, reembolsos
+  pendientes), `GET /admin/staff` (equipo con su 2FA).
+- Portal: `GET /church-portal/metrics` añade `weeklyReach` (asistencias por
+  semana, 8 semanas); `GET /church-portal/group` (muro del grupo oficial),
+  `GET /church-portal/users`, `POST /church-portal/users/invite` (solo ADMIN,
+  la cuenta debe existir, queda en la bitácora) y `DELETE /church-portal/users/:id`.
+- Semilla: cuenta `iglesia@yugo.do` / `Yugo.iglesia1`, administradora de la
+  primera iglesia aprobada, con 12 códigos (5 usados), dos solicitudes de
+  líder pendientes y un evento en revisión.
+
+### Hooks compartidos (`app-core/portal-hooks.ts`)
+Uno por pantalla, con la demo como respaldo: `useAdminMembers`,
+`useAdminMemberAction`, `useAdminVerificationQueue`, `useDecideVerification`,
+`useModerationQueue('REPORT' | 'APPEAL')`, `useTakeNextCase`, `useDecideCase`,
+`useAdminEventsInReview`, `useAdminPublishedEvents`, `useDecideEvent`,
+`useSetEventFeatured`, `useAdminGroups`, `useDecideGroup`, `useAdminChurches`,
+`useDecideChurch`, `useAdminSubscriptionSummary`, `useAdminPayments`,
+`useApproveRefund`, `useAdminSettings`, `useUpdateWeights`,
+`useDenominationMatrix`, `useUpdateMatrixCell`, `useAuditLog`, `useAdminStaff`,
+`useChurchCodes`, `useGenerateChurchCodes`, `useEndorsementRequests`,
+`useResolveEndorsement`, `useChurchMetrics`, `useChurchOfficialGroup`,
+`useChurchUsers`, `useInviteChurchUser`, `useRemoveChurchUser`.
+
+### Web
+- Panel: miembros con búsqueda, ficha lateral y acciones con motivo;
+  verificaciones caso a caso con anterior/siguiente; moderación con reportes
+  y apelaciones reales y formulario de decisión (motivo obligatorio);
+  eventos con aprobar/devolver con nota y destacar; grupos y organizaciones
+  con aprobar/rechazar; suscripciones con resumen y reembolso a dos firmas;
+  configuración con pesos guardados y matriz editable celda a celda;
+  auditoría con el equipo real, aviso de quien no tiene 2FA y filtro por
+  acción; reportes con el crecimiento semanal real.
+- Portal: códigos vigentes para copiar, generar lotes y confirmar
+  solicitudes; métricas reales con alcance semanal y estado vacío honesto;
+  grupo oficial con su muro; usuarios con invitación y retiro de acceso.
+- `CITIES` (ciudades con coordenadas) pasa a `@yugo/shared` para que la app
+  móvil la use en el modo viaje.
+
+### App móvil
+Perfil, Preferencias, Visibilidad y la firma de tus publicaciones en un grupo
+dejan la ficha de demostración: usan `useCurrentMember`, `useUpdatePreferences`,
+`useSetOroBadge`, `useSetTravelMode` (con selector de ciudad y días),
+`useWhoViewedMe` y `usePauseProfile`. Los interruptores Oro quedan
+deshabilitados sin Oro y lo dicen; el rango de edad se guarda en la API.
+
+### Verificación
+`pnpm --filter @yugo/api test` (179), E2E web (308 en demo), recorrido real
+como `admin@yugo.do` e `iglesia@yugo.do` contra la API local, jest móvil (34)
+y humo RN Web sin errores de consola.
+
 ## v0.9.0 — Pantallas que dicen la verdad y una web que usa la pantalla
 
 ### Lo primero: ocho pantallas mostraban datos de otra persona

@@ -28,8 +28,10 @@ export default function ChurchEventsPage() {
   const events = useChurchEvents();
   const submit = useSubmitChurchEvent();
 
-  if (events.isLoading) return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
-  if (events.isError) return <QueryError error={events.error} onRetry={() => void events.refetch()} />;
+  if (events.isLoading)
+    return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
+  if (events.isError)
+    return <QueryError error={events.error} onRetry={() => void events.refetch()} />;
 
   const rows = [...(events.data ?? [])].sort((a, b) => b.startsAt.localeCompare(a.startsAt));
 

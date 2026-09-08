@@ -40,7 +40,12 @@ export class ChurchesService {
         users: { create: { userId, role: 'ADMIN' } },
       },
     });
-    await this.audit.log({ actorId: userId, action: 'CHURCH_REGISTERED', targetType: 'CHURCH', targetId: church.id });
+    await this.audit.log({
+      actorId: userId,
+      action: 'CHURCH_REGISTERED',
+      targetType: 'CHURCH',
+      targetId: church.id,
+    });
     return church;
   }
 
@@ -61,26 +66,34 @@ export class ChurchesService {
     const membership = await this.requireMembership(userId);
     const church = membership.church;
     const [endorsedMembers, activeCodes, pendingRequests] = await Promise.all([
-      this.prisma.verification.count({ where: { churchId: church.id, level: 3, status: 'APPROVED' } }),
+      this.prisma.verification.count({
+        where: { churchId: church.id, level: 3, status: 'APPROVED' },
+      }),
       this.prisma.endorsementCode.count({
-        where: { churchId: church.id, usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+        where: {
+          churchId: church.id,
+          usedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
       }),
       this.prisma.endorsementRequest.count({ where: { churchId: church.id, status: 'PENDING' } }),
     ]);
-    return { church, role: membership.role, stats: { endorsedMembers, activeCodes, pendingRequests } };
+    return {
+      church,
+      role: membership.role,
+      stats: { endorsedMembers, activeCodes, pendingRequests },
+    };
   }
 
   /** RF-IGL-03: event lifecycle draft → in review → published. */
   async createEvent(userId: string, input: CreateEventInput, submit: boolean) {
     const membership = await this.requireMembership(userId);
-    if (membership.church.status !== 'APPROVED') throw new ForbiddenException('church_not_approved');
+    if (membership.church.status !== 'APPROVED')
+      throw new ForbiddenException('church_not_approved');
 
     // Churches with track record can publish directly (RF-EVE-02).
-    const status = submit
-      ? membership.church.directPublish
-        ? 'PUBLISHED'
-        : 'IN_REVIEW'
-      : 'DRAFT';
+    const status = submit ? (membership.church.directPublish ? 'PUBLISHED' : 'IN_REVIEW') : 'DRAFT';
 
     return this.prisma.event.create({
       data: {
@@ -169,7 +182,12 @@ export class ChurchesService {
       after: { count },
     });
     return this.prisma.endorsementCode.findMany({
-      where: { churchId: membership.churchId, usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        churchId: membership.churchId,
+        usedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
       take: count,
     });
@@ -266,21 +284,48 @@ export class ChurchesService {
     const churchId = membership.churchId;
     const since = new Date(Date.now() - 30 * 24 * 3600_000);
 
-    const [events, going, checkIns, groupMembers, endorsed, endorsedLast30, codesIssued, codesUsed] =
-      await Promise.all([
-        this.prisma.event.count({ where: { churchId, status: 'PUBLISHED' } }),
-        this.prisma.eventAttendance.count({ where: { event: { churchId }, status: 'GOING' } }),
-        this.prisma.eventAttendance.count({
-          where: { event: { churchId }, checkedInAt: { not: null } },
-        }),
-        this.prisma.groupMember.count({ where: { group: { churchId } } }),
-        this.prisma.verification.count({ where: { churchId, level: 3, status: 'APPROVED' } }),
-        this.prisma.verification.count({
-          where: { churchId, level: 3, status: 'APPROVED', resolvedAt: { gte: since } },
-        }),
-        this.prisma.endorsementCode.count({ where: { churchId } }),
-        this.prisma.endorsementCode.count({ where: { churchId, usedAt: { not: null } } }),
-      ]);
+    const [
+      events,
+      going,
+      checkIns,
+      groupMembers,
+      endorsed,
+      endorsedLast30,
+      codesIssued,
+      codesUsed,
+    ] = await Promise.all([
+      this.prisma.event.count({ where: { churchId, status: 'PUBLISHED' } }),
+      this.prisma.eventAttendance.count({ where: { event: { churchId }, status: 'GOING' } }),
+      this.prisma.eventAttendance.count({
+        where: { event: { churchId }, checkedInAt: { not: null } },
+      }),
+      this.prisma.groupMember.count({ where: { group: { churchId } } }),
+      this.prisma.verification.count({ where: { churchId, level: 3, status: 'APPROVED' } }),
+      this.prisma.verification.count({
+        where: { churchId, level: 3, status: 'APPROVED', resolvedAt: { gte: since } },
+      }),
+      this.prisma.endorsementCode.count({ where: { churchId } }),
+      this.prisma.endorsementCode.count({ where: { churchId, usedAt: { not: null } } }),
+    ]);
+
+    // Alcance por semana: cuántas personas marcaron «Asistiré» o «Me
+    // interesa» en encuentros de esta iglesia, últimas 8 semanas.
+    const weekly = await this.prisma.$queryRaw<Array<{ week: Date; reach: bigint }>>`
+      WITH semanas AS (
+        SELECT generate_series(
+          date_trunc('week', now() - interval '7 weeks'),
+          date_trunc('week', now()),
+          '1 week'
+        ) AS week
+      )
+      SELECT s.week,
+             (SELECT count(*) FROM "EventAttendance" a
+                JOIN "Event" e ON e.id = a."eventId"
+               WHERE e."churchId" = ${churchId}
+                 AND date_trunc('week', a."createdAt") = s.week) AS reach
+      FROM semanas s
+      ORDER BY s.week
+    `;
 
     return {
       events,
@@ -291,11 +336,103 @@ export class ChurchesService {
       endorsedLast30,
       codesIssued,
       codesUsed,
+      weeklyReach: weekly.map((row) => Number(row.reach)),
       /** Share of handed-out codes that became an endorsement. */
       codeRedemptionRate: codesIssued === 0 ? 0 : Math.round((codesUsed / codesIssued) * 100),
       /** Of those who said they would attend, how many actually showed up. */
       checkInRate: going === 0 ? 0 : Math.round((checkIns / going) * 100),
     };
+  }
+
+  /** El grupo oficial de la iglesia con su muro reciente (RF-IGL-04). */
+  async officialGroup(userId: string) {
+    const membership = await this.requireMembership(userId);
+    const group = await this.prisma.group.findUnique({
+      where: { churchId: membership.churchId },
+      include: {
+        _count: { select: { members: true } },
+        posts: {
+          where: { moderationStatus: 'APPROVED' },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+          include: {
+            author: { select: { profile: { select: { displayName: true } } } },
+            _count: { select: { reactions: true, comments: true } },
+          },
+        },
+      },
+    });
+    if (!group) return null;
+    return {
+      id: group.id,
+      name: group.name,
+      status: group.status,
+      memberCount: group._count.members,
+      posts: group.posts.map((post) => ({
+        id: post.id,
+        author: post.author.profile?.displayName ?? 'Miembro',
+        body: post.body,
+        isPrayerRequest: post.isPrayerRequest,
+        reactions: post._count.reactions,
+        comments: post._count.comments,
+        createdAt: post.createdAt,
+      })),
+    };
+  }
+
+  /** Quién administra el portal de esta iglesia (RF-IGL-02). */
+  async portalUsers(userId: string) {
+    const membership = await this.requireMembership(userId);
+    const users = await this.prisma.churchUser.findMany({
+      where: { churchId: membership.churchId },
+      include: {
+        user: { select: { id: true, email: true, profile: { select: { displayName: true } } } },
+      },
+      orderBy: { role: 'asc' },
+    });
+    return users.map((row) => ({
+      id: row.id,
+      userId: row.user.id,
+      email: row.user.email,
+      name: row.user.profile?.displayName ?? row.user.email ?? 'Usuario',
+      role: row.role,
+      isMe: row.user.id === userId,
+    }));
+  }
+
+  /**
+   * Invita a otra cuenta de Yugo al portal. La cuenta debe existir: el portal
+   * no crea usuarios, y así nadie queda con acceso a una iglesia sin haber
+   * pasado por el registro normal.
+   */
+  async inviteUser(userId: string, email: string, role: 'ADMIN' | 'EVENT_EDITOR') {
+    const membership = await this.requireMembership(userId, 'ADMIN');
+    const invited = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!invited) throw new NotFoundException('user_not_found');
+    const row = await this.prisma.churchUser.upsert({
+      where: { churchId_userId: { churchId: membership.churchId, userId: invited.id } },
+      update: { role },
+      create: { churchId: membership.churchId, userId: invited.id, role },
+    });
+    await this.audit.log({
+      actorId: userId,
+      action: 'CHURCH_USER_INVITED',
+      targetType: 'CHURCH',
+      targetId: membership.churchId,
+      after: { userId: invited.id, role },
+    });
+    return { id: row.id, role: row.role };
+  }
+
+  async removePortalUser(userId: string, churchUserId: string) {
+    const membership = await this.requireMembership(userId, 'ADMIN');
+    const row = await this.prisma.churchUser.findFirst({
+      where: { id: churchUserId, churchId: membership.churchId },
+    });
+    if (!row) throw new NotFoundException();
+    if (row.userId === userId) throw new BadRequestException('cannot_remove_self');
+    await this.prisma.churchUser.delete({ where: { id: row.id } });
+    return { removed: true };
   }
 
   /**

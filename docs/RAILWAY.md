@@ -140,6 +140,7 @@ correo. Con `OTP_PROVIDER=console` el código aparece en los logs del servicio.
 | `prueba@yugo.do` | `Yugo.prueba1` | **La cuenta de prueba.** Llega con conexiones en tres etapas, una propuesta de noviazgo esperando respuesta, mensajes sin leer, intereses recibidos, un evento con una conexión, constancia en el devocional, una petición de oración acompañada y notificaciones. Es la que hay que abrir para ver la app viva |
 | `demo1@yugo.do` … `demo40@yugo.do` | `Yugo.demo1` | Los 40 perfiles ficticios. Sirven para entrar «como la otra persona» de una conexión (`demo3` y `demo5` conversan con la cuenta de prueba) |
 | `admin@yugo.do` | `Yugo.demo1` + código | El panel admin (`/admin`). Pide 2FA: con `OTP_PROVIDER=console`, el código sale en **Deploy Logs** del servicio `api` en una línea `OTP for admin@yugo.do (LOGIN): 123456`. Búscalo con el filtro `OTP for` |
+| `iglesia@yugo.do` | `Yugo.iglesia1` | El portal de iglesias (`/iglesias`) como administrador de la primera iglesia aprobada: códigos de respaldo, solicitudes de líder, métricas, grupo oficial y usuarios del portal. Trae un evento esperando revisión en `/admin/eventos` |
 
 El portal de iglesias (`/iglesias`) se abre con cualquier cuenta: si no está
 vinculada a una iglesia, la propia pantalla ofrece registrarla; la solicitud

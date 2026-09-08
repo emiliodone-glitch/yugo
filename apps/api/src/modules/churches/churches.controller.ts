@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
 import { createEventSchema, type CreateEventInput } from '@yugo/shared';
 import { ChurchesService } from './churches.service';
@@ -16,8 +16,15 @@ const registerSchema = z.object({
 });
 const generateSchema = z.object({ count: z.number().int().min(1).max(100) });
 const resolveSchema = z.object({ confirm: z.boolean() });
-const revokeSchema = z.object({ memberUserId: z.string().min(1), reason: z.string().min(3).max(300) });
+const revokeSchema = z.object({
+  memberUserId: z.string().min(1),
+  reason: z.string().min(3).max(300),
+});
 const createEventBody = createEventSchema.extend({ submit: z.boolean().default(false) });
+const inviteSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['ADMIN', 'EVENT_EDITOR']).default('EVENT_EDITOR'),
+});
 
 @Controller('church-portal')
 export class ChurchesController {
@@ -61,7 +68,10 @@ export class ChurchesController {
   }
 
   @Post('codes/generate')
-  generate(@CurrentUser() user: AuthUser, @Body(new ZodPipe(generateSchema)) body: { count: number }) {
+  generate(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(generateSchema)) body: { count: number },
+  ) {
     return this.churches.generateCodes(user.id, body.count);
   }
 
@@ -90,6 +100,31 @@ export class ChurchesController {
   @Get('metrics')
   metrics(@CurrentUser() user: AuthUser) {
     return this.churches.metrics(user.id);
+  }
+
+  /** Grupo oficial de la iglesia con su muro reciente (RF-IGL-04). */
+  @Get('group')
+  officialGroup(@CurrentUser() user: AuthUser) {
+    return this.churches.officialGroup(user.id);
+  }
+
+  /** Usuarios del portal (RF-IGL-02). */
+  @Get('users')
+  portalUsers(@CurrentUser() user: AuthUser) {
+    return this.churches.portalUsers(user.id);
+  }
+
+  @Post('users/invite')
+  invite(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(inviteSchema)) body: { email: string; role: 'ADMIN' | 'EVENT_EDITOR' },
+  ) {
+    return this.churches.inviteUser(user.id, body.email, body.role);
+  }
+
+  @Delete('users/:id')
+  removeUser(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.churches.removePortalUser(user.id, id);
   }
 
   /** Ministerio de solteros: totales de los encuentros que convoca (RF-IGL-06). */

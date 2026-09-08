@@ -81,7 +81,11 @@ export default function DevotionalsAdminPage() {
       <BarTop
         title={es.admin.devotionalsTitle}
         right={
-          <button type="button" className="btn btn-sm btn-olive" onClick={() => startEditing(nextFree)}>
+          <button
+            type="button"
+            className="btn btn-sm btn-olive"
+            onClick={() => startEditing(nextFree)}
+          >
             {es.admin.writeFor(longDate(nextFree))}
           </button>
         }
@@ -102,7 +106,11 @@ export default function DevotionalsAdminPage() {
             {es.admin.runway(runway)}
           </div>
           <p className="mt-2 text-[13px]">
-            {runway === 0 ? es.admin.runwayNone : runway < 7 ? es.admin.runwayLow : es.admin.runwayOk}
+            {runway === 0
+              ? es.admin.runwayNone
+              : runway < 7
+                ? es.admin.runwayLow
+                : es.admin.runwayOk}
           </p>
           <p className="mt-1 text-[11px]">{es.admin.runwayHelp}</p>
         </section>
@@ -234,7 +242,12 @@ function DevotionalForm({
 
       <label className="text-[11px] font-semibold uppercase tracking-wide text-muted">
         {es.admin.fieldReference}
-        <input className="input mt-1" placeholder="Proverbios 4:23" maxLength={80} {...field('reference')} />
+        <input
+          className="input mt-1"
+          placeholder="Proverbios 4:23"
+          maxLength={80}
+          {...field('reference')}
+        />
       </label>
 
       <label className="text-[11px] font-semibold uppercase tracking-wide text-muted">

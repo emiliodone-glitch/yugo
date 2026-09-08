@@ -9,7 +9,7 @@
  * still measured, no longer the finish line.
  */
 import { useState } from 'react';
-import { demoAdminKpis, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import { useAdminReport } from '@/lib/hooks';
 import { BarTop, Kpi, Panel, SparkBars } from '@/components/admin';
 
@@ -24,6 +24,19 @@ export default function ReportsPage() {
   const [kind, setKind] = useState<string>('funnel');
   const { data: report, isLoading } = useAdminReport(kind);
   const { data: funnel } = useAdminReport('funnel');
+  const { data: growth } = useAdminReport('growth');
+
+  // Las barras se escalan contra la semana más alta de cada serie: lo que se
+  // lee es la forma de la curva, no un número absoluto.
+  const growthRows = growth?.rows ?? [];
+  const series = (column: string) => {
+    const values = growthRows.map((row) => Number(row[column] ?? 0));
+    const max = Math.max(1, ...values);
+    return values.map((value) => Math.max(4, Math.round((value / max) * 100)));
+  };
+  const registrations = series('Registros');
+  const subscriptions = series('Suscripciones');
+  const totalRegistrations = growthRows.reduce((sum, row) => sum + Number(row.Registros ?? 0), 0);
 
   const funnelRows = funnel?.rows ?? [];
   const stageValue = (label: string) =>
@@ -153,8 +166,29 @@ export default function ReportsPage() {
           </Panel>
 
           <Panel title="Crecimiento semanal">
-            <SparkBars indigo={demoAdminKpis.weekly} wheat={demoAdminKpis.weeklyPlus} />
-            <div className="mt-1.5 text-[11px] text-muted">{es.admin.weeklyLegend}</div>
+            {growthRows.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted">{es.common.loading}</div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="text-[11px] text-muted">Registros por semana</div>
+                    <SparkBars indigo={registrations} wheat={[]} />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted">Suscripciones nuevas por semana</div>
+                    <SparkBars indigo={[]} wheat={subscriptions} />
+                  </div>
+                </div>
+                <div className="mt-1.5 flex justify-between text-[11px] text-muted">
+                  <span>{es.admin.weeklyLegend}</span>
+                  <span>
+                    {growthRows.length} semanas · {totalRegistrations.toLocaleString('es-DO')}{' '}
+                    registros
+                  </span>
+                </div>
+              </>
+            )}
           </Panel>
         </div>
       </div>

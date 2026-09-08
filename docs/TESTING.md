@@ -43,6 +43,10 @@ La semilla (`pnpm --filter @yugo/api db:seed`) deja tres tipos de cuenta:
   ellas se ve el otro lado de la conversación.
 - **`admin@yugo.do` / `Yugo.demo1`**: exige 2FA. En local, el código sale en
   la consola de la API (`OTP for admin@yugo.do (LOGIN): 123456`).
+- **`iglesia@yugo.do` / `Yugo.iglesia1`**: administrador del portal de
+  iglesias (`/iglesias`) de la primera iglesia aprobada. Llega con 12 códigos
+  de respaldo (5 ya usados), dos solicitudes de líder pendientes y un evento
+  esperando revisión en `/admin/eventos`.
 
 Contra la API real, la web se prueba de punta a punta con
 `NEXT_PUBLIC_DEMO_MODE=false` (ver «Auditoría contra la API real» en el
@@ -117,12 +121,17 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
 3. `POST /v1/events/check-in` con el `qrToken` del evento sembrado → check-in registrado.
 
 ### Portal de iglesias (RF-IGL-03/05)
-1. Crea un usuario de portal (tabla `ChurchUser` vía seed o Prisma Studio) y usa
+1. Entra como `iglesia@yugo.do` y usa
    `POST /v1/church-portal/events` con `submit: true` → estado `IN_REVIEW`.
 2. `POST /v1/church-portal/codes/generate` `{count: 25}` → códigos de un solo uso (30 días).
 3. Como miembro: `POST /v1/verification/church-code` con un código → insignia nivel 3;
    reutilizarlo → **400 code_already_used**.
-4. Web: `/iglesias/eventos/nuevo` (vista previa en vivo) y `/iglesias/codigos`.
+4. `GET /v1/church-portal/metrics` → totales y `weeklyReach` (8 semanas); nunca nombres.
+   `POST /v1/church-portal/users/invite` `{email, role}` solo para ADMIN; un correo
+   que no existe en Yugo → **404 user_not_found**.
+5. Web: `/iglesias/eventos/nuevo` (vista previa en vivo), `/iglesias/codigos`
+   (generar, copiar, confirmar solicitudes), `/iglesias/metricas`, `/iglesias/grupo`
+   y `/iglesias/usuarios` (invitar y retirar acceso).
 
 ### Panel admin (RF-ADM-03/04/08)
 1. Entra como `admin@yugo.do` (el OTP del 2FA sale en el log de la API).
@@ -130,6 +139,11 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
 3. `PUT /v1/admin/settings/affinity-weights` con pesos que no suman 100 → **400 weights_must_sum_100**.
 4. Web: `/admin` (tablero), `/admin/moderacion`, `/admin/verificaciones` (lado a lado),
    `/admin/configuracion` (mueve un slider: la suma se valida en vivo).
+5. Todas las páginas del panel leen la API: `/admin/miembros` (buscar, ficha,
+   advertir/suspender/reinstalar), `/admin/eventos` (aprobar o devolver el evento
+   de `iglesia@yugo.do`, destacar), `/admin/grupos`, `/admin/organizaciones`,
+   `/admin/suscripciones` (reembolso 1 de 2 / 2 de 2), `/admin/auditoria` (equipo
+   real y bitácora filtrable) y `/admin/reportes` (crecimiento semanal real).
 
 ### Suscripciones (RF-PLU-02/07/08)
 1. `POST /v1/subscriptions/purchase` (`PAYMENT_PROVIDER=stub`) → Plus u Oro activos.

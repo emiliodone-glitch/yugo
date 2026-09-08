@@ -143,6 +143,176 @@ export interface ChurchPortalMe {
   stats: { endorsedMembers: number; activeCodes: number; pendingRequests: number };
 }
 
+
+// ---- Panel admin: filas limpias que el navegador puede pintar sin adivinar ----
+export interface AdminMemberRow {
+  id: string;
+  email: string | null;
+  displayName: string;
+  city: string | null;
+  age: number;
+  completeness: number;
+  level: number;
+  tier: SubscriptionTier | null;
+  reports: number;
+  sanctions: number;
+  status: string;
+  createdAt: string;
+  lastActiveAt: string;
+}
+
+export interface AdminVerificationCase {
+  id: string;
+  userId: string;
+  displayName: string;
+  city: string | null;
+  age: number;
+  birthDate: string;
+  selfieUrl: string | null;
+  photoUrl: string | null;
+  similarity: number | null;
+  livenessPassed: boolean | null;
+  priority: boolean;
+  createdAt: string;
+  history: { reports: number; sanctions: number; since: string };
+}
+
+export interface AdminEventRow {
+  id: string;
+  title: string;
+  churchName: string;
+  startsAt: string;
+  type: string;
+  attendances: number;
+  featured: boolean;
+}
+
+export interface AdminEventInReview {
+  id: string;
+  title: string;
+  startsAt: string;
+  type: string;
+  church: { name: string };
+}
+
+export interface AdminGroupRow {
+  id: string;
+  name: string;
+  category: string;
+  type: 'OPEN' | 'APPROVAL' | 'OFFICIAL';
+  status: 'PENDING' | 'ACTIVE' | 'ARCHIVED' | 'CLOSED';
+  memberCount: number;
+  postCount: number;
+  isOfficial: boolean;
+  churchName: string | null;
+  city: string | null;
+  createdAt: string;
+}
+
+export interface AdminChurchRow {
+  id: string;
+  name: string;
+  denomination: string | null;
+  city: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  status: 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED';
+  events: number;
+  users: number;
+  createdAt: string;
+  approvedAt: string | null;
+}
+
+export interface AdminPaymentRow {
+  id: string;
+  email: string | null;
+  tier: SubscriptionTier | null;
+  plan: SubscriptionPlan | null;
+  provider: 'STRIPE' | 'AZUL' | 'APP_STORE' | 'GOOGLE_PLAY' | 'PROMO';
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'REFUND_REQUESTED' | 'REFUNDED';
+  firstApprovalGiven: boolean;
+  createdAt: string;
+}
+
+export interface AdminSubscriptionSummary {
+  plus: number;
+  oro: number;
+  revenueMonthDop: number;
+  refundsPending: number;
+}
+
+export interface AdminStaffRow {
+  id: string;
+  email: string | null;
+  role: string;
+  twoFactorEnabled: boolean;
+  lastActiveAt: string;
+}
+
+export interface AdminAuditRow {
+  id: string;
+  actorId: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  createdAt: string;
+}
+
+export interface AdminModerationCase {
+  id: string;
+  kind: 'REPORT' | 'AI_HELD' | 'APPEAL';
+  status: string;
+  priority: string;
+  reason?: string | null;
+  targetType?: string | null;
+  targetId?: string | null;
+  createdAt: string;
+  report?: { category?: string; targetType?: string; targetId?: string; details?: string | null } | null;
+  assignee?: { id: string; email: string | null } | null;
+}
+
+// ---- Portal de iglesias ----
+export interface ChurchMetrics {
+  events: number;
+  going: number;
+  checkIns: number;
+  groupMembers: number;
+  endorsed: number;
+  endorsedLast30: number;
+  codesIssued: number;
+  codesUsed: number;
+  weeklyReach: number[];
+  codeRedemptionRate: number;
+  checkInRate: number;
+}
+
+export interface ChurchOfficialGroup {
+  id: string;
+  name: string;
+  status: string;
+  memberCount: number;
+  posts: Array<{
+    id: string;
+    author: string;
+    body: string;
+    isPrayerRequest: boolean;
+    reactions: number;
+    comments: number;
+    createdAt: string;
+  }>;
+}
+
+export interface ChurchPortalUser {
+  id: string;
+  userId: string;
+  email: string | null;
+  name: string;
+  role: 'ADMIN' | 'EVENT_EDITOR';
+  isMe: boolean;
+}
+
 /** El devocional del día, con lo que la persona ya hizo con él. */
 export interface DevotionalToday {
   id: string;
@@ -1018,19 +1188,13 @@ export class YugoApiClient {
       this.http.put<{ resolved: boolean }>(`/church-portal/endorsement-requests/${requestId}`, { confirm }),
     revokeEndorsement: (memberUserId: string, reason: string) =>
       this.http.post<{ revoked: boolean }>('/church-portal/endorsements/revoke', { memberUserId, reason }),
-    metrics: () =>
-      this.http.get<{
-        events: number;
-        going: number;
-        checkIns: number;
-        groupMembers: number;
-        endorsed: number;
-        endorsedLast30: number;
-        codesIssued: number;
-        codesUsed: number;
-        codeRedemptionRate: number;
-        checkInRate: number;
-      }>('/church-portal/metrics'),
+    metrics: () => this.http.get<ChurchMetrics>('/church-portal/metrics'),
+    officialGroup: () => this.http.get<ChurchOfficialGroup | null>('/church-portal/group'),
+    users: () => this.http.get<ChurchPortalUser[]>('/church-portal/users'),
+    inviteUser: (email: string, role: 'ADMIN' | 'EVENT_EDITOR') =>
+      this.http.post<{ id: string; role: string }>('/church-portal/users/invite', { email, role }),
+    removeUser: (churchUserId: string) =>
+      this.http.delete<{ removed: boolean }>(`/church-portal/users/${churchUserId}`),
     /** Ministerio de solteros: totales, nunca nombres. */
     singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
   };
@@ -1044,19 +1208,24 @@ export class YugoApiClient {
         queues: Record<string, number>;
       }>('/admin/dashboard'),
     members: (query?: string, page = 1) =>
-      this.http.get<{ items: unknown[]; total: number; page: number }>('/admin/members', {
+      this.http.get<{ items: AdminMemberRow[]; total: number; page: number }>('/admin/members', {
         query: { q: query, page },
       }),
+    publishedEvents: () => this.http.get<AdminEventRow[]>('/admin/events'),
+    allGroups: () => this.http.get<AdminGroupRow[]>('/admin/groups'),
+    allChurches: () => this.http.get<AdminChurchRow[]>('/admin/churches'),
+    subscriptionSummary: () => this.http.get<AdminSubscriptionSummary>('/admin/subscriptions/summary'),
+    staff: () => this.http.get<AdminStaffRow[]>('/admin/staff'),
     memberDetail: (id: string) => this.http.get<Record<string, unknown>>(`/admin/members/${id}`),
     memberAction: (id: string, action: 'WARN' | 'SUSPEND' | 'BAN' | 'REINSTATE', reason: string, days?: number) =>
       this.http.post<{ done: boolean }>(`/admin/members/${id}/actions`, { action, reason, days }),
-    verificationQueue: () => this.http.get<unknown[]>('/admin/verifications'),
+    verificationQueue: () => this.http.get<AdminVerificationCase[]>('/admin/verifications'),
     decideVerification: (id: string, decision: 'APPROVE' | 'REJECT' | 'ESCALATE', note?: string) =>
       this.http.post<{ done: boolean }>(`/admin/verifications/${id}/decision`, { decision, note }),
     revokeVerification: (id: string, reason: string) =>
       this.http.post<{ done: boolean }>(`/admin/verifications/${id}/revoke`, { reason }),
     moderationQueue: (kind?: 'REPORT' | 'AI_HELD' | 'APPEAL') =>
-      this.http.get<{ items: unknown[]; counts: Record<string, number> }>('/admin/moderation/queue', {
+      this.http.get<{ items: AdminModerationCase[]; counts: Record<string, number> }>('/admin/moderation/queue', {
         query: { kind },
       }),
     takeNextCase: () => this.http.post<{ id: string } | null>('/admin/moderation/take-next'),
@@ -1080,15 +1249,15 @@ export class YugoApiClient {
         `/admin/moderation/held/${caseId}/resolve`,
         { approve },
       ),
-    pendingChurches: () => this.http.get<unknown[]>('/admin/churches/pending'),
+    pendingChurches: () => this.http.get<AdminChurchRow[]>('/admin/churches/pending'),
     decideChurch: (id: string, approve: boolean, note?: string) =>
       this.http.post<{ done: boolean }>(`/admin/churches/${id}/decision`, { approve, note }),
-    eventsInReview: () => this.http.get<unknown[]>('/admin/events/in-review'),
+    eventsInReview: () => this.http.get<AdminEventInReview[]>('/admin/events/in-review'),
     decideEvent: (id: string, approve: boolean, note?: string) =>
       this.http.post<{ done: boolean }>(`/admin/events/${id}/decision`, { approve, note }),
     setEventFeatured: (id: string, featured: boolean) =>
       this.http.put<{ done: boolean }>(`/admin/events/${id}/featured`, { featured }),
-    pendingGroups: () => this.http.get<unknown[]>('/admin/groups/pending'),
+    pendingGroups: () => this.http.get<AdminGroupRow[]>('/admin/groups/pending'),
     decideGroup: (id: string, approve: boolean) =>
       this.http.post<{ done: boolean }>(`/admin/groups/${id}/decision`, { approve }),
     settings: () =>
@@ -1111,8 +1280,8 @@ export class YugoApiClient {
     updateMatrixCell: (aId: string, bId: string, value: number) =>
       this.http.put<{ saved: boolean }>('/admin/denomination-matrix', { aId, bId, value }),
     auditLog: (filters?: { actorId?: string; action?: string; page?: number }) =>
-      this.http.get<unknown[]>('/admin/audit', { query: filters }),
-    payments: (page = 1) => this.http.get<unknown[]>('/admin/payments', { query: { page } }),
+      this.http.get<AdminAuditRow[]>('/admin/audit', { query: filters }),
+    payments: (page = 1) => this.http.get<AdminPaymentRow[]>('/admin/payments', { query: { page } }),
     approveRefund: (id: string) =>
       this.http.post<{ status: string }>(`/admin/payments/${id}/refund-approve`),
     // RF-ADM-10

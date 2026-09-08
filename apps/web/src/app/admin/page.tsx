@@ -15,7 +15,8 @@ import { QueryError } from '@/components/query-error';
 export default function AdminDashboard() {
   const { data, isLoading, isError, error, refetch } = useAdminDashboard();
 
-  if (isLoading) return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
+  if (isLoading)
+    return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
   if (isError || !data) return <QueryError error={error} onRetry={() => void refetch()} />;
 
   const { kpis, attention } = data;

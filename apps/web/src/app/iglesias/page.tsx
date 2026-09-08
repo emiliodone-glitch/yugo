@@ -30,8 +30,10 @@ export default function ChurchHomePage() {
   if (me.isLoading || events.isLoading) {
     return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
   }
-  if (me.isError || !me.data) return <QueryError error={me.error} onRetry={() => void me.refetch()} />;
-  if (events.isError) return <QueryError error={events.error} onRetry={() => void events.refetch()} />;
+  if (me.isError || !me.data)
+    return <QueryError error={me.error} onRetry={() => void me.refetch()} />;
+  if (events.isError)
+    return <QueryError error={events.error} onRetry={() => void events.refetch()} />;
 
   const upcoming = (events.data ?? [])
     .filter((event) => new Date(event.startsAt).getTime() >= Date.now() - 3 * 3600_000)
@@ -62,9 +64,13 @@ export default function ChurchHomePage() {
               <div key={event.id} className="list-row">
                 <div className="flex-1">
                   <b className="text-[12.5px]">{event.title}</b>
-                  <div className="text-[11px] capitalize text-muted">{when.format(new Date(event.startsAt))}</div>
+                  <div className="text-[11px] capitalize text-muted">
+                    {when.format(new Date(event.startsAt))}
+                  </div>
                 </div>
-                <span className={`chip ${event.status === 'PUBLISHED' ? 'chip-olive' : event.status === 'IN_REVIEW' ? 'chip-wheat' : ''}`}>
+                <span
+                  className={`chip ${event.status === 'PUBLISHED' ? 'chip-olive' : event.status === 'IN_REVIEW' ? 'chip-wheat' : ''}`}
+                >
                   {STATUS_LABEL[event.status] ?? event.status}
                 </span>
                 <span className="chip">{es.church.goingCount(event.goingCount)}</span>

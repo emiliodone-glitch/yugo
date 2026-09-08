@@ -3,20 +3,28 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { es } from '@yugo/shared';
+import { useAdminDashboard } from '@/lib/hooks';
 import { YugoMark } from '@/components/icons';
 import { Avatar } from '@/components/ui';
 import { StaffGate } from '@/components/staff-gate';
 
+type QueueKey = 'verifications' | 'moderation' | 'churches';
+
 const NAV: Array<
-  | { kind: 'link'; href: string; label: string; badge?: number; badgeClass?: string }
+  | { kind: 'link'; href: string; label: string; queue?: QueueKey }
   | { kind: 'section'; label: string }
 > = [
   { kind: 'link', href: '/admin', label: es.admin.dashboard },
   { kind: 'link', href: '/admin/miembros', label: es.admin.members },
-  { kind: 'link', href: '/admin/verificaciones', label: es.admin.verifications, badge: 23 },
-  { kind: 'link', href: '/admin/moderacion', label: es.admin.moderation, badge: 9 },
+  {
+    kind: 'link',
+    href: '/admin/verificaciones',
+    label: es.admin.verifications,
+    queue: 'verifications',
+  },
+  { kind: 'link', href: '/admin/moderacion', label: es.admin.moderation, queue: 'moderation' },
   { kind: 'section', label: es.admin.community },
-  { kind: 'link', href: '/admin/organizaciones', label: es.admin.organizations, badge: 4 },
+  { kind: 'link', href: '/admin/organizaciones', label: es.admin.organizations, queue: 'churches' },
   { kind: 'link', href: '/admin/eventos', label: es.admin.events },
   { kind: 'link', href: '/admin/grupos', label: es.admin.groups },
   { kind: 'link', href: '/admin/devocionales', label: es.admin.devotionals },
@@ -32,6 +40,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+  // Los globos del menú son las colas reales del tablero (antes eran números
+  // fijos que nunca bajaban). Sin dato todavía, no se muestra ninguno.
+  const { data: dashboard } = useAdminDashboard();
+  const queues = dashboard?.queues ?? {};
+  const badges: Record<QueueKey, number> = {
+    verifications: queues.pendingVerifications ?? 0,
+    moderation: (queues.openReports ?? 0) + (queues.heldMessages ?? 0),
+    churches: queues.pendingChurches ?? 0,
+  };
 
   return (
     <div className="flex min-h-dvh bg-linen">
@@ -62,9 +79,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }`}
             >
               {item.label}
-              {item.badge ? (
+              {item.queue && badges[item.queue] > 0 ? (
                 <span className="ml-auto rounded-full bg-wine px-[7px] py-px text-[10px] font-bold text-white">
-                  {item.badge}
+                  {badges[item.queue]}
                 </span>
               ) : null}
             </Link>

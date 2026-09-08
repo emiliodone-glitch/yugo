@@ -2,9 +2,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { demoCurrentUser, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import {
   useCreatePost,
+  useCurrentMember,
   useDemoStore,
   useGroupDetail,
   useJoinRequests,
@@ -45,14 +46,16 @@ export default function GroupDetailScreen() {
   const { data: group, isLoading } = useGroupDetail(groupId);
   const createPost = useCreatePost(groupId);
   const react = useReactToPost();
+  const { data: me } = useCurrentMember();
+  const myName = me?.displayName ?? 'Tú';
 
   const [tab, setTab] = useState<Tab>('wall');
   const [draft, setDraft] = useState('');
   const [isPrayer, setIsPrayer] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [localPosts, setLocalPosts] = useState<
-    Array<{ id: string; body: string; held: boolean }>
-  >([]);
+  const [localPosts, setLocalPosts] = useState<Array<{ id: string; body: string; held: boolean }>>(
+    [],
+  );
   const { praying, amen, activityJoined, toggleActivity } = useDemoStore();
 
   const isAdmin = group?.myRole === 'ADMIN' || group?.myRole === 'MODERATOR';
@@ -148,7 +151,9 @@ export default function GroupDetailScreen() {
                 <View style={[styles.rowBetween, { marginTop: 10 }]}>
                   <Button
                     label={
-                      isPrayer ? `✓ ${es.community.newPrayerRequest}` : es.community.newPrayerRequest
+                      isPrayer
+                        ? `✓ ${es.community.newPrayerRequest}`
+                        : es.community.newPrayerRequest
                     }
                     tone={isPrayer ? 'olive' : 'ghost'}
                     small
@@ -169,12 +174,14 @@ export default function GroupDetailScreen() {
               {localPosts.map((post) => (
                 <Card
                   key={post.id}
-                  style={post.held ? { borderColor: colors.wheat, borderStyle: 'dashed' } : undefined}
+                  style={
+                    post.held ? { borderColor: colors.wheat, borderStyle: 'dashed' } : undefined
+                  }
                 >
                   <View style={styles.authorRow}>
-                    <AvatarCircle name={demoCurrentUser.displayName} size={32} />
+                    <AvatarCircle name={myName} size={32} />
                     <View>
-                      <Text style={styles.author}>{demoCurrentUser.displayName}</Text>
+                      <Text style={styles.author}>{myName}</Text>
                       <Sub style={{ fontSize: 11 }}>
                         {post.held ? 'En revisión' : 'hace un momento'}
                       </Sub>
@@ -263,7 +270,8 @@ export default function GroupDetailScreen() {
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.author}>{request.displayName}</Text>
                         <Sub style={{ fontSize: 11 }}>
-                          {request.city ? `${request.city} · ` : ''}Nivel {request.verificationLevel}
+                          {request.city ? `${request.city} · ` : ''}Nivel{' '}
+                          {request.verificationLevel}
                         </Sub>
                         {request.message ? (
                           <Sub style={{ fontSize: 11 }}>{request.message}</Sub>
@@ -296,7 +304,13 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   author: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text },
-  postBody: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.text, marginTop: 8 },
+  postBody: {
+    fontFamily: fonts.body,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.text,
+    marginTop: 8,
+  },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -11,10 +11,19 @@
  * apruebe» y nadie podía aprobarla.
  */
 import { useState } from 'react';
-import { demoModerationQueue, es, type HeldContentItem } from '@yugo/shared';
-import { useHeldContent, useResolveHeld } from '@/lib/hooks';
+import { es, type HeldContentItem } from '@yugo/shared';
+import { errorMessage } from '@/lib/api';
+import {
+  useDecideCase,
+  useHeldContent,
+  useModerationQueue,
+  useResolveHeld,
+  useTakeNextCase,
+  type ModerationQueueRow,
+} from '@/lib/hooks';
 import { BarTop, DataTable, Panel, PriorityChip, Td } from '@/components/admin';
 import { Avatar, Segment } from '@/components/ui';
+import { QueryError } from '@/components/query-error';
 
 type Queue = 'reports' | 'held' | 'appeals';
 
@@ -28,8 +37,30 @@ function timeAgo(iso: string): string {
 
 export default function ModerationQueuePage() {
   const [queue, setQueue] = useState<Queue>('held');
-  const [taken, setTaken] = useState(3);
+  const [taken, setTaken] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
   const { data: held = [], isLoading } = useHeldContent();
+  const reports = useModerationQueue('REPORT');
+  const appeals = useModerationQueue('APPEAL');
+  const takeNext = useTakeNextCase();
+
+  const reportCount = reports.data?.counts.REPORT ?? reports.data?.items.length ?? 0;
+  const appealCount = appeals.data?.counts.APPEAL ?? appeals.data?.items.length ?? 0;
+
+  const take = async () => {
+    setNotice(null);
+    try {
+      const result = await takeNext.mutateAsync();
+      if (result && 'id' in result && result.id) {
+        setTaken((t) => t + 1);
+        setQueue('reports');
+      } else {
+        setNotice('No hay casos sin asignar. La cola está al día.');
+      }
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  };
 
   return (
     <div>
@@ -38,21 +69,31 @@ export default function ModerationQueuePage() {
         right={
           <div className="flex items-center gap-2">
             <span className="chip">{es.admin.assignedToMe(taken)}</span>
-            <button type="button" className="btn btn-sm" onClick={() => setTaken((t) => t + 1)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={takeNext.isPending}
+              onClick={() => void take()}
+            >
               {es.admin.takeNext}
             </button>
           </div>
         }
       />
       <div className="p-6">
+        {notice ? (
+          <div role="status" className="mb-4 rounded-field bg-linen-2 px-4 py-3 text-sm">
+            {notice}
+          </div>
+        ) : null}
         <div className="mb-4 max-w-[560px]">
           <Segment
             value={queue}
             onChange={setQueue}
             options={[
               { value: 'held', label: es.admin.heldTab(held.length) },
-              { value: 'reports', label: es.admin.reportsTab(demoModerationQueue.length) },
-              { value: 'appeals', label: es.admin.appealsTab(2) },
+              { value: 'reports', label: es.admin.reportsTab(reportCount) },
+              { value: 'appeals', label: es.admin.appealsTab(appealCount) },
             ]}
           />
         </div>
@@ -60,44 +101,21 @@ export default function ModerationQueuePage() {
         {queue === 'held' ? (
           <HeldQueue items={held} loading={isLoading} />
         ) : queue === 'reports' ? (
-          <DataTable
-            headers={[
-              es.admin.priority,
-              es.admin.type,
-              es.admin.reported,
-              es.admin.reason,
-              es.admin.evidence,
-              es.admin.age,
-              '',
-            ]}
-          >
-            {demoModerationQueue.map((row) => (
-              <tr key={row.id}>
-                <Td>
-                  <PriorityChip priority={row.priority} />
-                </Td>
-                <Td>{row.type}</Td>
-                <Td>{row.reported}</Td>
-                <Td>{row.reason}</Td>
-                <Td>{row.evidence}</Td>
-                <Td>{row.ageLabel}</Td>
-                <Td>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${row.priority === 'NORMAL' || row.priority === 'HIGH' ? 'btn-ghost' : ''}`}
-                  >
-                    {es.admin.review}
-                  </button>
-                </Td>
-              </tr>
-            ))}
-          </DataTable>
+          <CaseQueue
+            kind="REPORT"
+            rows={reports.data?.items ?? []}
+            loading={reports.isLoading}
+            error={reports.isError ? reports.error : null}
+            onRetry={() => void reports.refetch()}
+          />
         ) : (
-          <Panel>
-            <p className="text-sm text-muted">
-              2 apelaciones abiertas. Revisa la sanción original y responde con plantilla.
-            </p>
-          </Panel>
+          <CaseQueue
+            kind="APPEAL"
+            rows={appeals.data?.items ?? []}
+            loading={appeals.isLoading}
+            error={appeals.isError ? appeals.error : null}
+            onRetry={() => void appeals.refetch()}
+          />
         )}
 
         <div className="mt-4">
@@ -116,6 +134,172 @@ export default function ModerationQueuePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+const DECISIONS: Array<{ value: string; label: string }> = [
+  { value: 'NO_ACTION', label: es.admin.decisionNoAction },
+  { value: 'WARNING', label: es.admin.decisionWarning },
+  { value: 'SUSPEND_3', label: 'Suspender 3 días' },
+  { value: 'SUSPEND_7', label: 'Suspender 7 días' },
+  { value: 'SUSPEND_30', label: 'Suspender 30 días' },
+  { value: 'BAN', label: es.admin.decisionBan },
+  { value: 'REMOVE_CONTENT', label: es.admin.decisionRemove },
+  { value: 'REVOKE_VERIFICATION', label: es.admin.decisionRevoke },
+  { value: 'ESCALATE', label: es.admin.decisionEscalate },
+];
+
+/**
+ * Reportes y apelaciones reales. Cada fila se abre en un formulario con la
+ * decisión y el motivo obligatorio; la API sanciona, notifica y audita.
+ */
+function CaseQueue({
+  kind,
+  rows,
+  loading,
+  error,
+  onRetry,
+}: {
+  kind: 'REPORT' | 'APPEAL';
+  rows: ModerationQueueRow[];
+  loading: boolean;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  const decide = useDecideCase();
+  const [open, setOpen] = useState<string | null>(null);
+  const [decision, setDecision] = useState('NO_ACTION');
+  const [reason, setReason] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const submit = async (id: string) => {
+    if (reason.trim().length < 3) {
+      setFailure('Escribe el motivo: toda decisión queda en la bitácora con él.');
+      return;
+    }
+    setFailure(null);
+    try {
+      await decide.mutateAsync({ id, decision, reason: reason.trim() });
+      const label = DECISIONS.find((option) => option.value === decision)?.label ?? decision;
+      setResult(
+        `Caso resuelto: ${label}. El miembro recibe la notificación con la plantilla correspondiente.`,
+      );
+      setOpen(null);
+      setReason('');
+      setDecision('NO_ACTION');
+    } catch (caught) {
+      setFailure(errorMessage(caught));
+    }
+  };
+
+  if (loading) return <p className="text-sm text-muted">{es.common.loading}</p>;
+
+  return (
+    <section aria-label={kind === 'REPORT' ? 'Reportes' : 'Apelaciones'}>
+      {error ? <QueryError error={error} onRetry={onRetry} /> : null}
+      {result ? (
+        <div
+          role="status"
+          className="mb-3 rounded-field bg-olive-soft px-4 py-3 text-sm text-olive-text"
+        >
+          {result}
+        </div>
+      ) : null}
+      {failure ? (
+        <div role="alert" className="mb-3 rounded-field bg-wine-soft px-4 py-3 text-sm text-wine">
+          {failure}
+        </div>
+      ) : null}
+      {rows.length === 0 && !error ? (
+        <Panel>
+          <p className="text-sm text-olive-text">
+            {kind === 'REPORT'
+              ? 'No hay reportes abiertos. La cola está al día.'
+              : 'No hay apelaciones abiertas. Cuando llegue una, revisa la sanción original y responde con plantilla.'}
+          </p>
+        </Panel>
+      ) : (
+        <DataTable
+          headers={[
+            es.admin.priority,
+            es.admin.type,
+            es.admin.reported,
+            es.admin.reason,
+            es.admin.evidence,
+            es.admin.age,
+            '',
+          ]}
+        >
+          {rows.map((row) => (
+            <tr key={row.id} className={open === row.id ? 'bg-linen' : ''}>
+              <Td>
+                <PriorityChip priority={row.priority} />
+              </Td>
+              <Td>{row.type}</Td>
+              <Td>{row.reported}</Td>
+              <Td>{row.reason}</Td>
+              <Td>{row.evidence}</Td>
+              <Td>{row.ageLabel}</Td>
+              <Td>
+                {open === row.id ? (
+                  <div className="flex min-w-[320px] flex-col gap-1.5">
+                    <select
+                      className="field py-1.5 text-[12px]"
+                      aria-label="Decisión"
+                      value={decision}
+                      onChange={(event) => setDecision(event.target.value)}
+                    >
+                      {DECISIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="field py-1.5 text-[12px]"
+                      placeholder="Motivo (obligatorio, queda en la bitácora)"
+                      aria-label="Motivo"
+                      value={reason}
+                      onChange={(event) => setReason(event.target.value)}
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        disabled={decide.isPending}
+                        onClick={() => void submit(row.id)}
+                      >
+                        Aplicar decisión
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setOpen(null)}
+                      >
+                        {es.common.cancel}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${row.priority === 'NORMAL' || row.priority === 'HIGH' ? 'btn-ghost' : ''}`}
+                    onClick={() => {
+                      setOpen(row.id);
+                      setResult(null);
+                      setFailure(null);
+                    }}
+                  >
+                    {es.admin.review}
+                  </button>
+                )}
+              </Td>
+            </tr>
+          ))}
+        </DataTable>
+      )}
+    </section>
   );
 }
 
@@ -151,7 +335,9 @@ function HeldQueue({ items, loading }: { items: HeldContentItem[]; loading: bool
             className={`card m-0 ${approved ? 'bg-olive-soft text-olive-text' : 'bg-wine-soft text-wine'}`}
           >
             <div className="text-[12px] font-semibold">
-              {approved ? 'Publicado. Se avisó a la persona.' : 'No publicado. Se avisó a la persona.'}
+              {approved
+                ? 'Publicado. Se avisó a la persona.'
+                : 'No publicado. Se avisó a la persona.'}
             </div>
           </li>
         ))}

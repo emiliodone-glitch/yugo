@@ -670,7 +670,7 @@ export const es = {
     kpiVerified: 'Verificados nivel 2+',
     kpiRevenue: 'Ingresos Plus (RD$)',
     weeklySignups: 'Registros y conversiones a Plus por semana',
-    weeklyLegend: 'Índigo: registros · Trigo: conversiones a Plus',
+    weeklyLegend: 'Índigo: registros · Trigo: suscripciones nuevas',
     needsAttention: 'Requiere atención',
     critical: 'Crítico',
     high: 'Alto',

@@ -750,6 +750,15 @@ export const demoAccompaniedBonds = [
  * what the panel puts last is what the team will optimise.
  */
 export const demoReports: Record<string, { title: string; rows: Array<Record<string, string | number>> }> = {
+  growth: {
+    title: 'Crecimiento semanal',
+    rows: [40, 52, 48, 63, 70, 66, 82, 90].map((registrations, index) => ({
+      Semana: `2026-0${index < 4 ? 7 : 8}-${String(((index % 4) * 7 + 1)).padStart(2, '0')}`,
+      Registros: registrations,
+      Conexiones: Math.round(registrations * 0.42),
+      Suscripciones: [6, 8, 7, 10, 14, 12, 18, 22][index],
+    })),
+  },
   funnel: {
     title: 'Del registro al vínculo',
     rows: [

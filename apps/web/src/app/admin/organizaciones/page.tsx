@@ -2,53 +2,114 @@
 
 import { useState } from 'react';
 import { es } from '@yugo/shared';
+import { errorMessage } from '@/lib/api';
+import { useAdminChurches, useDecideChurch } from '@/lib/hooks';
 import { BarTop, DataTable, Td } from '@/components/admin';
+import { QueryError } from '@/components/query-error';
 
-const PENDING = [
-  { id: 'o1', name: 'Iglesia Río de Vida', den: 'Pentecostal', city: 'La Romana', contact: 'Pastor J. Guzmán' },
-  { id: 'o2', name: 'Ministerio Casa de Pan', den: 'Evangélica', city: 'Santo Domingo Norte', contact: 'Pastora M. Cuevas' },
-  { id: 'o3', name: 'Iglesia Buenas Nuevas', den: 'Bautista', city: 'San Cristóbal', contact: 'Pastor E. Rosario' },
-  { id: 'o4', name: 'Comunidad Cristo Vive', den: 'Iglesia de Dios', city: 'Higüey', contact: 'Pastor F. Santana' },
-];
+const STATUS: Record<string, { label: string; chip: string }> = {
+  PENDING: { label: 'Pendiente', chip: '' },
+  APPROVED: { label: 'Aprobada', chip: 'chip-olive' },
+  REJECTED: { label: 'Rechazada', chip: 'chip-wine' },
+  SUSPENDED: { label: 'Suspendida', chip: 'chip-wine' },
+};
 
+/**
+ * Organizaciones (RF-ADM-05): iglesias y ministerios registrados desde el
+ * portal. Aprobar crea el grupo oficial y habilita publicar eventos.
+ */
 export default function OrganizationsPage() {
-  const [decided, setDecided] = useState<Record<string, string>>({});
+  const churches = useAdminChurches();
+  const decide = useDecideChurch();
+  const [notice, setNotice] = useState<string | null>(null);
+  const rows = churches.data ?? [];
+  const pending = rows.filter((church) => church.status === 'PENDING').length;
+
+  const act = async (id: string, approve: boolean) => {
+    try {
+      await decide.mutateAsync({ id, approve });
+      setNotice(
+        approve
+          ? 'Iglesia aprobada: ya tiene grupo oficial y puede publicar eventos.'
+          : 'Solicitud rechazada.',
+      );
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  };
+
   return (
     <div>
-      <BarTop title={es.admin.organizations} right={<span className="chip">4 solicitudes pendientes</span>} />
+      <BarTop
+        title={es.admin.organizations}
+        right={<span className="chip">{pending} solicitudes pendientes</span>}
+      />
       <div className="p-6">
-        <DataTable headers={['Organización', 'Denominación', 'Ciudad', 'Responsable', 'Estado', '']}>
-          {PENDING.map((org) => (
+        {notice ? (
+          <div
+            role="status"
+            className="mb-4 rounded-field bg-olive-soft px-4 py-3 text-sm text-olive-text"
+          >
+            {notice}
+          </div>
+        ) : null}
+        {churches.isError ? (
+          <QueryError error={churches.error} onRetry={() => void churches.refetch()} />
+        ) : null}
+        <DataTable
+          headers={[
+            'Organización',
+            'Denominación',
+            'Ciudad',
+            'Responsable',
+            'Eventos',
+            'Estado',
+            '',
+          ]}
+        >
+          {churches.isLoading ? (
+            <tr>
+              <Td>{es.common.loading}</Td>
+            </tr>
+          ) : null}
+          {rows.map((org) => (
             <tr key={org.id}>
               <Td>
                 <b>{org.name}</b>
+                <div className="text-[11px] text-muted">
+                  Registrada el {new Date(org.createdAt).toLocaleDateString('es-DO')}
+                </div>
               </Td>
-              <Td>{org.den}</Td>
-              <Td>{org.city}</Td>
-              <Td>{org.contact}</Td>
+              <Td>{org.denomination ?? '—'}</Td>
+              <Td>{org.city ?? '—'}</Td>
               <Td>
-                {decided[org.id] ? (
-                  <span className={`chip ${decided[org.id] === 'ok' ? 'chip-olive' : 'chip-wine'}`}>
-                    {decided[org.id] === 'ok' ? 'Aprobada' : 'Rechazada'}
-                  </span>
-                ) : (
-                  <span className="chip">Pendiente</span>
-                )}
+                {org.contactName ?? '—'}
+                {org.contactEmail ? (
+                  <div className="text-[11px] text-muted">{org.contactEmail}</div>
+                ) : null}
+              </Td>
+              <Td>{org.events}</Td>
+              <Td>
+                <span className={`chip ${STATUS[org.status]?.chip ?? ''}`}>
+                  {STATUS[org.status]?.label ?? org.status}
+                </span>
               </Td>
               <Td>
-                {!decided[org.id] ? (
+                {org.status === 'PENDING' ? (
                   <span className="flex gap-1.5">
                     <button
                       type="button"
                       className="btn btn-olive btn-sm"
-                      onClick={() => setDecided((d) => ({ ...d, [org.id]: 'ok' }))}
+                      disabled={decide.isPending}
+                      onClick={() => void act(org.id, true)}
                     >
                       Aprobar
                     </button>
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
-                      onClick={() => setDecided((d) => ({ ...d, [org.id]: 'no' }))}
+                      disabled={decide.isPending}
+                      onClick={() => void act(org.id, false)}
                     >
                       Rechazar
                     </button>
@@ -59,7 +120,8 @@ export default function OrganizationsPage() {
           ))}
         </DataTable>
         <p className="mt-2 text-[11px] text-muted">
-          Al aprobar, se crea el grupo oficial de la iglesia y puede publicar eventos (RF-ADM-05, RF-COM-03).
+          Al aprobar, se crea el grupo oficial de la iglesia y puede publicar eventos (RF-ADM-05,
+          RF-COM-03).
         </p>
       </div>
     </div>
