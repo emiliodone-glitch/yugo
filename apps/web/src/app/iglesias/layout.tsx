@@ -28,6 +28,7 @@ function ChurchFooter() {
 
 const NAV = [
   { href: '/iglesias', label: es.church.home },
+  { href: '/iglesias/arranque', label: 'Arranque' },
   { href: '/iglesias/eventos', label: es.church.events },
   { href: '/iglesias/solteros', label: es.singlesMinistry.title },
   { href: '/iglesias/grupo', label: es.church.officialGroup },

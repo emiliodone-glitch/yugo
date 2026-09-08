@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  AffinityBreakdown,
-  AffinityProfileInput,
-  computeAffinity,
-  es,
-} from '@yugo/shared';
+import { AffinityBreakdown, AffinityProfileInput, computeAffinity, es } from '@yugo/shared';
 import { SettingsService } from '../../common/settings.service';
 import { CatalogService } from '../catalog/catalog.service';
 
@@ -59,7 +54,11 @@ export class AffinityService {
               : undefined;
         return { ...c, note };
       }
-      if (c.key === 'intention' && viewer.intention === 'MARRIAGE' && candidate.intention === 'MARRIAGE') {
+      if (
+        c.key === 'intention' &&
+        viewer.intention === 'MARRIAGE' &&
+        candidate.intention === 'MARRIAGE'
+      ) {
         return { ...c, note: es.affinity.noteIntentionBoth };
       }
       return c;

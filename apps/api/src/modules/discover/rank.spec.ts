@@ -14,7 +14,10 @@ function candidate(overrides: Partial<RankableCandidate> & { userId: string }): 
 describe('rankCandidates (RF-DES-01/10, 7.1)', () => {
   it('orders by affinity by default', () => {
     const ranked = rankCandidates(
-      [candidate({ userId: 'a', affinityTotal: 60 }), candidate({ userId: 'b', affinityTotal: 85 })],
+      [
+        candidate({ userId: 'a', affinityTotal: 60 }),
+        candidate({ userId: 'b', affinityTotal: 85 }),
+      ],
       5,
     );
     expect(ranked.map((c) => c.userId)).toEqual(['b', 'a']);

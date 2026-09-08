@@ -54,6 +54,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation, subscribeNotifications } from './realtime';
+import { track } from './analytics';
 import type { CheckoutResult, DiscoverResponse, GroupDetail, PaymentReceipt } from '@yugo/shared';
 import {
   demoAccompanimentFor,
@@ -161,7 +162,14 @@ export function useDiscover(filters: DiscoverFilters = {}) {
     // The filters are part of the key: changing them regenerates the list
     // instead of serving yesterday's answer to today's question.
     queryKey: ['discover', filters],
-    queryFn: async (): Promise<{ items: ProfileCard[]; used: number; limit: number | null }> => {
+    queryFn: async (): Promise<{
+      items: ProfileCard[];
+      used: number;
+      limit: number | null;
+      cityCount?: number;
+      lowDensity?: boolean;
+      city?: string | null;
+    }> => {
       if (isDemoMode()) {
         const items = demoDiscover
           .filter((p) => !passed[p.userId])
@@ -177,6 +185,9 @@ export function useDiscover(filters: DiscoverFilters = {}) {
         items: response.items,
         used: response.interests.used,
         limit: response.interests.limit,
+        cityCount: response.cityCount,
+        lowDensity: response.lowDensity,
+        city: response.city,
       };
     },
   });
@@ -229,10 +240,39 @@ export function useMarkInterest() {
       return { rollback: removeFromDiscoverCache(queryClient, userId) };
     },
     onError: (_error, _vars, context) => context?.rollback?.(),
+    onSuccess: (result, variables) => {
+      track('interest_marked', { withMessage: !!variables.message });
+      if (result && 'match' in result && result.match) track('connection_created');
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['discover'] });
       queryClient.invalidateQueries({ queryKey: ['connections'] });
       queryClient.invalidateQueries({ queryKey: ['home'] });
+    },
+  });
+}
+
+/** Arranque por ciudad: «avísame cuando haya más gente». */
+export function useCityWaitlist() {
+  return useQuery({
+    queryKey: ['city-waitlist'],
+    queryFn: async () =>
+      isDemoMode()
+        ? { joined: false, city: demoCurrentUser.city, notifiedAt: null }
+        : api().discover.cityWaitlist(),
+  });
+}
+
+export function useJoinCityWaitlist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (join: boolean) => {
+      if (isDemoMode()) return { joined: join };
+      return join ? api().discover.joinCityWaitlist() : api().discover.leaveCityWaitlist();
+    },
+    onSuccess: (_result, join) => {
+      if (join) track('city_waitlist_joined');
+      queryClient.invalidateQueries({ queryKey: ['city-waitlist'] });
     },
   });
 }
@@ -839,6 +879,9 @@ export function useSetAttendance() {
       };
     },
     onError: (_error, _vars, context) => context?.rollback?.(),
+    onSuccess: (_result, variables) => {
+      if (variables.status) track('event_attendance', { status: variables.status });
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['event'] });
@@ -1153,6 +1196,7 @@ export function useUploadPhoto() {
       return api().photos.confirm(key, position);
     },
     onSuccess: () => {
+      track('photo_uploaded');
       queryClient.invalidateQueries({ queryKey: ['my-photos'] });
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
     },
@@ -1248,7 +1292,13 @@ export function useCheckout() {
       }
       return api().subscriptions.checkout(input);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+    onSuccess: (result, input) => {
+      track(result.mode === 'redirect' ? 'checkout_started' : 'subscription_activated', {
+        tier: input.tier,
+        plan: input.plan,
+      });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+    },
   });
 }
 

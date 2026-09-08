@@ -56,6 +56,21 @@ export default function ChurchHomePage() {
           <Kpi label={es.church.publishedEvents} value={published.length} />
           <Kpi label={es.church.pendingRequests} value={me.data.stats.pendingRequests} />
         </div>
+        {/* Arranque: mientras la congregación no haya entrado junta, es lo primero. */}
+        {me.data.stats.endorsedMembers < 10 ? (
+          <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 border-wheat bg-wheat-soft">
+            <div>
+              <b className="text-[13px]">Arranque de la congregación</b>
+              <div className="text-[12px] text-wheat-text">
+                Cinco pasos para que tu iglesia entre junta a Yugo: códigos impresos, mensaje para
+                el grupo, equipo del portal y primer evento.
+              </div>
+            </div>
+            <Link href="/iglesias/arranque" className="btn btn-olive btn-sm">
+              Ver los pasos
+            </Link>
+          </div>
+        ) : null}
         <Panel title={es.church.upcoming}>
           {upcoming.length === 0 ? (
             <div className="text-[12.5px] text-muted">{es.church.noUpcoming}</div>

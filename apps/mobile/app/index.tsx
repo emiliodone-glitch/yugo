@@ -1,4 +1,6 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
+import { track } from '@yugo/app-core';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es } from '@yugo/shared';
@@ -9,11 +11,17 @@ const { colors, fonts } = theme;
 
 /** Bienvenida — the promise in one sentence (mockup 1). */
 export default function WelcomeScreen() {
+  useEffect(() => {
+    track('welcome_view');
+  }, []);
+
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.top}>
         <YugoMark size={54} />
-        <Text style={styles.headline}>Conoce a alguien{'\n'}que ya ora{'\n'}como tú.</Text>
+        <Text style={styles.headline}>
+          Conoce a alguien{'\n'}que ya ora{'\n'}como tú.
+        </Text>
         <Text style={styles.sub}>{es.welcome.sub}</Text>
       </View>
       <View>
@@ -21,7 +29,11 @@ export default function WelcomeScreen() {
           <Chip label={es.welcome.chipVerified} tone="inverse" />
           <Chip label={es.welcome.chipAdults} tone="inverse" />
         </View>
-        <Button label={es.welcome.createProfile} tone="wheat" onPress={() => router.push('/registro')} />
+        <Button
+          label={es.welcome.createProfile}
+          tone="wheat"
+          onPress={() => router.push('/registro')}
+        />
         <Button
           label={es.welcome.haveAccount}
           tone="ghost-light"
@@ -51,7 +63,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginTop: 18,
   },
-  sub: { color: colors.inkMuted, fontFamily: fonts.body, fontSize: 13.5, lineHeight: 20, marginTop: 14 },
+  sub: {
+    color: colors.inkMuted,
+    fontFamily: fonts.body,
+    fontSize: 13.5,
+    lineHeight: 20,
+    marginTop: 14,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
   social: {
     textAlign: 'center',

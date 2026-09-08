@@ -589,6 +589,10 @@ export interface DiscoverResponse {
   items: ProfileCard[];
   total: number;
   interests: { used: number; limit: number | null };
+  /** Perfiles completos en la ciudad del miembro (arranque por ciudad). */
+  cityCount?: number;
+  lowDensity?: boolean;
+  city?: string | null;
 }
 
 export interface AuthResult extends TokenPair {
@@ -876,6 +880,14 @@ export class YugoApiClient {
 
   // ---- Discover (RF-DES-01..15) -------------------------------------------
   readonly discover = {
+    /** Arranque por ciudad: aviso cuando haya suficientes perfiles completos. */
+    cityWaitlist: () =>
+      this.http.get<{ joined: boolean; city: string | null; notifiedAt: string | null }>(
+        '/discover/city-waitlist',
+      ),
+    joinCityWaitlist: () =>
+      this.http.post<{ joined: boolean; city: string }>('/discover/city-waitlist'),
+    leaveCityWaitlist: () => this.http.delete<{ joined: boolean }>('/discover/city-waitlist'),
     daily: (filters?: DiscoverFilters) =>
       this.http.get<DiscoverResponse>('/discover', {
         query: filters ? { filters: JSON.stringify(filters) } : undefined,
@@ -1169,6 +1181,15 @@ export class YugoApiClient {
         '/subscriptions/travel-mode',
         input,
       ),
+  };
+
+  // ---- Eventos de producto (RF-ADM-12), sin PII -------------------------
+  readonly analytics = {
+    send: (batch: {
+      anonymousId: string;
+      platform?: 'web' | 'ios' | 'android';
+      events: Array<{ name: string; props?: Record<string, unknown>; at?: string }>;
+    }) => this.http.post<{ stored: number }>('/analytics/events', batch),
   };
 
   // ---- Notifications (RF-NOT-01..03) --------------------------------------

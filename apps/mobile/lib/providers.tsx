@@ -1,7 +1,15 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { configureAppRuntime, createQueryClient, disconnectRealtime } from '@yugo/app-core';
+import * as SecureStore from 'expo-secure-store';
+import { AppState, Platform } from 'react-native';
+import {
+  configureAnalytics,
+  configureAppRuntime,
+  createQueryClient,
+  disconnectRealtime,
+  flushAnalytics,
+} from '@yugo/app-core';
 import { DEMO_MODE, getApiClient, onSignOut } from './api';
 import { bindNetworkState, queryPersister } from './offline';
 import { listenToNotificationTaps, registerForPush } from './push';
@@ -9,6 +17,17 @@ import { listenToNotificationTaps, registerForPush } from './push';
 // Points the shared hooks at this app's client. At module scope so it is in
 // place before any screen renders.
 configureAppRuntime({ demoMode: DEMO_MODE, client: getApiClient });
+// Eventos de producto anónimos (RF-ADM-12): un id por instalación, nunca PII.
+configureAnalytics({
+  platform: Platform.OS === 'ios' ? 'ios' : 'android',
+  storage: {
+    get: (key) => SecureStore.getItemAsync(key),
+    set: (key, value) => SecureStore.setItemAsync(key, value),
+  },
+});
+AppState.addEventListener('change', (state) => {
+  if (state === 'background') void flushAnalytics();
+});
 
 /** React Query, offline cache, push, and the global reaction to losing the session. */
 export function Providers({ children }: { children: React.ReactNode }) {

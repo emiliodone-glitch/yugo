@@ -26,6 +26,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { QueuesModule } from './modules/queues/queues.module';
 import { HealthModule } from './modules/health/health.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { HealthModule } from './modules/health/health.module';
     SubscriptionsModule,
     NotificationsModule,
     PrivacyModule,
+    AnalyticsModule,
   ],
   providers: [
     // Order matters: rate limit → auth → roles → covenant re-acceptance.

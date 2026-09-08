@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, LIMITS, type ProfileCard } from '@yugo/shared';
 import {
   useDemoStore,
+  useCityWaitlist,
   useDiscover,
+  useJoinCityWaitlist,
   useMarkInterest,
   usePassProfile,
   useSaveProfile,
@@ -25,6 +27,8 @@ const { colors, fonts } = theme;
 export default function DiscoverScreen() {
   const [endorsedOnly, setEndorsedOnly] = useState(false);
   const { data, isLoading } = useDiscover({ endorsedOnly: endorsedOnly || undefined });
+  const waitlist = useCityWaitlist();
+  const joinWaitlist = useJoinCityWaitlist();
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
@@ -69,7 +73,9 @@ export default function DiscoverScreen() {
             <View style={styles.badge}>
               <CheckMark size={11} />
               <Text style={styles.badgeText}>
-                {profile.gender === 'FEMALE' ? es.discover.endorsedBadge : es.discover.endorsedBadgeM}
+                {profile.gender === 'FEMALE'
+                  ? es.discover.endorsedBadge
+                  : es.discover.endorsedBadgeM}
               </Text>
             </View>
           ) : null}
@@ -157,7 +163,9 @@ export default function DiscoverScreen() {
         <H>{es.discover.title}</H>
         <Chip
           label={
-            remaining === null ? es.discover.interestsUnlimited : es.discover.interestsLeft(remaining)
+            remaining === null
+              ? es.discover.interestsUnlimited
+              : es.discover.interestsLeft(remaining)
           }
         />
       </View>
@@ -189,8 +197,26 @@ export default function DiscoverScreen() {
               <Sub style={{ textAlign: 'center' }}>
                 {endorsedOnly
                   ? 'Nadie respaldado por su iglesia coincide contigo hoy. Quita el filtro para ver el resto.'
-                  : es.discover.emptyToday}
+                  : data?.lowDensity
+                    ? `En ${data.city ?? 'tu ciudad'} todavía somos pocos: ${data.cityCount ?? 0} ${
+                        (data.cityCount ?? 0) === 1 ? 'persona' : 'personas'
+                      } con perfil completo. Mientras crece, la comunidad, el devocional y los eventos ya están abiertos.`
+                    : es.discover.emptyToday}
               </Sub>
+              {data?.lowDensity && !endorsedOnly ? (
+                <Button
+                  label={
+                    waitlist.data?.joined
+                      ? 'Te avisaremos cuando haya más gente ✓'
+                      : 'Avísame cuando haya más gente en mi ciudad'
+                  }
+                  tone="olive"
+                  small
+                  disabled={joinWaitlist.isPending || !!waitlist.data?.joined}
+                  style={{ alignSelf: 'center', marginTop: 14 }}
+                  onPress={() => joinWaitlist.mutate(true)}
+                />
+              ) : null}
               {endorsedOnly ? (
                 <Button
                   label="Ver a todos"
@@ -280,7 +306,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   reasonText: { fontFamily: fonts.body, fontSize: 11.5, lineHeight: 16, color: colors.oliveText },
-  testimony: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: colors.text, marginTop: 10 },
+  testimony: {
+    fontFamily: fonts.body,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.text,
+    marginTop: 10,
+  },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   secondaryActions: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 6 },
 });

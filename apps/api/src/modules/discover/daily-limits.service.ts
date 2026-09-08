@@ -50,11 +50,17 @@ export class DailyLimitsService {
   ): Promise<{ allowed: boolean; used: number; limit: number | null }> {
     const limits = await this.settings.getLimits();
     if (tier !== 'FREE') {
-      const used = await this.cache.incr(this.key('interests', userId), this.secondsUntilLocalMidnight());
+      const used = await this.cache.incr(
+        this.key('interests', userId),
+        this.secondsUntilLocalMidnight(),
+      );
       return { allowed: true, used, limit: null };
     }
     const limit = limits.dailyInterestsFree;
-    const used = await this.cache.incr(this.key('interests', userId), this.secondsUntilLocalMidnight());
+    const used = await this.cache.incr(
+      this.key('interests', userId),
+      this.secondsUntilLocalMidnight(),
+    );
     if (used > limit) {
       await this.cache.decr(this.key('interests', userId));
       return { allowed: false, used: limit, limit };

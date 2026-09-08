@@ -8,7 +8,9 @@ export type ReportKind =
   | 'funnel'
   | 'subscriptions'
   | 'province'
-  | 'denomination';
+  | 'denomination'
+  | 'events'
+  | 'activation';
 
 interface ReportRow {
   [column: string]: string | number;
@@ -28,6 +30,13 @@ export class ReportsService {
     switch (kind) {
       case 'growth':
         return { title: 'Crecimiento semanal', rows: await this.growth(weeks) };
+      case 'events':
+        return { title: 'Eventos de producto por semana', rows: await this.productEvents(weeks) };
+      case 'activation':
+        return {
+          title: 'Activación: del primer vistazo a la primera conexión',
+          rows: await this.activation(),
+        };
       case 'retention':
         return { title: 'Retención por cohorte', rows: await this.retention() };
       case 'funnel':
@@ -39,6 +48,58 @@ export class ReportsService {
       case 'denomination':
         return { title: 'Actividad por denominación', rows: await this.byDenomination() };
     }
+  }
+
+  /** Conteo semanal por nombre de evento (últimas N semanas). */
+  private async productEvents(weeks: number): Promise<ReportRow[]> {
+    const since = new Date(Date.now() - weeks * 7 * 86_400_000);
+    const rows = await this.prisma.$queryRaw<
+      Array<{ week: Date; name: string; total: bigint; people: bigint }>
+    >`
+      SELECT date_trunc('week', "createdAt") AS week, name,
+             count(*) AS total, count(DISTINCT "anonymousId") AS people
+      FROM "ProductEvent"
+      WHERE "createdAt" >= ${since}
+      GROUP BY 1, 2
+      ORDER BY 1 DESC, 3 DESC
+    `;
+    return rows.map((row) => ({
+      Semana: row.week.toISOString().slice(0, 10),
+      Evento: row.name,
+      Veces: Number(row.total),
+      Personas: Number(row.people),
+    }));
+  }
+
+  /**
+   * Embudo de activación por instalación anónima (últimas 4 semanas): cuántas
+   * llegaron a cada paso. Complementa al embudo de negocio, que solo ve
+   * cuentas creadas y no puede decir cuántas se perdieron antes.
+   */
+  private async activation(): Promise<ReportRow[]> {
+    const since = new Date(Date.now() - 28 * 86_400_000);
+    const steps: Array<[string, string]> = [
+      ['welcome_view', 'Vio la bienvenida'],
+      ['register_start', 'Empezó el registro'],
+      ['register_account', 'Creó la cuenta (código verificado)'],
+      ['register_done', 'Terminó lo esencial'],
+      ['photo_uploaded', 'Subió una foto'],
+      ['interest_marked', 'Marcó su primer interés'],
+      ['connection_created', 'Tuvo su primera conexión'],
+    ];
+    const counts = await Promise.all(
+      steps.map(([name]) =>
+        this.prisma.productEvent
+          .groupBy({ by: ['anonymousId'], where: { name, createdAt: { gte: since } } })
+          .then((groups) => groups.length),
+      ),
+    );
+    const top = counts[0] || 0;
+    return steps.map(([, label], index) => ({
+      Paso: label,
+      Personas: counts[index],
+      'Del inicio (%)': top === 0 ? 0 : Math.round((counts[index] / top) * 1000) / 10,
+    }));
   }
 
   private async growth(weeks: number): Promise<ReportRow[]> {
@@ -196,7 +257,11 @@ export class ReportsService {
     ]);
     const pct = (part: number) => (members === 0 ? 0 : Math.round((part / members) * 1000) / 10);
     return [
-      { Plan: 'Gratuito', Miembros: members - plus - oro, 'Del total (%)': pct(members - plus - oro) },
+      {
+        Plan: 'Gratuito',
+        Miembros: members - plus - oro,
+        'Del total (%)': pct(members - plus - oro),
+      },
       { Plan: 'Plus', Miembros: plus, 'Del total (%)': pct(plus) },
       { Plan: 'Oro', Miembros: oro, 'Del total (%)': pct(oro) },
     ];

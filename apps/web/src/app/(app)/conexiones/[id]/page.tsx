@@ -42,6 +42,22 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const [eventPickerOpen, setEventPickerOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Teclado: Escape cierra el menú o el selector de eventos y devuelve el
+  // foco al campo de escribir, para no quedarse «flotando» en un popover.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (menuOpen || eventPickerOpen) {
+        setMenuOpen(false);
+        setEventPickerOpen(false);
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen, eventPickerOpen]);
 
   const connection =
     connections.find((c) => (c.conversationId ?? c.matchId) === params.id) ?? connections[0];
@@ -104,6 +120,8 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           <button
             type="button"
             aria-label="Opciones"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line bg-white text-ink"
           >
@@ -220,7 +238,9 @@ export default function ChatPage({ params }: { params: { id: string } }) {
                 }`}
               >
                 {message.body}
-                {held ? <div className="mt-1 text-[10px] not-italic">⏳ {es.connections.messageHeld}</div> : null}
+                {held ? (
+                  <div className="mt-1 text-[10px] not-italic">⏳ {es.connections.messageHeld}</div>
+                ) : null}
                 {receipt ? (
                   <div className="mt-1 text-right text-[10px] text-white/70">{receipt}</div>
                 ) : null}
@@ -275,19 +295,23 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         onSubmit={(event) => {
           event.preventDefault();
           handleSend(draft);
+          // El foco se queda en el campo: escribir varios mensajes seguidos
+          // no debe exigir volver a hacer clic.
+          inputRef.current?.focus();
         }}
       >
         {otherIsTyping ? (
-          <span
-            className="absolute -top-5 left-4 text-[11px] italic text-muted"
-            aria-live="polite"
-          >
+          <span className="absolute -top-5 left-4 text-[11px] italic text-muted" aria-live="polite">
             {connection.otherUser.displayName} {es.connections.typing}
           </span>
         ) : null}
         <input
+          ref={inputRef}
           className="field flex-1"
           placeholder={es.connections.writeMessage}
+          aria-label={es.connections.writeMessage}
+          autoComplete="off"
+          enterKeyHint="send"
           value={draft}
           onChange={(event) => {
             setDraft(event.target.value);
@@ -304,7 +328,15 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   );
 }
 
-function MenuItem({ label, onClick, wine }: { label: string; onClick: () => void; wine?: boolean }) {
+function MenuItem({
+  label,
+  onClick,
+  wine,
+}: {
+  label: string;
+  onClick: () => void;
+  wine?: boolean;
+}) {
   return (
     <button
       type="button"

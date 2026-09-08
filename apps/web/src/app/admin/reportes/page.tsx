@@ -18,6 +18,8 @@ const REPORTS = [
   { kind: 'retention', label: 'Retención por cohorte' },
   { kind: 'province', label: 'Por provincia' },
   { kind: 'subscriptions', label: 'Suscripciones' },
+  { kind: 'activation', label: 'Activación (eventos anónimos)' },
+  { kind: 'events', label: 'Eventos de producto' },
 ] as const;
 
 export default function ReportsPage() {

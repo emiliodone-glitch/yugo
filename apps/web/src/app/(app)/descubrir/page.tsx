@@ -4,7 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { es, LIMITS } from '@yugo/shared';
-import { useDiscover, useMarkInterest, usePassProfile, useSaveProfile } from '@/lib/hooks';
+import {
+  useCityWaitlist,
+  useDiscover,
+  useJoinCityWaitlist,
+  useMarkInterest,
+  usePassProfile,
+  useSaveProfile,
+} from '@/lib/hooks';
 import { errorMessage } from '@/lib/api';
 import { AffinityRing, EndorsedBadge, PhotoPlaceholder } from '@/components/ui';
 import { ProfileGridSkeleton } from '@/components/skeleton';
@@ -14,6 +21,8 @@ export default function DiscoverPage() {
   const router = useRouter();
   const [endorsedOnly, setEndorsedOnly] = useState(false);
   const { data, isLoading } = useDiscover({ endorsedOnly: endorsedOnly || undefined });
+  const waitlist = useCityWaitlist();
+  const joinWaitlist = useJoinCityWaitlist();
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
@@ -114,8 +123,30 @@ export default function DiscoverPage() {
           <p className="text-sm text-muted">
             {endorsedOnly
               ? 'Nadie respaldado por su iglesia coincide contigo hoy. Quita el filtro para ver el resto.'
-              : es.discover.emptyToday}
+              : data?.lowDensity
+                ? `En ${data.city ?? 'tu ciudad'} todavía somos pocos: ${data.cityCount ?? 0} ${
+                    (data.cityCount ?? 0) === 1 ? 'persona' : 'personas'
+                  } con perfil completo. Mientras crece, la comunidad, el devocional y los eventos ya están abiertos.`
+                : es.discover.emptyToday}
           </p>
+          {data?.lowDensity && !endorsedOnly ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                className="btn btn-sm btn-olive w-auto px-4"
+                disabled={joinWaitlist.isPending || waitlist.data?.joined}
+                onClick={() => joinWaitlist.mutate(true)}
+              >
+                {waitlist.data?.joined
+                  ? 'Te avisaremos cuando haya más gente ✓'
+                  : 'Avísame cuando haya más gente en mi ciudad'}
+              </button>
+              <p className="mt-2 text-[11px] text-muted">
+                Un solo aviso, cuando tu ciudad tenga suficientes perfiles completos. Invitar a tu
+                iglesia es lo que más acelera ese día.
+              </p>
+            </div>
+          ) : null}
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {endorsedOnly ? (
               <button

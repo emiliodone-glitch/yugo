@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { discoverFiltersSchema, type DiscoverFilters } from '@yugo/shared';
 import { DiscoverService } from './discover.service';
 import { DailyLimitsService } from './daily-limits.service';
@@ -26,6 +26,22 @@ export class DiscoverController {
   @Post('boost')
   activateBoost(@CurrentUser() user: AuthUser) {
     return this.boost.activate(user.id);
+  }
+
+  /** Arranque por ciudad: «avísame cuando haya más gente». */
+  @Get('city-waitlist')
+  cityWaitlist(@CurrentUser() user: AuthUser) {
+    return this.discover.cityWaitlist(user.id);
+  }
+
+  @Post('city-waitlist')
+  joinCityWaitlist(@CurrentUser() user: AuthUser) {
+    return this.discover.joinCityWaitlist(user.id);
+  }
+
+  @Delete('city-waitlist')
+  leaveCityWaitlist(@CurrentUser() user: AuthUser) {
+    return this.discover.leaveCityWaitlist(user.id);
   }
 
   @Get()

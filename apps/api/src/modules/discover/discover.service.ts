@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
   affinityReason,
@@ -17,6 +18,7 @@ import { rankCandidates } from './rank';
 import { StorageService } from '../media/storage.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PrivacyService } from '../privacy/privacy.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { createHash } from 'crypto';
 
 interface CandidateRow {
@@ -24,6 +26,11 @@ interface CandidateRow {
   distance_km: number | null;
   age: number;
 }
+
+/** Menos que esto en la ciudad y la lista corta se explica por densidad. */
+const LOW_DENSITY_THRESHOLD = 8;
+/** Con esto ya vale la pena avisar a quien pidió el aviso. */
+const CITY_READY_THRESHOLD = 25;
 
 @Injectable()
 export class DiscoverService {
@@ -35,6 +42,7 @@ export class DiscoverService {
     private readonly limits: DailyLimitsService,
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -42,10 +50,16 @@ export class DiscoverService {
    * cached in Redis until local midnight. Regenerates when search
    * preferences change because the cache key hashes them (7.2).
    */
-  async getDaily(userId: string, filters: DiscoverFilters = {}): Promise<{
+  async getDaily(
+    userId: string,
+    filters: DiscoverFilters = {},
+  ): Promise<{
     items: ProfileCard[];
     total: number;
     settled?: boolean;
+    cityCount?: number;
+    lowDensity?: boolean;
+    city?: string | null;
   }> {
     // Leaving Descubrir has to work in both directions. The SQL takes people
     // in a noviazgo out of everyone else's list; this takes everyone else out
@@ -58,7 +72,8 @@ export class DiscoverService {
     const viewer = await this.loadViewer(userId);
     const tier = await this.subscriptions.tierOf(userId);
     const domainLimits = await this.settings.getLimits();
-    const listSize = tier === 'ORO' ? domainLimits.discoverPerDayOro : domainLimits.discoverPerDayFree;
+    const listSize =
+      tier === 'ORO' ? domainLimits.discoverPerDayOro : domainLimits.discoverPerDayFree;
 
     const prefsHash = createHash('sha1')
       .update(
@@ -88,7 +103,82 @@ export class DiscoverService {
       cards.map((card) => card.userId),
     );
     const items = cards.filter((card) => !settled.has(card.userId));
-    return { items, total: items.length };
+    // Densidad de la ciudad: con pocos perfiles completos cerca, la lista sale
+    // corta por falta de gente, no por falta de afinidad. La app lo dice y
+    // ofrece la lista de espera en vez de dejar la pantalla en silencio.
+    const cityCount = viewer.profile.city
+      ? await this.prisma.profile.count({
+          where: {
+            city: viewer.profile.city,
+            userId: { not: userId },
+            completeness: { gte: domainLimits.minCompleteness },
+            user: { status: 'ACTIVE', deletedAt: null, role: 'MEMBER' },
+          },
+        })
+      : 0;
+    return {
+      items,
+      total: items.length,
+      cityCount,
+      lowDensity: cityCount < LOW_DENSITY_THRESHOLD,
+      city: viewer.profile.city,
+    };
+  }
+
+  /** «Avísame cuando haya más gente en mi ciudad» (arranque por ciudad). */
+  async cityWaitlist(userId: string) {
+    const row = await this.prisma.cityWaitlist.findUnique({ where: { userId } });
+    return { joined: !!row, city: row?.city ?? null, notifiedAt: row?.notifiedAt ?? null };
+  }
+
+  async joinCityWaitlist(userId: string) {
+    const profile = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!profile?.city) throw new BadRequestException('city_required');
+    await this.prisma.cityWaitlist.upsert({
+      where: { userId },
+      update: { city: profile.city, notifiedAt: null },
+      create: { userId, city: profile.city },
+    });
+    return { joined: true, city: profile.city };
+  }
+
+  async leaveCityWaitlist(userId: string) {
+    await this.prisma.cityWaitlist.deleteMany({ where: { userId } });
+    return { joined: false };
+  }
+
+  /**
+   * Lunes por la mañana: si una ciudad en espera ya tiene suficientes
+   * perfiles completos, se avisa una sola vez a quienes pidieron el aviso.
+   */
+  @Cron('30 13 * * 1')
+  async notifyCityWaitlists() {
+    const pending = await this.prisma.cityWaitlist.findMany({ where: { notifiedAt: null } });
+    const domainLimits = await this.settings.getLimits();
+    const cities = [...new Set(pending.map((row) => row.city))];
+    for (const city of cities) {
+      const count = await this.prisma.profile.count({
+        where: {
+          city,
+          completeness: { gte: domainLimits.minCompleteness },
+          user: { status: 'ACTIVE', deletedAt: null, role: 'MEMBER' },
+        },
+      });
+      if (count < CITY_READY_THRESHOLD) continue;
+      const rows = pending.filter((row) => row.city === city);
+      for (const row of rows) {
+        await this.notifications.notify(
+          row.userId,
+          'CONNECTION',
+          `${city} ya se está llenando`,
+          `Ya hay ${count} personas con perfil completo en tu ciudad. Tu lista de Descubrir de hoy tiene caras nuevas.`,
+        );
+        await this.prisma.cityWaitlist.update({
+          where: { id: row.id },
+          data: { notifiedAt: new Date() },
+        });
+      }
+    }
   }
 
   /**
@@ -324,11 +414,17 @@ export class DiscoverService {
       where: { id: { in: rows.map((r) => r.id) } },
       include: {
         profile: {
-          include: { denomination: true, church: true, serviceAreas: { include: { serviceArea: true } } },
+          include: {
+            denomination: true,
+            church: true,
+            serviceAreas: { include: { serviceArea: true } },
+          },
         },
         photos: { where: { moderationStatus: 'APPROVED' }, orderBy: { position: 'asc' }, take: 1 },
         verifications: { where: { status: 'APPROVED' }, include: { church: true } },
-        subscriptions: { where: { status: { in: ['ACTIVE', 'TRIAL'] }, endsAt: { gt: new Date() } } },
+        subscriptions: {
+          where: { status: { in: ['ACTIVE', 'TRIAL'] }, endsAt: { gt: new Date() } },
+        },
       },
     });
 
@@ -384,7 +480,8 @@ export class DiscoverService {
         affinityTotal: breakdown.total,
         level3Verified: !!level3,
         isOro,
-        isFeatured: !!candidate.profile.featuredUntil && candidate.profile.featuredUntil > new Date(),
+        isFeatured:
+          !!candidate.profile.featuredUntil && candidate.profile.featuredUntil > new Date(),
         lastActiveAt: candidate.lastActiveAt,
         card: {
           userId: candidate.id,
@@ -400,7 +497,8 @@ export class DiscoverService {
           ),
           occupation: candidate.profile.occupation ?? undefined,
           denomination: candidate.profile.denomination?.name ?? '',
-          churchName: candidate.profile.church?.name ?? candidate.profile.churchFreeText ?? undefined,
+          churchName:
+            candidate.profile.church?.name ?? candidate.profile.churchFreeText ?? undefined,
           intention: candidate.profile.intention,
           testimony: candidate.profile.testimony ?? undefined,
           verse: candidate.profile.verse ?? undefined,
@@ -420,8 +518,7 @@ export class DiscoverService {
             sameChurch:
               !!viewer.profile.churchId && viewer.profile.churchId === candidate.profile.churchId,
             bothSeekMarriage:
-              viewer.profile.intention === 'MARRIAGE' &&
-              candidate.profile.intention === 'MARRIAGE',
+              viewer.profile.intention === 'MARRIAGE' && candidate.profile.intention === 'MARRIAGE',
             endorsedBy: level3?.church?.name,
             sharedEvent: sharedEvent
               ? { title: sharedEvent.title, whenLabel: relativeDayLabel(sharedEvent.startsAt) }
@@ -499,7 +596,10 @@ export class DiscoverService {
     tier: 'FREE' | 'PLUS' | 'ORO',
   ): boolean {
     const p = candidate.profile!;
-    if (filters.denominationIds?.length && (!p.denominationId || !filters.denominationIds.includes(p.denominationId))) {
+    if (
+      filters.denominationIds?.length &&
+      (!p.denominationId || !filters.denominationIds.includes(p.denominationId))
+    ) {
       return false;
     }
     if (filters.minVerificationLevel) {

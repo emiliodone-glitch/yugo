@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CITIES, COVENANT_V1, DENOMINATIONS, es, isAdult } from '@yugo/shared';
-import { useReach } from '@yugo/app-core';
+import { track, useReach } from '@yugo/app-core';
 import {
   Button,
   CheckMark,
@@ -56,6 +56,11 @@ export default function OnboardingScreen() {
   // Prueba de valor en cuanto sabemos lo suficiente para que signifique algo.
   const { data: reach } = useReach(denomination ?? undefined);
 
+  // Embudo de activación (RF-ADM-12): dónde se queda la gente, sin PII.
+  useEffect(() => {
+    track('register_start');
+  }, []);
+
   const parsedBirth = useMemo(() => {
     const match = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return match ? new Date(birthDate) : null;
@@ -94,6 +99,7 @@ export default function OnboardingScreen() {
     try {
       if (otpStage) {
         if (!DEMO_MODE) await getApiClient().auth.verifyOtp(email, otp);
+        track('register_account');
         setOtpStage(false);
         setStep(OTP_AFTER_STEP + 1);
         return;
@@ -113,12 +119,14 @@ export default function OnboardingScreen() {
       }
 
       // RF-AUT-04: the covenant is recorded with its version before anything else.
-      if (step === 3 && !DEMO_MODE) {
-        await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+      if (step === 3) {
+        if (!DEMO_MODE) await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+        track('register_covenant');
       }
 
       if (step === TOTAL_STEPS) {
         if (!DEMO_MODE) await saveProfile();
+        track('register_done', { withDenomination: !!denomination });
         setDone(true);
         return;
       }

@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CITIES, COVENANT_V1, DENOMINATIONS, es, isAdult } from '@yugo/shared';
 import { AuthLayout } from '@/components/auth-layout';
 import { CheckIcon, ChevronLeft, YugoMark } from '@/components/icons';
 import { Toggle } from '@/components/ui';
 import { DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
-import { useReach } from '@/lib/hooks';
+import { track, useReach } from '@/lib/hooks';
 
 /**
  * Registro corto (RF-AUT-01..04, RF-PER-01).
@@ -66,6 +66,11 @@ export default function OnboardingPage() {
   // Prueba de valor en cuanto sabemos lo suficiente para que signifique algo.
   const { data: reach } = useReach(form.denomination ?? undefined);
 
+  // Embudo de activación (RF-ADM-12): dónde se queda la gente, sin PII.
+  useEffect(() => {
+    track('register_start');
+  }, []);
+
   const patch = (partial: Partial<FormState>) => {
     setError(null);
     setForm((current) => ({ ...current, ...partial }));
@@ -99,6 +104,7 @@ export default function OnboardingPage() {
     try {
       if (otpStage) {
         if (!DEMO_MODE) await getApiClient().auth.verifyOtp(form.email, form.otp);
+        track('register_account');
         setOtpStage(false);
         setStep(OTP_AFTER_STEP + 1);
         return;
@@ -120,12 +126,14 @@ export default function OnboardingPage() {
       }
 
       // RF-AUT-04: the covenant is recorded with its version before anything else.
-      if (step === 3 && !DEMO_MODE) {
-        await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+      if (step === 3) {
+        if (!DEMO_MODE) await getApiClient().auth.acceptCovenant(COVENANT_V1.version);
+        track('register_covenant');
       }
 
       if (step === TOTAL_STEPS) {
         if (!DEMO_MODE) await saveProfile();
+        track('register_done', { withDenomination: !!form.denomination });
         setDone(true);
         return;
       }
