@@ -859,6 +859,12 @@ export const es = {
     sub: 'Esta página prueba la conexión desde tu navegador y dice qué variable tocar si falla. Para quien despliega; no hay nada aquí que un miembro necesite.',
     webOrigin: 'Esta web',
     apiUrl: 'API configurada',
+    apiUrlSource: 'De dónde sale',
+    sources: {
+      runtime: 'API_URL del servicio web (se lee al servir la página; cambiarla no exige reconstruir)',
+      build: 'NEXT_PUBLIC_API_URL horneada al construir (cambiarla exige reconstruir la web)',
+      default: 'Ninguna válida: la web usa localhost. En un despliegue esto siempre es un error de configuración.',
+    },
     demoMode: 'Modo demo',
     probe: 'Prueba en vivo',
     ok: (ms: number) => `La API responde (${ms} ms).`,
@@ -867,11 +873,12 @@ export const es = {
     httpHint: 'La dirección es correcta pero el servicio no está sano. Revisa los Deploy Logs de la API en Railway.',
     unreachable: 'El navegador no pudo conectar con la API.',
     fixUrl:
-      'La dirección de la API no parece válida. En Railway, servicio web → Variables → NEXT_PUBLIC_API_URL debe ser la URL pública literal de la API (https://…up.railway.app, sin /v1). Al cambiarla, la web se reconstruye sola.',
+      'La web no sabe dónde está la API. En Railway, servicio web → Variables → añade API_URL con la URL pública literal de la API (https://…up.railway.app, sin /v1; se copia de servicio api → Settings → Networking). No hace falta reconstruir: recarga esta página cuando el servicio web se reinicie.',
     openHealth: 'Abre esta dirección en otra pestaña:',
-    ifHealthWorks: (origin: string) =>
-      `Si ahí ves {"status":"ok"…}, la API está bien y lo que falla es CORS: en Railway, servicio api → Variables → WEB_URL debe ser exactamente ${origin} (sin barra final). La API se reinicia sola.`,
-    ifHealthFails: 'Si ahí tampoco carga, la API está caída o la dirección es otra: revisa Deployments y Networking del servicio api.',
+    ifHealthWorks:
+      'Si ahí ves {"status":"ok"…}, la API está bien. Vuelve aquí y recarga: si sigue en rojo, la dirección de arriba no es la misma que abriste (revisa API_URL).',
+    ifHealthFails:
+      'Si ahí tampoco carga, la API está caída o la dirección es otra: revisa Deployments (Deploy Logs) y Networking del servicio api. Un «Crashed» con «P1001 Can\'t reach database» significa que el servicio Postgres no está en línea.',
     backToSignIn: '← Volver a entrar',
   },
   gate: {
@@ -903,7 +910,8 @@ export const es = {
     generic: 'Algo salió mal. Inténtalo de nuevo.',
     network: 'Sin conexión. Revisa tu internet.',
     apiUnreachable: 'Yugo no puede comunicarse con el servidor en este momento.',
-    apiUnreachableHint: (url: string) => `Dirección configurada: ${url}. Si eres quien administra el despliegue, revisa NEXT_PUBLIC_API_URL en la web y WEB_URL en la API.`,
+    apiUnreachableHint: (url: string) =>
+      `Dirección configurada: ${url}. Si eres quien administra el despliegue, revisa API_URL en el servicio web y que la API esté en línea.`,
     unauthorized: 'Tu sesión expiró. Vuelve a entrar.',
     underage: 'Debes tener al menos 18 años para usar Yugo.',
     ageRangeSpan: 'El rango debe tener al menos 3 años de amplitud.',

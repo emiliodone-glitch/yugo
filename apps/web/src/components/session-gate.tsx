@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { es, isUnreachableError } from '@yugo/shared';
 import { useSession } from '@/lib/hooks';
-import { API_BASE_URL, ApiError, DEMO_MODE, errorMessage, hasStoredSession } from '@/lib/api';
+import { apiBaseUrl, ApiError, DEMO_MODE, errorMessage, hasStoredSession } from '@/lib/api';
 
 /**
  * Puerta de la zona de miembros contra la API real.
@@ -49,10 +49,17 @@ export function ApiStatusBanner() {
   const unreachable = isUnreachableError(error);
 
   return (
-    <div role="alert" className="mx-4 mt-4 rounded-card bg-wine-soft px-4 py-3 text-[13px] text-wine">
-      <p className="font-semibold">{unreachable ? es.errors.apiUnreachable : errorMessage(error)}</p>
+    <div
+      role="alert"
+      className="mx-4 mt-4 rounded-card bg-wine-soft px-4 py-3 text-[13px] text-wine"
+    >
+      <p className="font-semibold">
+        {unreachable ? es.errors.apiUnreachable : errorMessage(error)}
+      </p>
       {unreachable ? (
-        <p className="mt-1 break-all text-[12px] opacity-90">{es.errors.apiUnreachableHint(API_BASE_URL)}</p>
+        <p className="mt-1 break-all text-[12px] opacity-90">
+          {es.errors.apiUnreachableHint(apiBaseUrl())}
+        </p>
       ) : null}
       <button
         type="button"

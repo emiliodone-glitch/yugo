@@ -22,13 +22,29 @@ tocar la experiencia del teléfono:
   (devocional, oración, Plus, textos legales) se queda en columna de lectura.
 
 ### «No se pudo conectar con el servidor»
-Ese mensaje tenía tres causas indistinguibles desde la pantalla de entrar.
-Ahora, cuando el fallo es de red, la pantalla añade la URL de API con la que
-se construyó la web y un enlace a **`/estado`**, una página que prueba desde
-el navegador si la web llega a la API y separa los tres casos
-(`NEXT_PUBLIC_API_URL` mal construida, API caída, CORS por `WEB_URL`) con el
-paso concreto para cada uno. No expone nada sensible: la URL de la API es
-pública por definición.
+El primer despliegue real lo dejó claro: la web llegó a producción apuntando
+a `https:///v1` porque `NEXT_PUBLIC_API_URL` se hornea al construir y la
+referencia de Railway quedó vacía; la única salida era otro build. Tres
+cambios para que no vuelva a pasar:
+
+- **`API_URL` en tiempo de ejecución.** El servidor web la lee al servir cada
+  página y la deja en `window.__YUGO_API_URL__`; el cliente la prefiere sobre
+  la horneada. Cambiarla en Railway surte efecto al reiniciar, sin
+  reconstruir. Las páginas pasan a servirse dinámicas.
+- **La API acepta cualquier origen.** Autentica solo con tokens Bearer, así
+  que CORS no era una frontera de seguridad y `WEB_URL` mal puesta solo
+  producía «no carga nada». Además, `trust proxy` para que el límite de
+  intentos de entrada cuente por persona y no por el proxy de Railway (antes
+  era un único contador para todos).
+- **La API espera a Postgres.** `start.mjs` reintenta las migraciones hasta
+  dos minutos mientras el error sea de conectividad (P1001); antes moría en el
+  primer segundo si la base arrancaba después, y Railway la marcaba «Crashed».
+
+La pantalla de entrar, ante un fallo de red, muestra la dirección con la que
+la web intentó conectar y enlaza a **`/estado`**, que prueba desde el
+navegador si la web llega a la API, dice de dónde salió la dirección
+(`API_URL`, build o ninguna) y separa los casos con el paso concreto para cada
+uno. No expone nada sensible: la URL de la API es pública por definición.
 
 Verificación: E2E Playwright completa, capturas a 1440 px y 390 px de entrar,
 registro, conexiones, chat, perfil, comunidad, inicio, eventos y descubrir.

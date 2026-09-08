@@ -90,7 +90,7 @@ Variables:
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` | Referencia al plugin; omitir si no hay Redis |
 | `NODE_ENV` | `production` | |
 | `SEED_ON_BOOT` | `always` durante el piloto; `true` después | `true`: siembra solo si la base está vacía (primer arranque). `always`: reaplica la semilla en cada despliegue (es idempotente) para que los datos de prueba nuevos lleguen solos. Nunca `always` con usuarios reales: reescribe los perfiles de demo |
-| `WEB_URL` | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | **CORS.** Referencia al dominio del servicio `web`; se resuelve sola cuando la web tenga dominio |
+| `WEB_URL` | `https://<dominio-de-la-web>` | Solo para los enlaces que la API genera (compartir un evento). Ya **no** afecta a CORS: la API autentica con tokens, no con cookies, y acepta cualquier origen |
 | `JWT_ACCESS_SECRET` | 48+ caracteres aleatorios | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | otros 48+ caracteres, distintos | Rotar el de refresco invalida sesiones |
 | `JWT_ACCESS_TTL` | `900s` | |
@@ -151,17 +151,23 @@ aparece en `/admin/organizaciones` para aprobarla.
 config-as-code en `apps/web/railway.json`; watch paths `apps/web/**`,
 `packages/**`, `pnpm-lock.yaml`.
 
-Variables (se usan **al construir**, así que un cambio exige redesplegar):
+Variables:
 
-| Variable | Valor |
-| --- | --- |
-| `NEXT_PUBLIC_API_URL` | `https://<dominio-de-la-api>` (sin `/v1`) |
-| `NEXT_PUBLIC_DEMO_MODE` | `false` |
+| Variable | Valor | Nota |
+| --- | --- | --- |
+| `API_URL` | `https://<dominio-de-la-api>` (sin `/v1`) | Se lee **al servir cada página**: cambiarla surte efecto en cuanto el servicio se reinicia, sin reconstruir. Cópiala de servicio api → Settings → Networking |
+| `NEXT_PUBLIC_DEMO_MODE` | `false` | Se hornea al construir |
 
-Railway pasa las variables del servicio como `ARG` al Dockerfile, que ya los
-declara. Genera el dominio de la web y **vuelve a la API para poner `WEB_URL`**
-con esa URL exacta (con `https://`, sin barra final). Sin ese paso, el
-navegador bloquea las peticiones por CORS y la web parece "no cargar nada".
+`API_URL` debe ser la URL **literal**. Una referencia como
+`https://${{api.RAILWAY_PUBLIC_DOMAIN}}` solo resuelve si el servicio se llama
+exactamente `api`; Railway nombra `@yugo/api` a los que crea desde el
+monorepo, y con ese nombre la referencia queda vacía y la web apunta a
+`https:///v1`. Si prefieres referencias, renombra antes los servicios a `api`
+y `web` (Settings → Service name).
+
+`NEXT_PUBLIC_API_URL` sigue funcionando como alternativa horneada al construir,
+pero ya no hace falta. No hay que configurar CORS: la API acepta cualquier
+origen porque autentica con tokens y no con cookies.
 
 ## 5b. Desplegar desde GitHub (opcional, recomendado después de la primera vez)
 
@@ -216,7 +222,7 @@ con `railway run --service api`.
 
 En el navegador, primero abre `https://<web>/estado`: esa página prueba desde
 tu navegador que la web llega a la API y, si no, dice qué variable tocar
-(`NEXT_PUBLIC_API_URL` mal construida, API caída o `WEB_URL`/CORS). Cuando
+(`API_URL` ausente o mal construida, o API caída). Cuando
 diga «La API responde», entra con `prueba@yugo.do` / `Yugo.prueba1` y verifica
 que Descubrir trae perfiles. Si trae la demo en vez de datos reales,
 `NEXT_PUBLIC_DEMO_MODE` quedó en `true` en el build.
@@ -231,13 +237,13 @@ API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 | Síntoma | Causa probable | Qué hacer |
 | --- | --- | --- |
 | La API reinicia en bucle y los logs dicen `postgis` | El Postgres no tiene PostGIS | Usar la imagen `postgis/postgis:16-3.4` (paso 2) |
-| `P1001 Can't reach database` | `DATABASE_URL` con host público o contraseña mal | Usar `postgres.railway.internal` y la contraseña del servicio |
+| `P1001 Can't reach database` repetido hasta «Crashed» | El servicio Postgres no está en línea: acaba de redesplegarse (imagen nueva, volumen borrado) y tarda, o no arrancó (la imagen `postgis` exige `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`; sin ellas se apaga con «superuser password is not specified») | La API espera hasta 2 minutos a la base antes de rendirse (`DB_WAIT_SECONDS`). Si aun así cae, abre el servicio Postgres → Deployments → Deploy Logs y corrige lo que diga; luego Redeploy en la API |
+| `P1001` con un host que no es `*.railway.internal` | `DATABASE_URL` apunta al host público o a otro sitio | Usar el dominio privado del servicio Postgres (`${{Postgres.RAILWAY_PRIVATE_DOMAIN}}`, con el nombre exacto del servicio) |
 | `P1013 … empty host in database URL` al arrancar | La referencia `${{postgres.RAILWAY_PRIVATE_DOMAIN}}` quedó vacía: no existe un servicio llamado exactamente `postgres` | Crear el servicio PostGIS (paso 2) o renombrarlo a `postgres`; la API redespliega sola |
 | La API arranca sin correr migraciones ni semilla | Railway puso un «Custom Start Command» (`pnpm start`) al detectar el monorepo | Da igual: `start` y el CMD ejecutan `start.mjs`, que migra, siembra si procede y arranca. Si quieres limpiarlo: Settings → Deploy → Custom Start Command vacío |
-| La web carga pero todo está vacío y la consola dice CORS | `WEB_URL` en la API no coincide con el dominio de la web | Poner la URL exacta con `https://` y sin barra final |
 | La web muestra datos de demo | `NEXT_PUBLIC_DEMO_MODE=true` en el build | Ponerla en `false` y redesplegar la web |
-| La web muestra «Yugo no puede comunicarse con el servidor» con una dirección rara o vacía | `NEXT_PUBLIC_API_URL` no se resolvió al construir: las referencias `${{api.…}}` solo funcionan si el servicio se llama exactamente `api` (Railway nombra `@yugo/api` a los que crea desde el monorepo) | Poner la URL literal de la API (`https://…up.railway.app`, sin `/v1`) y redesplegar la web; lo mismo con `WEB_URL` en la API |
-| Al entrar sale «No se pudo conectar con el servidor» | Una de tres: `NEXT_PUBLIC_API_URL` mal construida, la API caída, o CORS (`WEB_URL`) | Abrir `https://<web>/estado`: hace la prueba desde el navegador y separa los tres casos con el paso a seguir en cada uno |
+| La web muestra «Dirección configurada: https:///v1» o `localhost` | La web no sabe dónde está la API: `API_URL` no existe, o se puso una referencia `${{api.…}}` que quedó vacía porque el servicio no se llama `api` | Servicio web → Variables → `API_URL` con la URL literal de la API (`https://…up.railway.app`, sin `/v1`). Sin reconstruir: la web la lee al reiniciarse |
+| Al entrar sale «No se pudo conectar con el servidor» | `API_URL` ausente o mal, o la API caída | Abrir `https://<web>/estado`: hace la prueba desde el navegador y separa los casos con el paso a seguir en cada uno |
 | Nadie puede entrar como admin | 2FA por correo con `OTP_PROVIDER=console` | Leer el código en los logs de la API, o configurar SMTP |
 | Las fotos no suben | Variables `S3_*` vacías | Configurar R2/S3 (RF-PER-02) |
 

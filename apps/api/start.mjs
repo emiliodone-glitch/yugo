@@ -24,6 +24,70 @@ function run(label, command, args) {
   }
 }
 
+/** Como `run`, pero devuelve la salida para decidir si el fallo es transitorio. */
+function runCaptured(label, command, args) {
+  console.log(`[yugo] ${label}`);
+  const result = spawnSync(command, args, { stdio: ['inherit', 'pipe', 'pipe'], encoding: 'utf8' });
+  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+  if (output) process.stdout.write(output);
+  return { status: result.status, output };
+}
+
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+function databaseHost() {
+  try {
+    return new URL(process.env.DATABASE_URL).host;
+  } catch {
+    return '(DATABASE_URL ilegible)';
+  }
+}
+
+/**
+ * `prisma migrate deploy`, esperando a la base si aún no responde.
+ *
+ * En Railway la API y Postgres arrancan a la vez, y un Postgres recién
+ * creado (o recién redesplegado tras cambiar la imagen o borrar el volumen)
+ * tarda más que la API en aceptar conexiones. Sin esta espera, la API moría
+ * con P1001 en el primer segundo, Railway la reiniciaba cinco veces y la
+ * marcaba «Crashed» aunque la base estuviera lista medio minuto después.
+ * Solo se reintenta cuando el error es de conectividad; una contraseña mal
+ * (P1000) o una migración rota fallan en el acto, como antes.
+ */
+function migrateWaitingForDatabase() {
+  const deadlineMs = Number(process.env.DB_WAIT_SECONDS ?? 120) * 1000;
+  const startedAt = Date.now();
+  for (let attempt = 1; ; attempt++) {
+    const { status, output } = runCaptured(
+      attempt === 1 ? 'migraciones' : `migraciones (intento ${attempt})`,
+      'npx',
+      ['prisma', 'migrate', 'deploy'],
+    );
+    if (status === 0) return;
+    const transient = /P1001|P1017|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|timed? ?out/i.test(
+      output,
+    );
+    const elapsed = Date.now() - startedAt;
+    if (!transient || elapsed > deadlineMs) {
+      if (transient) {
+        console.error(
+          `[yugo] Postgres no respondió en ${Math.round(deadlineMs / 1000)} s en ${databaseHost()}. ` +
+            'Revisa en Railway que el servicio Postgres esté «Online» (si acabas de cambiar su imagen ' +
+            'o borrar el volumen, mira sus Deploy Logs: la imagen postgis necesita POSTGRES_USER, ' +
+            'POSTGRES_PASSWORD y POSTGRES_DB) y que DATABASE_URL apunte a su dominio privado.',
+        );
+      }
+      console.error(`[yugo] migraciones: falló (código ${status ?? 'desconocido'})`);
+      process.exit(status ?? 1);
+    }
+    console.log(
+      `[yugo] la base de datos aún no responde en ${databaseHost()}; reintento en 5 s ` +
+        `(${Math.round(elapsed / 1000)} s de ${Math.round(deadlineMs / 1000)} s)`,
+    );
+    sleep(5000);
+  }
+}
+
 if (!process.env.DATABASE_URL) {
   console.error(
     '[yugo] Falta DATABASE_URL. En Railway suele significar que el servicio `postgres` no existe ' +
@@ -32,7 +96,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-run('migraciones', 'npx', ['prisma', 'migrate', 'deploy']);
+migrateWaitingForDatabase();
 // SEED_ON_BOOT=true → solo si la base está vacía (primer arranque).
 // SEED_ON_BOOT=always → en cada arranque: la semilla es idempotente (upserts)
 // y así un piloto recibe los datos de prueba nuevos con cada despliegue. No

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { es, isUnreachableError } from '@yugo/shared';
-import { API_BASE_URL, DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
+import { apiBaseUrl, DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
 import { AuthLayout } from '@/components/auth-layout';
 import { YugoMark } from '@/components/icons';
 
@@ -111,7 +111,7 @@ export default function SignInPage() {
               {error}
               {unreachable ? (
                 <div className="mt-1.5 border-t border-wine/20 pt-1.5 text-[11.5px]">
-                  {es.errors.apiUnreachableHint(API_BASE_URL)}{' '}
+                  {es.errors.apiUnreachableHint(apiBaseUrl())}{' '}
                   <Link href="/estado" className="font-semibold underline">
                     {es.status.title} ›
                   </Link>

@@ -8,10 +8,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('v1');
   app.useGlobalInterceptors(new LoggingInterceptor());
-  app.enableCors({
-    origin: [process.env.WEB_URL ?? 'http://localhost:3000', /^http:\/\/localhost:\d+$/],
-    credentials: true,
-  });
+  // La API autentica solo con tokens Bearer (nunca cookies), así que el
+  // origen del navegador no es una frontera de seguridad: otro sitio no puede
+  // leer los tokens guardados en el origen de Yugo. Restringirlo a WEB_URL
+  // solo producía «no carga nada» cuando la variable no coincidía con el
+  // dominio real de la web. Se refleja el origen, como ya hacía el gateway
+  // del chat. WEB_URL sigue sirviendo para los enlaces que la API genera.
+  app.enableCors({ origin: true });
+  // Detrás del proxy de Railway, la IP real viene en X-Forwarded-For. Sin
+  // esto, req.ip era la del proxy y el límite de intentos de entrada (10 por
+  // hora) era un solo contador para todos los usuarios a la vez.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   // La validación de entrada es de zod, por controlador (ZodPipe), para que
   // el mismo esquema valide en la API, la web y el móvil. Un ValidationPipe
   // global aquí solo pedía class-validator, que el proyecto no usa.
