@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: 'Yugo — Unidos en la misma fe',
   description:
     'Plataforma de citas con propósito, comunidad y eventos para cristianos de todas las denominaciones.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Yugo', statusBarStyle: 'default' },
+  icons: { icon: '/icon.svg', apple: '/icon.svg' },
 };
 
 export const viewport: Viewport = {

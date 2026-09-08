@@ -30,6 +30,8 @@ import {
   type AdminStaffRow,
   type AdminSubscriptionSummary,
   type AdminVerificationCase,
+  type ChurchInvitationRow,
+  type ChurchInviteResult,
   type ChurchMetrics,
   type ChurchOfficialGroup,
   type ChurchPortalEvent,
@@ -1010,11 +1012,63 @@ export function useChurchUsers() {
 export function useInviteChurchUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { email: string; role: 'ADMIN' | 'EVENT_EDITOR' }) =>
+    mutationFn: async (input: {
+      email: string;
+      role: 'ADMIN' | 'EVENT_EDITOR';
+    }): Promise<ChurchInviteResult> =>
       isDemoMode()
-        ? { id: `cu-${Date.now()}`, role: input.role }
+        ? {
+            id: `cu-${Date.now()}`,
+            role: input.role,
+            invited: true,
+            inviteUrl: `https://yugo.do/iglesias/invitacion?token=demo-${Date.now()}`,
+            expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+          }
         : api().church.inviteUser(input.email, input.role),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['church', 'users'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['church', 'users'] });
+      void queryClient.invalidateQueries({ queryKey: ['church', 'invitations'] });
+    },
+  });
+}
+
+/** Invitaciones por enlace pendientes (RF-IGL-02). */
+export function useChurchInvitations() {
+  return useQuery<ChurchInvitationRow[]>({
+    queryKey: ['church', 'invitations'],
+    queryFn: () => (isDemoMode() ? [] : api().church.invitations()),
+  });
+}
+
+export function useRevokeInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      isDemoMode() ? { revoked: true } : api().church.revokeInvitation(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['church', 'invitations'] }),
+  });
+}
+
+export function useAcceptInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (token: string) =>
+      isDemoMode()
+        ? { churchId: 'c-demo', churchName: demoChurch.name, role: 'EVENT_EDITOR' }
+        : api().church.acceptInvitation(token),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['church'] }),
+  });
+}
+
+/** QR de entrada de un evento publicado, para imprimir (RF-EVE-06). */
+export function useEventQr(eventId: string) {
+  return useQuery({
+    queryKey: ['church', 'event-qr', eventId],
+    enabled: !!eventId,
+    queryFn: async () =>
+      isDemoMode()
+        ? { token: 'demo', url: `https://yugo.do/e/${eventId}?ci=demo`, title: 'Evento' }
+        : api().church.eventQr(eventId),
   });
 }
 

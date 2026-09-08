@@ -62,6 +62,30 @@ export class ChurchesController {
     return this.churches.submitEvent(user.id, id);
   }
 
+  /** QR de entrada de un evento publicado, para imprimir (RF-EVE-06). */
+  @Get('events/:id/qr')
+  eventQr(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.churches.eventQr(user.id, id);
+  }
+
+  @Get('invitations')
+  invitations(@CurrentUser() user: AuthUser) {
+    return this.churches.listInvitations(user.id);
+  }
+
+  @Delete('invitations/:id')
+  revokeInvitation(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.churches.revokeInvitation(user.id, id);
+  }
+
+  @Post('invitations/accept')
+  acceptInvitation(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(z.object({ token: z.string().min(16).max(128) }))) body: { token: string },
+  ) {
+    return this.churches.acceptInvitation(user.id, body.token);
+  }
+
   @Get('codes')
   codes(@CurrentUser() user: AuthUser) {
     return this.churches.listCodes(user.id);

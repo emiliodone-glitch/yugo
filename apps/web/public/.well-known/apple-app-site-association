@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.do.yugo.app",
+        "paths": ["/e/*", "/eventos/*", "/comunidad/*", "/chat/*", "/iglesias/invitacion", "/descubrir/*"]
+      }
+    ]
+  }
+}

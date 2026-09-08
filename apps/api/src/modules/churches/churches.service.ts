@@ -8,6 +8,7 @@ import { randomBytes } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { LIMITS, type CreateEventInput } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
+import { MailerService } from '../queues/mailer.service';
 import { AuditService } from '../../common/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -17,6 +18,7 @@ export class ChurchesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly mailer: MailerService,
   ) {}
 
   /** RF-IGL-01: organization sign-up; community manager approves. */
@@ -407,21 +409,149 @@ export class ChurchesService {
    */
   async inviteUser(userId: string, email: string, role: 'ADMIN' | 'EVENT_EDITOR') {
     const membership = await this.requireMembership(userId, 'ADMIN');
-    const invited = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!invited) throw new NotFoundException('user_not_found');
-    const row = await this.prisma.churchUser.upsert({
-      where: { churchId_userId: { churchId: membership.churchId, userId: invited.id } },
-      update: { role },
-      create: { churchId: membership.churchId, userId: invited.id, role },
+    const normalized = email.toLowerCase();
+    const invited = await this.prisma.user.findUnique({ where: { email: normalized } });
+    if (invited) {
+      const row = await this.prisma.churchUser.upsert({
+        where: { churchId_userId: { churchId: membership.churchId, userId: invited.id } },
+        update: { role },
+        create: { churchId: membership.churchId, userId: invited.id, role },
+      });
+      await this.audit.log({
+        actorId: userId,
+        action: 'CHURCH_USER_INVITED',
+        targetType: 'CHURCH',
+        targetId: membership.churchId,
+        after: { userId: invited.id, role },
+      });
+      return { id: row.id, role: row.role, invited: false };
+    }
+
+    // Sin cuenta todavía: una invitación con enlace. Al registrarse con ese
+    // enlace (o al entrar y aceptarlo) queda como usuaria del portal, sin que
+    // nadie tenga que volver a esta pantalla (RF-IGL-02).
+    const token = randomBytes(24).toString('base64url');
+    const expiresAt = new Date(Date.now() + 7 * 86_400_000);
+    const invitation = await this.prisma.churchInvitation.create({
+      data: {
+        churchId: membership.churchId,
+        email: normalized,
+        role,
+        token,
+        invitedById: userId,
+        expiresAt,
+      },
+    });
+    const inviteUrl = this.invitationUrl(token);
+    await this.mailer.send(normalized, 'CHURCH_INVITE', {
+      churchName: membership.church.name,
+      role,
+      inviteUrl,
     });
     await this.audit.log({
       actorId: userId,
-      action: 'CHURCH_USER_INVITED',
+      action: 'CHURCH_INVITATION_SENT',
       targetType: 'CHURCH',
       targetId: membership.churchId,
-      after: { userId: invited.id, role },
+      after: { email: normalized, role },
     });
-    return { id: row.id, role: row.role };
+    return {
+      id: invitation.id,
+      role,
+      invited: true,
+      inviteUrl,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  private invitationUrl(token: string) {
+    return `${process.env.WEB_URL ?? 'https://yugo.do'}/iglesias/invitacion?token=${token}`;
+  }
+
+  async listInvitations(userId: string) {
+    const membership = await this.requireMembership(userId, 'ADMIN');
+    const rows = await this.prisma.churchInvitation.findMany({
+      where: { churchId: membership.churchId, acceptedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      inviteUrl: this.invitationUrl(row.token),
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+    }));
+  }
+
+  async revokeInvitation(userId: string, invitationId: string) {
+    const membership = await this.requireMembership(userId, 'ADMIN');
+    const row = await this.prisma.churchInvitation.findFirst({
+      where: { id: invitationId, churchId: membership.churchId },
+    });
+    if (!row) throw new NotFoundException();
+    await this.prisma.churchInvitation.delete({ where: { id: row.id } });
+    return { revoked: true };
+  }
+
+  /**
+   * Acepta una invitación con la cuenta que ha entrado. El correo debe
+   * coincidir: un enlace reenviado no puede dar acceso a otra persona.
+   */
+  async acceptInvitation(userId: string, token: string) {
+    const invitation = await this.prisma.churchInvitation.findUnique({
+      where: { token },
+      include: { church: { select: { id: true, name: true } } },
+    });
+    if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) {
+      throw new NotFoundException('invitation_invalid');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.email || user.email.toLowerCase() !== invitation.email) {
+      throw new BadRequestException('invitation_email_mismatch');
+    }
+    await this.prisma.$transaction([
+      this.prisma.churchUser.upsert({
+        where: { churchId_userId: { churchId: invitation.churchId, userId } },
+        update: { role: invitation.role },
+        create: { churchId: invitation.churchId, userId, role: invitation.role },
+      }),
+      this.prisma.churchInvitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date(), acceptedByUserId: userId },
+      }),
+    ]);
+    await this.audit.log({
+      actorId: userId,
+      action: 'CHURCH_INVITATION_ACCEPTED',
+      targetType: 'CHURCH',
+      targetId: invitation.churchId,
+      after: { role: invitation.role },
+    });
+    return {
+      churchId: invitation.church.id,
+      churchName: invitation.church.name,
+      role: invitation.role,
+    };
+  }
+
+  /** QR de entrada para imprimir: solo de eventos publicados de la iglesia. */
+  async eventQr(userId: string, eventId: string) {
+    const membership = await this.requireMembership(userId);
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, churchId: membership.churchId },
+    });
+    if (!event) throw new NotFoundException();
+    if (event.status !== 'PUBLISHED' || !event.qrToken) {
+      throw new BadRequestException('event_not_published');
+    }
+    return {
+      token: event.qrToken,
+      // Una URL, no un token suelto: la cámara del teléfono la abre en la
+      // web (que registra la asistencia si hay sesión) y la app la entiende.
+      url: `${process.env.WEB_URL ?? 'https://yugo.do'}/e/${event.id}?ci=${event.qrToken}`,
+      title: event.title,
+    };
   }
 
   async removePortalUser(userId: string, churchUserId: string) {

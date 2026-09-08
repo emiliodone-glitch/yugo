@@ -34,6 +34,8 @@ export const registerRequestSchema = z
     password: z.string().min(8).max(128),
     birthDate: z.coerce.date(),
     gender: z.enum(['MALE', 'FEMALE']),
+    /** Invitación al portal de iglesias abierta desde un enlace (RF-IGL-02). */
+    inviteToken: z.string().min(16).max(128).optional(),
   })
   .refine((data) => data.email || data.phone, {
     message: 'email_or_phone_required',

@@ -1,0 +1,13 @@
+{
+  "name": "Yugo",
+  "short_name": "Yugo",
+  "description": "Unidos en la misma fe",
+  "lang": "es-DO",
+  "start_url": "/inicio",
+  "display": "standalone",
+  "background_color": "#FAF8F3",
+  "theme_color": "#22315C",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

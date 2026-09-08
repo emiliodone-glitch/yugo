@@ -50,8 +50,9 @@ export function useReduceMotion(): boolean {
 
   useEffect(() => {
     let active = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (active) setReduce(enabled);
+    // Promise.resolve por si una plataforma (web, pruebas) no lo implementa.
+    void Promise.resolve(AccessibilityInfo.isReduceMotionEnabled?.()).then((enabled) => {
+      if (active && typeof enabled === 'boolean') setReduce(enabled);
     });
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
     return () => {

@@ -1,30 +1,38 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es } from '@yugo/shared';
-import { calendarUrl, useDemoStore, useEventDetail, useSetAttendance } from '@yugo/app-core';
 import {
-  AvatarCircle,
-  Button,
-  Card,
-  Chip,
-  QrCode,
-  ScreenHeader,
-  Sub,
-} from '../../components/ui';
+  calendarUrl,
+  useCheckIn,
+  useDemoStore,
+  useEventDetail,
+  useSetAttendance,
+} from '@yugo/app-core';
+import { AvatarCircle, Button, Card, Chip, Notice, ScreenHeader, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
 /** Event detail with attendance, connections attending and QR check-in. */
 export default function EventDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, ci } = useLocalSearchParams<{ id: string; ci?: string }>();
   const eventId = id ?? '';
   const { data: event, isLoading } = useEventDetail(eventId);
   const setAttendance = useSetAttendance();
+  const checkIn = useCheckIn();
   const eventStatus = useDemoStore((s) => s.eventStatus);
-  const [showQr, setShowQr] = useState(false);
+  const [checkInNotice, setCheckInNotice] = useState<string | null>(null);
+
+  // Llegó por el enlace del QR de la entrada: se registra sin más toques.
+  useEffect(() => {
+    if (!ci || checkIn.isPending || checkIn.isSuccess) return;
+    checkIn
+      .mutateAsync(ci)
+      .then(() => setCheckInNotice('¡Asistencia registrada! Que sea una bendición.'))
+      .catch(() => setCheckInNotice('No pudimos registrar tu asistencia con ese enlace.'));
+  }, [ci, checkIn]);
 
   if (isLoading || !event) {
     return (
@@ -160,21 +168,24 @@ export default function EventDetailScreen() {
           </View>
         </Card>
 
-        {/* QR check-in (RF-EVE-06) */}
-        {mine === 'GOING' ? (
-          <Card style={{ alignItems: 'center' }}>
-            {showQr ? (
-              <>
-                <View style={styles.qrFrame}>
-                  <QrCode value={event.id} />
-                </View>
-                <Sub style={{ textAlign: 'center', fontSize: 11, marginTop: 10 }}>
-                  Muestra este código en la entrada para registrar tu asistencia.
-                </Sub>
-              </>
-            ) : (
-              <Button label={es.events.checkIn} tone="ghost" onPress={() => setShowQr(true)} />
-            )}
+        {/* Check-in (RF-EVE-06): el QR está en la entrada; la app lo lee. */}
+        {checkInNotice ? (
+          <Notice tone={checkIn.isSuccess ? 'olive' : 'wine'} text={checkInNotice} />
+        ) : null}
+        {mine === 'GOING' && !checkIn.isSuccess ? (
+          <Card>
+            <Text style={styles.rowText}>{es.events.checkIn}</Text>
+            <Sub style={{ fontSize: 11, marginTop: 4, marginBottom: 10 }}>
+              Al llegar, escanea el QR de la entrada. La iglesia solo ve el total de asistentes,
+              nunca tu nombre.
+            </Sub>
+            <Button
+              label="Registrar mi asistencia"
+              tone="olive"
+              onPress={() =>
+                router.push({ pathname: '/eventos/escanear', params: { eventId: event.id } })
+              }
+            />
           </Card>
         ) : null}
 
@@ -202,5 +213,4 @@ const styles = StyleSheet.create({
   connections: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
   rowText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text },
   rowValue: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: colors.ink },
-  qrFrame: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 8 },
 });

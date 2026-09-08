@@ -60,9 +60,39 @@ export class AuthService {
       },
     });
 
+    // Invitación al portal de iglesias abierta desde un enlace: si el correo
+    // coincide, la cuenta nace ya vinculada. Nunca bloquea el registro.
+    if (input.inviteToken && input.email) {
+      await this.acceptChurchInvitation(user.id, input.email, input.inviteToken).catch(
+        () => undefined,
+      );
+    }
+
     const identifier = input.email ?? input.phone!;
     await this.otp.send(identifier, 'REGISTER');
     return { userId: user.id, otpSentTo: identifier };
+  }
+
+  private async acceptChurchInvitation(userId: string, email: string, token: string) {
+    const invitation = await this.prisma.churchInvitation.findUnique({ where: { token } });
+    if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date()) return;
+    if (invitation.email !== email.toLowerCase()) return;
+    await this.prisma.$transaction([
+      this.prisma.churchUser.create({
+        data: { churchId: invitation.churchId, userId, role: invitation.role },
+      }),
+      this.prisma.churchInvitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date(), acceptedByUserId: userId },
+      }),
+    ]);
+    await this.audit.log({
+      actorId: userId,
+      action: 'CHURCH_INVITATION_ACCEPTED',
+      targetType: 'CHURCH',
+      targetId: invitation.churchId,
+      after: { role: invitation.role, at: 'register' },
+    });
   }
 
   /** RF-AUT-01: verify the OTP → contact verified (verification level 1). */
@@ -81,7 +111,13 @@ export class AuthService {
       data: isEmail ? { emailVerifiedAt: new Date() } : { phoneVerifiedAt: new Date() },
     });
     await this.prisma.verification.create({
-      data: { userId: user.id, level: 1, method: 'OTP', status: 'APPROVED', resolvedAt: new Date() },
+      data: {
+        userId: user.id,
+        level: 1,
+        method: 'OTP',
+        status: 'APPROVED',
+        resolvedAt: new Date(),
+      },
     });
     if (user.email) await this.mailer.send(user.email, 'WELCOME');
     return this.tokens.issuePair(user);
@@ -191,9 +227,19 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        profile: { include: { denomination: true, church: true, serviceAreas: { include: { serviceArea: true } } } },
+        profile: {
+          include: {
+            denomination: true,
+            church: true,
+            serviceAreas: { include: { serviceArea: true } },
+          },
+        },
         verifications: { where: { status: 'APPROVED' }, include: { church: true } },
-        subscriptions: { where: { status: { in: ['ACTIVE', 'TRIAL'] } }, orderBy: { endsAt: 'desc' }, take: 1 },
+        subscriptions: {
+          where: { status: { in: ['ACTIVE', 'TRIAL'] } },
+          orderBy: { endsAt: 'desc' },
+          take: 1,
+        },
       },
     });
     if (!user) throw new UnauthorizedException();

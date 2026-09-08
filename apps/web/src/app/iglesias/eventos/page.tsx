@@ -74,6 +74,14 @@ export default function ChurchEventsPage() {
                         {es.church.sendToReview}
                       </button>
                     ) : null}
+                    {event.status === 'PUBLISHED' ? (
+                      <Link
+                        href={`/iglesias/eventos/${event.id}/qr`}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        QR de entrada
+                      </Link>
+                    ) : null}
                   </Td>
                 </tr>
               );

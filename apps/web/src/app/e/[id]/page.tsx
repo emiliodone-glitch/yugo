@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { es } from '@yugo/shared';
-import { usePublicEvent } from '@/lib/hooks';
+import { errorMessage } from '@/lib/api';
+import { useCheckIn, usePublicEvent, useSession } from '@/lib/hooks';
 import { YugoMark, PinIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
 
@@ -23,6 +26,33 @@ const when = new Intl.DateTimeFormat('es-DO', {
  */
 export default function PublicEventPage({ params }: { params: { id: string } }) {
   const event = usePublicEvent(params.id);
+  const search = useSearchParams();
+  const checkInToken = search.get('ci');
+  const session = useSession();
+  const checkIn = useCheckIn();
+  const [checkInResult, setCheckInResult] = useState<'done' | 'error' | null>(null);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [isPhone, setIsPhone] = useState(false);
+
+  useEffect(() => {
+    setIsPhone(/Android|iPhone|iPad/i.test(navigator.userAgent));
+  }, []);
+
+  // Llegó desde el QR de la entrada y tiene sesión: registrar la asistencia
+  // sin pedir un solo toque más (RF-EVE-06).
+  useEffect(() => {
+    if (!checkInToken || !session.data || checkInResult || checkIn.isPending) return;
+    checkIn
+      .mutateAsync(checkInToken)
+      .then(() => setCheckInResult('done'))
+      .catch((caught) => {
+        setCheckInError(errorMessage(caught));
+        setCheckInResult('error');
+      });
+  }, [checkInToken, session.data, checkInResult, checkIn]);
+
+  const appLink = `yugo://eventos/${params.id}${checkInToken ? `?ci=${encodeURIComponent(checkInToken)}` : ''}`;
+  const here = `/e/${params.id}${checkInToken ? `?ci=${encodeURIComponent(checkInToken)}` : ''}`;
 
   return (
     <div className="min-h-dvh bg-linen">
@@ -80,16 +110,53 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
                   {event.data.description}
                 </p>
               ) : null}
-              <div className="mt-5 rounded-card bg-wheat-soft px-4 py-3 text-[13.5px] text-wheat-text">
-                {es.explore.eventCta}
-              </div>
+              {checkInToken ? (
+                <div
+                  role="status"
+                  className={`mt-5 rounded-card px-4 py-3 text-[13.5px] ${
+                    checkInResult === 'done'
+                      ? 'bg-olive-soft text-olive-text'
+                      : checkInResult === 'error'
+                        ? 'bg-wine-soft text-wine'
+                        : 'bg-wheat-soft text-wheat-text'
+                  }`}
+                >
+                  {checkInResult === 'done'
+                    ? '¡Asistencia registrada! Que sea una bendición.'
+                    : checkInResult === 'error'
+                      ? `No pudimos registrar tu asistencia: ${checkInError}`
+                      : session.data
+                        ? 'Registrando tu asistencia…'
+                        : 'Escaneaste el QR de la entrada. Entra con tu cuenta para registrar tu asistencia.'}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-card bg-wheat-soft px-4 py-3 text-[13.5px] text-wheat-text">
+                  {es.explore.eventCta}
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/registro" className="btn btn-wheat w-auto px-5">
-                  {es.explore.create}
-                </Link>
-                <Link href="/entrar" className="btn btn-ghost w-auto px-5">
-                  {es.welcome.haveAccount}
-                </Link>
+                {isPhone ? (
+                  <a href={appLink} className="btn w-auto px-5">
+                    Abrir en la app
+                  </a>
+                ) : null}
+                {!session.data ? (
+                  <>
+                    <Link href="/registro" className="btn btn-wheat w-auto px-5">
+                      {es.explore.create}
+                    </Link>
+                    <Link
+                      href={`/entrar?next=${encodeURIComponent(here)}`}
+                      className="btn btn-ghost w-auto px-5"
+                    >
+                      {es.welcome.haveAccount}
+                    </Link>
+                  </>
+                ) : (
+                  <Link href={`/eventos/${params.id}`} className="btn btn-ghost w-auto px-5">
+                    Ver en mi agenda
+                  </Link>
+                )}
               </div>
             </div>
           </article>

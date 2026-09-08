@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { CITIES, COVENANT_V1, DENOMINATIONS, es, isAdult } from '@yugo/shared';
 import { AuthLayout } from '@/components/auth-layout';
@@ -56,6 +56,7 @@ const initialState: FormState = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const inviteToken = useSearchParams().get('invite');
   const [step, setStep] = useState(1);
   const [otpStage, setOtpStage] = useState(false);
   const [done, setDone] = useState(false);
@@ -110,6 +111,8 @@ export default function OnboardingPage() {
             password: form.password,
             birthDate: form.birthDate,
             gender: form.gender as 'MALE' | 'FEMALE',
+            // Invitación al portal de iglesias abierta desde un enlace.
+            ...(inviteToken ? { inviteToken } : {}),
           });
         }
         setOtpStage(true);

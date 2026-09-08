@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { es } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
-import { useChurchMe, useChurchUsers, useInviteChurchUser, useRemoveChurchUser } from '@/lib/hooks';
+import {
+  useChurchInvitations,
+  useChurchMe,
+  useChurchUsers,
+  useInviteChurchUser,
+  useRemoveChurchUser,
+  useRevokeInvitation,
+} from '@/lib/hooks';
 import { BarTop, DataTable, Panel, Td } from '@/components/admin';
 import { Avatar } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
@@ -22,6 +29,10 @@ export default function PortalUsersPage() {
   const users = useChurchUsers();
   const invite = useInviteChurchUser();
   const remove = useRemoveChurchUser();
+  const invitations = useChurchInvitations();
+  const revoke = useRevokeInvitation();
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'EVENT_EDITOR'>('EVENT_EDITOR');
@@ -40,17 +51,20 @@ export default function PortalUsersPage() {
     }
     setFailure(null);
     try {
-      await invite.mutateAsync({ email: value, role });
-      setNotice(`${value} ya puede entrar al portal como ${ROLE_LABEL[role].toLowerCase()}.`);
+      const result = await invite.mutateAsync({ email: value, role });
+      if (result.invited && result.inviteUrl) {
+        setInviteUrl(result.inviteUrl);
+        setNotice(
+          `${value} todavía no tiene cuenta en Yugo: le enviamos una invitación por correo. También puedes copiarle el enlace; vence en 7 días.`,
+        );
+      } else {
+        setInviteUrl(null);
+        setNotice(`${value} ya puede entrar al portal como ${ROLE_LABEL[role].toLowerCase()}.`);
+      }
       setEmail('');
       setOpen(false);
     } catch (error) {
-      const message = errorMessage(error);
-      setFailure(
-        /not_found|no encontrad/i.test(message)
-          ? 'Esa cuenta no existe en Yugo. La persona debe registrarse primero en la app o la web.'
-          : message,
-      );
+      setFailure(errorMessage(error));
     }
   };
 
@@ -94,6 +108,20 @@ export default function PortalUsersPage() {
             {failure}
           </div>
         ) : null}
+        {inviteUrl ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-field border border-line bg-white px-3 py-2 text-[12px]">
+            <code className="flex-1 break-all">{inviteUrl}</code>
+            <button
+              type="button"
+              className="btn btn-sm w-auto px-3"
+              onClick={() => {
+                void navigator.clipboard.writeText(inviteUrl).then(() => setCopied(true));
+              }}
+            >
+              {copied ? 'Copiado ✓' : 'Copiar enlace'}
+            </button>
+          </div>
+        ) : null}
 
         {open ? (
           <Panel title="Invitar a una cuenta de Yugo">
@@ -134,8 +162,10 @@ export default function PortalUsersPage() {
               </div>
             </div>
             <p className="mt-2 text-[11px] text-muted">
-              La persona debe tener ya una cuenta en Yugo: el portal no crea usuarios. El editor de
-              eventos publica y edita eventos; el administrador además gestiona códigos y usuarios.
+              Si la persona ya tiene cuenta en Yugo, entra al portal de inmediato. Si no, recibe un
+              enlace de invitación (7 días) que la lleva a crear su cuenta ya vinculada. El editor
+              de eventos publica y edita eventos; el administrador además gestiona códigos y
+              usuarios.
             </p>
           </Panel>
         ) : null}
@@ -184,6 +214,40 @@ export default function PortalUsersPage() {
         <p className="mt-2 text-[11px] text-muted">
           Roles del portal: administrador y editor de eventos (RF-IGL-02).
         </p>
+
+        {(invitations.data ?? []).length > 0 ? (
+          <div className="mt-6">
+            <h2 className="h-display mb-2 text-[15px]">Invitaciones pendientes</h2>
+            <DataTable headers={['Correo', 'Rol', 'Vence', '']}>
+              {(invitations.data ?? []).map((invitation) => (
+                <tr key={invitation.id}>
+                  <Td>{invitation.email}</Td>
+                  <Td>{ROLE_LABEL[invitation.role] ?? invitation.role}</Td>
+                  <Td>{new Date(invitation.expiresAt).toLocaleDateString('es-DO')}</Td>
+                  <Td>
+                    <span className="flex gap-1.5">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => void navigator.clipboard.writeText(invitation.inviteUrl)}
+                      >
+                        Copiar enlace
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={revoke.isPending}
+                        onClick={() => revoke.mutate(invitation.id)}
+                      >
+                        Anular
+                      </button>
+                    </span>
+                  </Td>
+                </tr>
+              ))}
+            </DataTable>
+          </div>
+        ) : null}
       </div>
     </div>
   );

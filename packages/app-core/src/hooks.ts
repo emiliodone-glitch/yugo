@@ -847,6 +847,39 @@ export function useSetAttendance() {
   });
 }
 
+/**
+ * RF-EVE-06: registrar la asistencia con el QR del evento. Acepta la URL
+ * completa que hay en el afiche (…/e/ID?ci=TOKEN) o el token suelto.
+ */
+export function checkInTokenFrom(scanned: string): string | null {
+  const text = scanned.trim();
+  if (!text) return null;
+  try {
+    const url = new URL(text);
+    const ci = url.searchParams.get('ci');
+    if (ci) return ci;
+  } catch {
+    // no era una URL: puede ser el token directamente
+  }
+  return /^[A-Za-z0-9_-]{12,64}$/.test(text) ? text : null;
+}
+
+export function useCheckIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (scanned: string) => {
+      const token = checkInTokenFrom(scanned);
+      if (!token) throw new Error('invalid_qr');
+      if (isDemoMode()) return { checkedIn: true, eventId: 'demo', eventTitle: 'Evento' };
+      return api().events.checkIn(token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['event'] });
+    },
+  });
+}
+
 /** RF-EVE-08: direct .ics link the browser downloads. */
 export function calendarUrl(eventId: string): string {
   return isDemoMode() ? '#' : api().events.calendarUrl(eventId);

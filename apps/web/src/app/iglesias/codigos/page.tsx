@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { es } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
@@ -83,14 +84,19 @@ export default function EndorsementCodesPage() {
       <BarTop
         title={es.church.endorsementCodes}
         right={
-          <button
-            type="button"
-            className="btn btn-olive btn-sm"
-            disabled={generate.isPending}
-            onClick={() => void generateBatch()}
-          >
-            {es.church.generateCodes(BATCH)}
-          </button>
+          <span className="flex items-center gap-1.5">
+            <Link href="/iglesias/codigos/imprimir" className="btn btn-ghost btn-sm">
+              Imprimir lote (PDF)
+            </Link>
+            <button
+              type="button"
+              className="btn btn-olive btn-sm"
+              disabled={generate.isPending}
+              onClick={() => void generateBatch()}
+            >
+              {es.church.generateCodes(BATCH)}
+            </button>
+          </span>
         }
       />
       <div className="p-6">

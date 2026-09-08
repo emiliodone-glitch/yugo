@@ -33,7 +33,15 @@ export class EventsService {
       orderBy: { startsAt: 'asc' },
       include: {
         church: { select: { name: true } },
-        attendances: { include: { user: { include: { profile: { select: { displayName: true, allowEventPresenceVisible: true } } } } } },
+        attendances: {
+          include: {
+            user: {
+              include: {
+                profile: { select: { displayName: true, allowEventPresenceVisible: true } },
+              },
+            },
+          },
+        },
       },
       take: 60,
     });
@@ -62,7 +70,10 @@ export class EventsService {
             (a) =>
               connectionIds.has(a.userId) && a.user.profile?.allowEventPresenceVisible !== false,
           )
-          .map((a) => ({ userId: a.userId, displayName: a.user.profile?.displayName ?? 'Miembro' }));
+          .map((a) => ({
+            userId: a.userId,
+            displayName: a.user.profile?.displayName ?? 'Miembro',
+          }));
         return {
           id: event.id,
           title: event.title,
@@ -144,7 +155,10 @@ export class EventsService {
             update: { status: 'WAITLIST' },
             create: { eventId, userId, status: 'WAITLIST' },
           });
-          return { status: 'WAITLIST' as const, position: await this.waitlistPosition(eventId, userId) };
+          return {
+            status: 'WAITLIST' as const,
+            position: await this.waitlistPosition(eventId, userId),
+          };
         }
       }
     }
@@ -211,7 +225,7 @@ export class EventsService {
       update: { checkedInAt: new Date() },
       create: { eventId: event.id, userId, status: 'GOING', checkedInAt: new Date() },
     });
-    return { checkedIn: true, eventTitle: event.title };
+    return { checkedIn: true, eventId: event.id, eventTitle: event.title };
   }
 
   /** Daily reminder sweep (RF-EVE-04): push 24 h before start. */
@@ -284,7 +298,10 @@ export class EventsService {
   async publicAgenda() {
     const events = await this.prisma.event.findMany({
       where: { status: 'PUBLISHED', startsAt: { gte: new Date() } },
-      include: { church: { select: { name: true, city: true } }, _count: { select: { attendances: true } } },
+      include: {
+        church: { select: { name: true, city: true } },
+        _count: { select: { attendances: true } },
+      },
       orderBy: { startsAt: 'asc' },
       take: 12,
     });
@@ -294,7 +311,10 @@ export class EventsService {
   async publicEvent(eventId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      include: { church: { select: { name: true, city: true } }, _count: { select: { attendances: true } } },
+      include: {
+        church: { select: { name: true, city: true } },
+        _count: { select: { attendances: true } },
+      },
     });
     if (!event || event.status !== 'PUBLISHED') throw new NotFoundException();
     return this.toPublic(event);

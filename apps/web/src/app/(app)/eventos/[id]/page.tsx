@@ -1,74 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { es } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
-import { calendarUrl, useEventDetail, useSetAttendance } from '@/lib/hooks';
+import { calendarUrl, useCheckIn, useEventDetail, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { EventCover } from '@/components/event-cover';
 import { PageHeader } from '@/components/page-header';
 import { QueryError } from '@/components/query-error';
 import { PageSkeleton } from '@/components/skeleton';
 import { PinIcon } from '@/components/icons';
-
-/** Simple deterministic QR rendered as an SVG matrix (RF-EVE-06). */
-function QrCode({ value, size = 160 }: { value: string; size?: number }) {
-  const cells = 21;
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  const cellSize = size / cells;
-  const isFinder = (row: number, col: number) => {
-    const inBox = (r0: number, c0: number) =>
-      row >= r0 && row < r0 + 7 && col >= c0 && col < c0 + 7;
-    const onRing = (r0: number, c0: number) => {
-      const dr = row - r0;
-      const dc = col - c0;
-      const edge = dr === 0 || dr === 6 || dc === 0 || dc === 6;
-      const core = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
-      return edge || core;
-    };
-    if (inBox(0, 0)) return onRing(0, 0);
-    if (inBox(0, cells - 7)) return onRing(0, cells - 7);
-    if (inBox(cells - 7, 0)) return onRing(cells - 7, 0);
-    return null;
-  };
-
-  const modules: React.ReactNode[] = [];
-  for (let row = 0; row < cells; row += 1) {
-    for (let col = 0; col < cells; col += 1) {
-      const finder = isFinder(row, col);
-      const filled =
-        finder !== null
-          ? finder
-          : ((hash >> ((row * cells + col) % 31)) ^ (row * 7 + col * 13)) % 3 === 0;
-      if (filled) {
-        modules.push(
-          <rect
-            key={`${row}-${col}`}
-            x={col * cellSize}
-            y={row * cellSize}
-            width={cellSize}
-            height={cellSize}
-            fill="#22315C"
-          />,
-        );
-      }
-    }
-  }
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      role="img"
-      aria-label="Código QR de check-in"
-    >
-      <rect width={size} height={size} fill="#fff" />
-      {modules}
-    </svg>
-  );
-}
 
 /**
  * Detalle de un encuentro. Lee el evento real de la agenda (antes buscaba
@@ -78,9 +21,24 @@ function QrCode({ value, size = 160 }: { value: string; size?: number }) {
 export default function EventDetailPage({ params }: { params: { id: string } }) {
   const detail = useEventDetail(params.id);
   const setAttendance = useSetAttendance();
-  const [showQr, setShowQr] = useState(false);
+  const checkIn = useCheckIn();
+  const search = useSearchParams();
+  const checkInToken = search.get('ci');
+  const [checkedIn, setCheckedIn] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const event = detail.data;
+
+  // Llegó desde el QR de la entrada (cámara del teléfono → web con sesión).
+  useEffect(() => {
+    if (!checkInToken || checkedIn || checkIn.isPending) return;
+    checkIn
+      .mutateAsync(checkInToken)
+      .then(() => {
+        setCheckedIn(true);
+        setNotice('¡Asistencia registrada! Que sea una bendición.');
+      })
+      .catch((caught) => setNotice(errorMessage(caught)));
+  }, [checkInToken, checkedIn, checkIn]);
 
   if (detail.isError) {
     return (
@@ -259,23 +217,15 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          {/* QR check-in (RF-EVE-06) */}
+          {/* Check-in (RF-EVE-06): el QR está en la entrada, no en el teléfono. */}
           {mine === 'GOING' ? (
-            <div className="card text-center">
-              {showQr ? (
-                <>
-                  <div className="mx-auto w-fit rounded-field border border-line p-2">
-                    <QrCode value={event.id} />
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted">
-                    Muestra este código en la entrada para registrar tu asistencia.
-                  </p>
-                </>
-              ) : (
-                <button type="button" className="btn btn-ghost" onClick={() => setShowQr(true)}>
-                  {es.events.checkIn}
-                </button>
-              )}
+            <div className="card">
+              <b className="text-[12.5px]">{es.events.checkIn}</b>
+              <p className="mt-1 text-[12px] text-muted">
+                {checkedIn
+                  ? 'Tu asistencia ya quedó registrada para este evento.'
+                  : 'Al llegar, escanea el QR de la entrada con la app de Yugo (Eventos › Registrar mi asistencia) o con la cámara de tu teléfono. La iglesia solo ve el total de asistentes, nunca tu nombre.'}
+              </p>
             </div>
           ) : null}
 

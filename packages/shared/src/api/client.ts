@@ -304,6 +304,24 @@ export interface ChurchOfficialGroup {
   }>;
 }
 
+/** Resultado de invitar: acceso inmediato si la cuenta existe, enlace si no. */
+export interface ChurchInviteResult {
+  id: string;
+  role: string;
+  invited: boolean;
+  inviteUrl?: string;
+  expiresAt?: string;
+}
+
+export interface ChurchInvitationRow {
+  id: string;
+  email: string;
+  role: 'ADMIN' | 'EVENT_EDITOR';
+  inviteUrl: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface ChurchPortalUser {
   id: string;
   userId: string;
@@ -1072,7 +1090,10 @@ export class YugoApiClient {
     setAttendance: (eventId: string, status: 'GOING' | 'INTERESTED' | null) =>
       this.http.post<{ status: string | null }>(`/events/${eventId}/attendance`, { status }),
     checkIn: (qrToken: string) =>
-      this.http.post<{ checkedIn: boolean; eventTitle: string }>('/events/check-in', { qrToken }),
+      this.http.post<{ checkedIn: boolean; eventId: string; eventTitle: string }>(
+        '/events/check-in',
+        { qrToken },
+      ),
     /** RF-EVE-08: direct link the device opens to add it to the calendar. */
     calendarUrl: (eventId: string) => this.http.url(`/events/${eventId}/calendar.ics`),
   };
@@ -1206,9 +1227,23 @@ export class YugoApiClient {
     officialGroup: () => this.http.get<ChurchOfficialGroup | null>('/church-portal/group'),
     users: () => this.http.get<ChurchPortalUser[]>('/church-portal/users'),
     inviteUser: (email: string, role: 'ADMIN' | 'EVENT_EDITOR') =>
-      this.http.post<{ id: string; role: string }>('/church-portal/users/invite', { email, role }),
+      this.http.post<ChurchInviteResult>('/church-portal/users/invite', { email, role }),
     removeUser: (churchUserId: string) =>
       this.http.delete<{ removed: boolean }>(`/church-portal/users/${churchUserId}`),
+    /** Invitaciones por enlace pendientes (RF-IGL-02). */
+    invitations: () => this.http.get<ChurchInvitationRow[]>('/church-portal/invitations'),
+    revokeInvitation: (id: string) =>
+      this.http.delete<{ revoked: boolean }>(`/church-portal/invitations/${id}`),
+    acceptInvitation: (token: string) =>
+      this.http.post<{ churchId: string; churchName: string; role: string }>(
+        '/church-portal/invitations/accept',
+        { token },
+      ),
+    /** QR de entrada de un evento publicado, para imprimir (RF-EVE-06). */
+    eventQr: (eventId: string) =>
+      this.http.get<{ token: string; url: string; title: string }>(
+        `/church-portal/events/${eventId}/qr`,
+      ),
     /** Ministerio de solteros: totales, nunca nombres. */
     singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
   };

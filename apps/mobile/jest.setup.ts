@@ -45,6 +45,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 jest.mock('expo-device', () => ({ isDevice: false }));
 jest.mock('expo-notifications', () => ({
+  getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(async () => ({ granted: false })),
   requestPermissionsAsync: jest.fn(async () => ({ granted: false })),
@@ -53,6 +54,11 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   AndroidImportance: { DEFAULT: 3 },
 }));
+jest.mock('expo-camera', () => ({
+  CameraView: () => null,
+  useCameraPermissions: () => [{ granted: false, canAskAgain: true }, jest.fn()],
+}));
+
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(async () => ({ canceled: true })),
   launchCameraAsync: jest.fn(async () => ({ canceled: true })),
@@ -83,7 +89,8 @@ jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
 };
 jest.mock('expo-router', () => {
   const R = require('react');
-  const params = () => (globalThis as Record<string, unknown>).__routeParams as Record<string, string>;
+  const params = () =>
+    (globalThis as Record<string, unknown>).__routeParams as Record<string, string>;
   const Passthrough = ({ children }: { children?: unknown }) =>
     R.createElement(R.Fragment, null, children ?? null);
   const Screen = () => null;
@@ -98,7 +105,7 @@ jest.mock('expo-router', () => {
     useSegments: () => [],
     useFocusEffect: (cb: () => void) => R.useEffect(cb, []),
     Link: Passthrough,
-    Redirect: () => null,
+    Redirect: () => R.createElement(require('react-native').View),
     Stack,
     Tabs,
     Slot: Passthrough,
@@ -114,5 +121,9 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { 
 // React que no existe en el dispositivo y vuelve la suite intermitente.
 {
   const { AccessibilityInfo } = require('react-native');
-  (AccessibilityInfo.addEventListener as jest.Mock).mockImplementation(() => ({ remove: jest.fn() }));
+  (AccessibilityInfo.addEventListener as jest.Mock).mockImplementation(() => ({
+    remove: jest.fn(),
+  }));
+  // Y la consulta inicial devuelve una promesa, como en el dispositivo.
+  AccessibilityInfo.isReduceMotionEnabled = jest.fn(() => Promise.resolve(false));
 }

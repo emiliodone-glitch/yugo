@@ -12,13 +12,43 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "do.yugo.app"
+      "bundleIdentifier": "do.yugo.app",
+      "associatedDomains": ["applinks:yugoweb-production.up.railway.app"]
     },
     "android": {
       "package": "do.yugo.app",
       "adaptiveIcon": {
         "backgroundColor": "#22315C"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "yugoweb-production.up.railway.app",
+              "pathPrefix": "/e"
+            },
+            {
+              "scheme": "https",
+              "host": "yugoweb-production.up.railway.app",
+              "pathPrefix": "/eventos"
+            },
+            {
+              "scheme": "https",
+              "host": "yugoweb-production.up.railway.app",
+              "pathPrefix": "/comunidad"
+            },
+            {
+              "scheme": "https",
+              "host": "yugoweb-production.up.railway.app",
+              "pathPrefix": "/iglesias/invitacion"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
@@ -34,6 +64,12 @@
         "expo-notifications",
         {
           "color": "#22315C"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Yugo usa la cámara para leer el QR de entrada de los eventos."
         }
       ]
     ],

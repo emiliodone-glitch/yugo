@@ -10,7 +10,8 @@ export type EmailTemplate =
   | 'WEEKLY_DIGEST'
   | 'MODERATION_NOTICE'
   | 'DATA_EXPORT_READY'
-  | 'NOTIFICATION';
+  | 'NOTIFICATION'
+  | 'CHURCH_INVITE';
 
 interface TemplateInput {
   displayName?: string;
@@ -213,6 +214,27 @@ export function renderTemplate(
             (devotional ? p(`Devocional de hoy: <i>«${devotional}»</i>.`) : '') +
             p(
               'Ábrelo cuando tengas un momento tranquilo. Si prefieres no recibir este resumen, apágalo en Notificaciones dentro de la app.',
+            ),
+        ),
+      };
+    }
+    case 'CHURCH_INVITE': {
+      const church = String(input.churchName ?? 'tu iglesia');
+      const role = input.role === 'ADMIN' ? 'administrador' : 'editor de eventos';
+      const url = String(input.inviteUrl ?? '');
+      return {
+        subject: `${church} te invita a su portal en Yugo`,
+        text: `Te invitaron como ${role} del portal de ${church} en Yugo. Abre este enlace para aceptar (vence en 7 días): ${url}`,
+        html: layout(
+          `${church} te invita a su portal`,
+          p(
+            `Te invitaron como <b>${role}</b> del portal de ${church} en Yugo: eventos, códigos de respaldo y métricas de la congregación.`,
+          ) +
+            p(
+              `<a href="${url}" style="display:inline-block;background:${BRAND.ink};color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:600">Aceptar la invitación</a>`,
+            ) +
+            p(
+              'Si todavía no tienes cuenta en Yugo, el mismo enlace te lleva a crearla. Vence en 7 días.',
             ),
         ),
       };

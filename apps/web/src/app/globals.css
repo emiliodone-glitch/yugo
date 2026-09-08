@@ -78,3 +78,16 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Impresión: solo el contenido (QR de entrada, lote de códigos). */
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .print-page {
+    break-after: page;
+  }
+}
