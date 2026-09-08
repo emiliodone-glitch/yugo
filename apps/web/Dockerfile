@@ -7,6 +7,7 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/ui-tokens/package.json packages/ui-tokens/
+COPY packages/app-core/package.json packages/app-core/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile
 
@@ -18,8 +19,11 @@ ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_DEMO_MODE=false
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_DEMO_MODE=$NEXT_PUBLIC_DEMO_MODE
+# app-core (hooks y estado de la app) va después de shared, del que depende.
+# Faltaba aquí y el primer build real falló con «Can't resolve '@yugo/app-core'».
 RUN pnpm --filter @yugo/ui-tokens build \
  && pnpm --filter @yugo/shared build \
+ && pnpm --filter @yugo/app-core build \
  && pnpm --filter @yugo/web build
 
 FROM base AS runtime
@@ -27,11 +31,13 @@ ENV NODE_ENV=production
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/ui-tokens/package.json packages/ui-tokens/
+COPY packages/app-core/package.json packages/app-core/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/packages/shared/dist packages/shared/dist
 COPY --from=build /app/packages/ui-tokens/dist packages/ui-tokens/dist
+COPY --from=build /app/packages/app-core/dist packages/app-core/dist
 COPY --from=build /app/apps/web/.next apps/web/.next
 COPY --from=build /app/apps/web/next.config.mjs apps/web/
 COPY --from=build /app/apps/web/public apps/web/public

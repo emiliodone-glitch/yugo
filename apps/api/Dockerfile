@@ -33,7 +33,11 @@ COPY --from=build /app/packages/shared/dist packages/shared/dist
 COPY --from=build /app/packages/ui-tokens/dist packages/ui-tokens/dist
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/api/prisma apps/api/prisma
-COPY --from=build /app/node_modules/.prisma node_modules/.prisma
+# El cliente de Prisma se genera aquí, no se copia: con pnpm vive dentro de
+# node_modules/.pnpm/@prisma+client@<versión>/…, una ruta que cambia con cada
+# versión. Copiar node_modules/.prisma fallaba con «not found» en el primer
+# build real en Railway.
+RUN pnpm --filter @yugo/api exec prisma generate
 
 # Never run as root in production.
 RUN addgroup -S yugo && adduser -S yugo -G yugo

@@ -54,6 +54,24 @@ Lo que apareció y se corrigió:
 - `expo-system-ui` instalado: `userInterfaceStyle: light` no se aplicaba en
   Android sin él (lo avisaba el prebuild).
 
+### El primer build real en Railway, y lo que enseñó
+Los dos Dockerfiles fallaron en su primera construcción de verdad, como se
+había avisado que podía pasar:
+
+- **API:** copiaba `node_modules/.prisma` desde la etapa de build, pero con
+  pnpm el cliente generado vive en `node_modules/.pnpm/@prisma+client@<v>/…`
+  («not found»). Ahora la etapa de producción corre `prisma generate` ella
+  misma; el CLI ya es dependencia de producción.
+- **Web:** la etapa de dependencias no incluía `@yugo/app-core`, del que la
+  web depende para hooks y estado («Can't resolve '@yugo/app-core'»). Ahora
+  se instala, se compila después de `shared` y su `dist` va a la imagen final.
+
+Las dos correcciones se verificaron reproduciendo cada etapa fuera de Docker
+con exactamente los mismos `COPY`: instalación parcial del workspace con el
+lockfile congelado, compilación de los paquetes y `next build` completo (51
+páginas) para la web; instalación solo de producción, `prisma generate` y
+carga de `@prisma/client` para la API.
+
 ### Primer arranque sin manos: la API siembra si la base está vacía
 Con `SEED_ON_BOOT=true`, el contenedor corre `prisma/seed-if-empty.ts` tras
 las migraciones: si no hay denominaciones, siembra el catálogo y los datos de
