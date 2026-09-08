@@ -217,6 +217,8 @@ API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 | --- | --- | --- |
 | La API reinicia en bucle y los logs dicen `postgis` | El Postgres no tiene PostGIS | Usar la imagen `postgis/postgis:16-3.4` (paso 2) |
 | `P1001 Can't reach database` | `DATABASE_URL` con host público o contraseña mal | Usar `postgres.railway.internal` y la contraseña del servicio |
+| `P1013 … empty host in database URL` al arrancar | La referencia `${{postgres.RAILWAY_PRIVATE_DOMAIN}}` quedó vacía: no existe un servicio llamado exactamente `postgres` | Crear el servicio PostGIS (paso 2) o renombrarlo a `postgres`; la API redespliega sola |
+| La API arranca sin correr migraciones ni semilla | Railway puso un «Custom Start Command» (`pnpm start`) al detectar el monorepo | Da igual: `start` y el CMD ejecutan `start.mjs`, que migra, siembra si procede y arranca. Si quieres limpiarlo: Settings → Deploy → Custom Start Command vacío |
 | La web carga pero todo está vacío y la consola dice CORS | `WEB_URL` en la API no coincide con el dominio de la web | Poner la URL exacta con `https://` y sin barra final |
 | La web muestra datos de demo | `NEXT_PUBLIC_DEMO_MODE=true` en el build | Ponerla en `false` y redesplegar la web |
 | Nadie puede entrar como admin | 2FA por correo con `OTP_PROVIDER=console` | Leer el código en los logs de la API, o configurar SMTP |
