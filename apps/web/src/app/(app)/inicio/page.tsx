@@ -5,6 +5,7 @@ import { es } from '@yugo/shared';
 import { useHomeSummary, useSession, useSetAttendance } from '@/lib/hooks';
 import { Avatar, AffinityRing } from '@/components/ui';
 import { DevotionalCard } from '@/components/devotional';
+import { QueryError } from '@/components/query-error';
 import { usePrayerWall } from '@/lib/hooks';
 import { CalendarIcon, PinIcon } from '@/components/icons';
 
@@ -70,7 +71,7 @@ function formatEventDay(iso: string): string {
 }
 
 export default function HomePage() {
-  const { data, isLoading } = useHomeSummary();
+  const { data, isLoading, isError, error, refetch } = useHomeSummary();
   const { data: session } = useSession();
   const setAttendance = useSetAttendance();
 
@@ -82,8 +83,12 @@ export default function HomePage() {
   const today = formatDate(new Date());
   const displayName = session?.displayName ?? 'hermano';
 
-  if (isLoading || !summary) {
+  if (isLoading) {
     return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+  }
+  // Una petición fallida no es «cargando»: se dice, y se puede reintentar.
+  if (isError || !summary) {
+    return <QueryError error={error} onRetry={() => void refetch()} />;
   }
 
   return (

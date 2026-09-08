@@ -54,6 +54,26 @@ Lo que apareció y se corrigió:
 - `expo-system-ui` instalado: `userInterfaceStyle: light` no se aplicaba en
   Android sin él (lo avisaba el prebuild).
 
+### La primera entrada real a la web, y lo que enseñó
+Con la API ya arriba en Railway, la web «entraba» sin pedir credenciales y se
+quedaba en «Cargando…». Tres defectos que la demo tapaba, corregidos y
+verificados en Chromium contra una API real (modo sin demo):
+
+- **«Ya tengo cuenta» enlazaba a `/inicio`**, no a `/entrar`, y la zona de
+  miembros no comprobaba la sesión: cada pantalla disparaba peticiones que
+  volvían 401. Ahora hay una puerta de sesión (`SessionGate`) que manda a
+  `/entrar?next=/ruta` y vuelve a esa ruta después de entrar.
+- **`GET /events/featured` devolvía filas crudas** en vez de `EventSummary`:
+  Inicio leía `connectionsGoing.length` y se caía con «Application error» en
+  la primera entrada real. Ahora reutiliza la agenda (mismo formato, con
+  `myStatus` y conexiones que asisten). La suite de humo comprueba el contrato.
+- **Los errores se mostraban como «Cargando…»**: Inicio mezclaba «cargando»
+  con «falló». Ahora hay estado de error con «Reintentar», y un aviso en la
+  cáscara de la app cuando la API no responde que incluye la URL configurada,
+  porque el error más común en un despliegue nuevo es una URL mal puesta.
+- Detalle que salió en la misma prueba: una contraseña incorrecta decía «Tu
+  sesión expiró». El código de error conocido manda sobre el estado 401.
+
 ### El primer build real en Railway, y lo que enseñó
 Los dos Dockerfiles fallaron en su primera construcción de verdad, como se
 había avisado que podía pasar:

@@ -19,7 +19,7 @@ export class EventsService {
   /** RF-EVE-03: agenda with distance and connection presence (RF-EVE-05). */
   async agenda(
     userId: string,
-    filters: { type?: string; maxKm?: number; from?: Date; to?: Date } = {},
+    filters: { type?: string; maxKm?: number; from?: Date; to?: Date; featured?: boolean } = {},
   ) {
     const profile = await this.prisma.profile.findUnique({ where: { userId } });
 
@@ -28,6 +28,7 @@ export class EventsService {
         status: 'PUBLISHED',
         startsAt: { gte: filters.from ?? new Date(), ...(filters.to ? { lte: filters.to } : {}) },
         ...(filters.type ? { type: filters.type as never } : {}),
+        ...(filters.featured ? { featured: true } : {}),
       },
       orderBy: { startsAt: 'asc' },
       include: {
@@ -307,14 +308,18 @@ export class EventsService {
     };
   }
 
-  /** RF-EVE-07: the events the community manager pinned to the home screen. */
-  async featured() {
-    return this.prisma.event.findMany({
-      where: { status: 'PUBLISHED', featured: true, startsAt: { gt: new Date() } },
-      include: { church: { select: { name: true } } },
-      orderBy: { startsAt: 'asc' },
-      take: 5,
-    });
+  /**
+   * RF-EVE-07: the events the community manager pinned to the home screen.
+   *
+   * Same shape as the agenda (EventSummary): the home screen reads
+   * `connectionsGoing`, `typeName`, `myStatus`… from it. An earlier version
+   * returned raw rows and the first real sign-in crashed the home screen on
+   * `connectionsGoing.length`; demo mode never noticed because its fixtures
+   * were already summaries.
+   */
+  async featured(userId: string) {
+    const events = await this.agenda(userId, { featured: true });
+    return events.slice(0, 5);
   }
 }
 

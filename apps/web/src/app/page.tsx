@@ -30,7 +30,7 @@ export default function WelcomePage() {
             {es.welcome.createProfile}
           </Link>
           <Link
-            href="/inicio"
+            href="/entrar"
             className="btn mt-2 border-[1.5px] border-white/40 bg-transparent text-white"
           >
             {es.welcome.haveAccount}

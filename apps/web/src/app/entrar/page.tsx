@@ -17,12 +17,20 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // A dónde volver después de entrar: la puerta de la zona de miembros manda
+  // aquí con ?next=/ruta. Solo rutas internas, para que un enlace externo no
+  // pueda usar la pantalla de entrada como trampolín.
+  const destination = () => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    return next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio';
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
     if (DEMO_MODE) {
-      router.push('/inicio');
+      router.push(destination());
       return;
     }
 
@@ -38,7 +46,7 @@ export default function SignInPage() {
       } else {
         await getApiClient().auth.loginSecondFactor(identifier, code);
       }
-      router.push('/inicio');
+      router.push(destination());
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {

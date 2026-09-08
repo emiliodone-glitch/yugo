@@ -25,8 +25,8 @@ export class EventsController {
   }
 
   @Get('featured')
-  featured() {
-    return this.events.featured();
+  featured(@CurrentUser() user: AuthUser) {
+    return this.events.featured(user.id);
   }
 
   /** RF-EVE-08: enlace público compartible, sin datos de miembros. */

@@ -19,6 +19,7 @@ export const es = {
     send: 'Enviar',
     search: 'Buscar',
     loading: 'Cargando…',
+    retry: 'Reintentar',
     free: 'Gratis',
     required: 'Obligatorio',
     optional: 'Opcional',
@@ -791,6 +792,8 @@ export const es = {
   errors: {
     generic: 'Algo salió mal. Inténtalo de nuevo.',
     network: 'Sin conexión. Revisa tu internet.',
+    apiUnreachable: 'Yugo no puede comunicarse con el servidor en este momento.',
+    apiUnreachableHint: (url: string) => `Dirección configurada: ${url}. Si eres quien administra el despliegue, revisa NEXT_PUBLIC_API_URL en la web y WEB_URL en la API.`,
     unauthorized: 'Tu sesión expiró. Vuelve a entrar.',
     underage: 'Debes tener al menos 18 años para usar Yugo.',
     ageRangeSpan: 'El rango debe tener al menos 3 años de amplitud.',

@@ -152,6 +152,6 @@ jobs:
       - run: pnpm --filter @yugo/ui-tokens build && pnpm --filter @yugo/shared build && pnpm --filter @yugo/api prisma:generate
       - name: Suite de humo
         env:
-          API_BASE_URL: ${{ vars.RAILWAY_API_URL }}/v1
+          SMOKE_BASE_URL: ${{ vars.RAILWAY_API_URL }}/v1
           DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
         run: pnpm --filter @yugo/api test:smoke

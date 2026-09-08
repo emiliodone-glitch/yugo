@@ -48,10 +48,25 @@ const MESSAGES: Record<string, string> = {
 
 const GENERIC = 'Algo salió mal. Inténtalo de nuevo.';
 const EXPIRED_SESSION = 'Tu sesión expiró. Vuelve a entrar.';
+// `fetch` rejects with a TypeError when the server cannot be reached at all:
+// no network, DNS failure, CORS refusal or a wrong API URL. That is a very
+// different situation from "the server answered with an error", and a member
+// (or whoever is configuring a deployment) needs to hear it in those words.
+const UNREACHABLE = 'No se pudo conectar con el servidor. Revisa tu internet o inténtalo en un momento.';
+
+/** True when the request never reached the API (network, DNS, CORS, bad URL). */
+export function isUnreachableError(error: unknown): boolean {
+  return error instanceof TypeError;
+}
 
 /** Turns anything thrown by the client into a sentence a member can read. */
 export function apiErrorMessage(error: unknown): string {
+  if (isUnreachableError(error)) return UNREACHABLE;
   if (!(error instanceof ApiError)) return GENERIC;
+  // A known code wins over the status: `invalid_credentials` also travels as
+  // a 401, and "your session expired" is the wrong sentence for a typo in the
+  // password on the sign-in screen.
+  if (MESSAGES[error.code]) return MESSAGES[error.code];
   if (error.isUnauthorized) return EXPIRED_SESSION;
-  return MESSAGES[error.code] ?? GENERIC;
+  return GENERIC;
 }

@@ -40,6 +40,15 @@ export const API_BASE_URL = `${
 }/v1`;
 
 /**
+ * Whether this browser holds tokens for the live API. Cheap and synchronous:
+ * the member area uses it to send people without a session to /entrar before
+ * firing requests that would only come back as 401s.
+ */
+export function hasStoredSession(): boolean {
+  return new BrowserTokenStorage().read() !== null;
+}
+
+/**
  * Demo mode renders the whole UI from the shared fixtures so the product can
  * be reviewed without infrastructure. With `NEXT_PUBLIC_DEMO_MODE=false` the
  * same screens talk to the live API through this client.

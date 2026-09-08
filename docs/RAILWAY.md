@@ -193,7 +193,7 @@ Desde tu máquina, contra la API desplegada:
 
 ```bash
 cd apps/api
-API_BASE_URL=https://<api>/v1 pnpm test:smoke
+SMOKE_BASE_URL=https://<api>/v1 pnpm test:smoke
 ```
 
 La suite de humo recorre registro, Descubrir, conexión, chat, etapas,
@@ -221,6 +221,7 @@ API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 | La API arranca sin correr migraciones ni semilla | Railway puso un «Custom Start Command» (`pnpm start`) al detectar el monorepo | Da igual: `start` y el CMD ejecutan `start.mjs`, que migra, siembra si procede y arranca. Si quieres limpiarlo: Settings → Deploy → Custom Start Command vacío |
 | La web carga pero todo está vacío y la consola dice CORS | `WEB_URL` en la API no coincide con el dominio de la web | Poner la URL exacta con `https://` y sin barra final |
 | La web muestra datos de demo | `NEXT_PUBLIC_DEMO_MODE=true` en el build | Ponerla en `false` y redesplegar la web |
+| La web muestra «Yugo no puede comunicarse con el servidor» con una dirección rara o vacía | `NEXT_PUBLIC_API_URL` no se resolvió al construir: las referencias `${{api.…}}` solo funcionan si el servicio se llama exactamente `api` (Railway nombra `@yugo/api` a los que crea desde el monorepo) | Poner la URL literal de la API (`https://…up.railway.app`, sin `/v1`) y redesplegar la web; lo mismo con `WEB_URL` en la API |
 | Nadie puede entrar como admin | 2FA por correo con `OTP_PROVIDER=console` | Leer el código en los logs de la API, o configurar SMTP |
 | Las fotos no suben | Variables `S3_*` vacías | Configurar R2/S3 (RF-PER-02) |
 

@@ -12,6 +12,7 @@ import {
   UserIcon,
   YugoMark,
 } from './icons';
+import { ApiStatusBanner, SessionGate } from './session-gate';
 
 const TABS = [
   { href: '/inicio', label: es.tabs.home, Icon: HomeIcon },
@@ -79,7 +80,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           wide ? 'xl:max-w-5xl' : ''
         }`}
       >
-        {children}
+        <SessionGate>
+          <ApiStatusBanner />
+          {children}
+        </SessionGate>
       </main>
 
       {/* Mobile tab bar (mockup) */}

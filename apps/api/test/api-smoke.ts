@@ -370,10 +370,14 @@ async function main() {
   const outsideMyRange = items.filter((p) => p.age < myMin || p.age > myMax);
   check('todos caen dentro de mi rango', outsideMyRange.length === 0, outsideMyRange);
 
-  const sortedByAffinity = items.every(
-    (item, index) => index === 0 || items[index - 1].affinity.total >= item.affinity.total,
+  // Un perfil destacado (RF-PLU: 24 horas al frente) va primero por diseño;
+  // el orden por afinidad se comprueba entre los demás. Sin esto, correr la
+  // suite dos veces el mismo día falla sola: la primera corrida destaca uno.
+  const regular = items.filter((p) => !p.isFeatured);
+  const sortedByAffinity = regular.every(
+    (item, index) => index === 0 || regular[index - 1].affinity.total >= item.affinity.total,
   );
-  check('vienen ordenados por afinidad', sortedByAffinity, items.map((p) => p.affinity.total));
+  check('vienen ordenados por afinidad', sortedByAffinity, regular.map((p) => p.affinity.total));
 
   // RF-DES-02: el porqué se calcula en el servidor, no en la pantalla.
   const withoutReason = items.filter((p) => !p.affinityReason);
@@ -881,6 +885,21 @@ async function main() {
     }
   }
 
+  console.log('\nEventos destacados — el mismo formato que la agenda');
+  {
+    // Inicio lee `connectionsGoing.length` y `typeName` del primer destacado.
+    // Cuando este endpoint devolvía filas crudas, la primera entrada real a la
+    // web se caía; la demo nunca lo vio porque sus fixtures ya eran resúmenes.
+    const featured = await call('GET', '/events/featured', { token });
+    check('destacados responde 200', featured.status === 200, featured.status);
+    const first = (featured.body ?? [])[0];
+    check(
+      'cada destacado trae el formato de la agenda (connectionsGoing, typeName)',
+      !first || (Array.isArray(first.connectionsGoing) && typeof first.typeName === 'string'),
+      first && { keys: Object.keys(first) },
+    );
+  }
+
   console.log('\nDevocional del día — el mismo texto para todos');
   {
     const devotional = await call('GET', '/devocional/hoy', { token });
@@ -963,6 +982,13 @@ async function main() {
       schedule.body?.runwayDays,
     );
 
+    // El devocional que la gente leyó en esta misma suite, capturado ANTES de
+    // escribir uno nuevo: si la reserva está en cero, el «primer día libre» es
+    // hoy, y después de escribirlo /devocional/hoy devolvería ese, sin lecturas.
+    const readOne = await call('GET', '/devocional/hoy', { token });
+    const readDate =
+      String(readOne.body?.publishOn ?? '').slice(0, 10) || (schedule.body?.today as string);
+
     // Escribir el primer día libre después de lo programado.
     const taken = new Set((schedule.body?.items ?? []).map((d: { publishOn: string }) => d.publishOn));
     let free = schedule.body?.today as string;
@@ -989,9 +1015,8 @@ async function main() {
       { before, after: after.body?.runwayDays },
     );
 
-    // El de hoy ya lo leyó gente en esta misma suite: no se reescribe.
-    const today = schedule.body?.today as string;
-    const overwrite = await call('PUT', `/admin/devocionales/${today}`, {
+    // El que la gente leyó en esta misma suite no se reescribe.
+    const overwrite = await call('PUT', `/admin/devocionales/${readDate}`, {
       token: adminToken,
       body: {
         reference: 'Salmo 1:1',
