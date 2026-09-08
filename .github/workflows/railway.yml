@@ -24,10 +24,10 @@ on:
   workflow_dispatch:
     inputs:
       service:
-        description: 'Qué desplegar'
+        description: 'Qué desplegar (ninguno = solo sembrar o probar; útil si Railway ya despliega desde GitHub)'
         type: choice
         default: ambos
-        options: [ambos, api, web]
+        options: [ambos, api, web, ninguno]
       seed:
         description: 'Sembrar catálogo y datos de demo (solo la primera vez; necesita el secreto SEED_DATABASE_URL)'
         type: boolean
@@ -78,7 +78,7 @@ jobs:
 
       # La API dice si arrancó de verdad. Sin dominio configurado se omite.
       - name: Esperar a que la API esté sana
-        if: ${{ vars.RAILWAY_API_URL != '' && (github.event_name == 'push' || inputs.service != 'web') }}
+        if: ${{ vars.RAILWAY_API_URL != '' && (github.event_name == 'push' || inputs.service == 'ambos' || inputs.service == 'api') }}
         env:
           API_URL: ${{ vars.RAILWAY_API_URL }}
         run: |
