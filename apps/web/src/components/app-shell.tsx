@@ -22,25 +22,33 @@ const TABS = [
   { href: '/eventos', label: es.tabs.events, Icon: CalendarIcon },
 ] as const;
 
+const startsWithAny = (pathname: string, prefixes: string[]) =>
+  prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
 /**
  * Member app shell: on mobile, a centered column with the 5-tab bottom bar
  * (exactly the mockups' tabbar); on desktop, a fixed left rail with the same
  * navigation plus profile access.
+ *
+ * En escritorio el contenido va **centrado** en el espacio que queda a la
+ * derecha del riel, con un ancho útil de hasta 1400 px. Antes quedaba pegado
+ * al riel y limitado a ~1000 px, y en una pantalla de 1920 la mitad derecha
+ * se veía vacía: parecía una web a medio hacer.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
-  // En pantallas anchas la web usa el ancho, como una web: las secciones se
-  // abren a ~1000 px y Conexiones a más, porque lleva lista y chat lado a
-  // lado. Lo que se lee con calma —el devocional, una oración, el plan Plus,
-  // un texto legal— se queda en una columna de lectura: un párrafo estirado a
-  // 1000 px se lee peor, no mejor.
-  const reading = ['/devocional', '/oracion', '/plus', '/legal'].some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-  const split = pathname === '/conexiones' || pathname.startsWith('/conexiones/');
-  const widthAtXl = split ? 'xl:max-w-6xl' : reading ? 'xl:max-w-3xl' : 'xl:max-w-5xl';
+  // Lo que se lee con calma —el devocional, el plan Plus, un texto legal— se
+  // queda en columna de lectura: un párrafo estirado a 1400 px se lee peor.
+  // El muro de oración va a dos columnas en un ancho intermedio.
+  const reading = startsWithAny(pathname, ['/devocional', '/plus', '/legal']);
+  const medium = startsWithAny(pathname, ['/oracion']);
+  const split = startsWithAny(pathname, ['/conexiones']);
+  const widthAtXl = reading ? 'xl:max-w-3xl' : medium ? 'xl:max-w-5xl' : 'xl:max-w-[1400px]';
+  // Plus tiene fondo oscuro de borde a borde: si solo lo pintara la página,
+  // el resto del área quedaría claro y se vería partido.
+  const dark = pathname === '/plus';
 
   return (
     <div className="min-h-dvh md:flex">
@@ -82,16 +90,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column */}
       <main
-        className={`mx-auto w-full max-w-xl flex-1 pb-24 md:ml-[220px] md:max-w-2xl ${
+        className={`w-full flex-1 pb-24 md:pl-[220px] ${
           // Conexiones ocupa el alto exacto de la ventana (lista y chat con su
           // propio scroll); un relleno inferior haría scroll a toda la página.
           split ? 'xl:pb-0 md:pb-8' : 'md:pb-8'
-        } ${widthAtXl}`}
+        } ${dark ? 'bg-ink' : ''}`}
       >
-        <SessionGate>
-          <ApiStatusBanner />
-          {children}
-        </SessionGate>
+        <div className={`mx-auto w-full max-w-xl md:max-w-2xl xl:px-6 ${widthAtXl}`}>
+          <SessionGate>
+            <ApiStatusBanner />
+            {children}
+          </SessionGate>
+        </div>
       </main>
 
       {/* Mobile tab bar (mockup) */}
@@ -127,7 +137,7 @@ export function ScreenHeader({
     <div className="flex items-center justify-between px-4 pb-1.5 pt-3">
       <div>
         {sub ? <div className="text-xs text-muted">{sub}</div> : null}
-        <h1 className="h-display text-[19px]">{title}</h1>
+        <h1 className="h-display text-[19px] lg:text-[24px]">{title}</h1>
       </div>
       {right}
     </div>

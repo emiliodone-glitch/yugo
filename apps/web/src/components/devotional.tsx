@@ -68,7 +68,9 @@ export function DevotionalCard({ compact = false }: { compact?: boolean }) {
         en algo compartido: no importa que 312 personas lo leyeran, importa que
         las de tu iglesia leyeron lo mismo que tú.
       */}
-      <p className="mt-3 text-[12px] text-muted">{es.devotional.churchRead(data.churchReadCount)}</p>
+      <p className="mt-3 text-[12px] text-muted">
+        {es.devotional.churchRead(data.churchReadCount)}
+      </p>
       <p className="text-[11px] text-muted">{constancyLabel(data.constancy)}</p>
 
       {!compact ? <DevotionalReflection /> : null}
@@ -123,16 +125,17 @@ function DevotionalReflection() {
           {es.devotional.reflectionLabel}
         </div>
         <p className="mt-1 text-[13px]">{data.myReflection}</p>
-        {held ? (
-          <p className="mt-1 text-[11px] text-wine">{es.devotional.reflectionHeld}</p>
-        ) : null}
+        {held ? <p className="mt-1 text-[11px] text-wine">{es.devotional.reflectionHeld}</p> : null}
       </div>
     );
   }
 
   return (
     <div className="mt-3">
-      <label className="text-[11px] font-semibold uppercase tracking-wide text-muted" htmlFor="reflection">
+      <label
+        className="text-[11px] font-semibold uppercase tracking-wide text-muted"
+        htmlFor="reflection"
+      >
         {es.devotional.reflectionLabel}
       </label>
       <textarea
@@ -165,7 +168,14 @@ function DevotionalReflection() {
 // Muro de oración
 // ---------------------------------------------------------------------------
 
-export function PrayerWall({ showTitle = true }: { showTitle?: boolean }) {
+export function PrayerWall({
+  showTitle = true,
+  columns = false,
+}: {
+  showTitle?: boolean;
+  /** En pantalla ancha, las peticiones a dos columnas (masonry por CSS). */
+  columns?: boolean;
+}) {
   const [scope, setScope] = useState<'community' | 'church'>('community');
   const { data } = usePrayerWall(scope);
   const viewerId = useCurrentUserId();
@@ -197,9 +207,11 @@ export function PrayerWall({ showTitle = true }: { showTitle?: boolean }) {
           {scope === 'church' ? es.prayer.emptyChurch : es.prayer.empty}
         </p>
       ) : (
-        <ul className="mt-3 space-y-2.5">
+        <ul
+          className={`mt-3 ${columns ? 'space-y-2.5 lg:columns-2 lg:gap-4 lg:space-y-0' : 'space-y-2.5'}`}
+        >
           {items.map((item) => (
-            <PrayerCard key={item.id} item={item} viewerId={viewerId ?? null} />
+            <PrayerCard key={item.id} item={item} viewerId={viewerId ?? null} columns={columns} />
           ))}
         </ul>
       )}
@@ -218,7 +230,7 @@ function PrayerComposer() {
     return (
       <button
         type="button"
-        className="btn btn-sm btn-olive mt-3 w-full"
+        className="btn btn-sm btn-olive mt-3 w-full lg:w-auto lg:px-6"
         onClick={() => setOpen(true)}
       >
         {es.prayer.write}
@@ -228,7 +240,10 @@ function PrayerComposer() {
 
   return (
     <div className="card mt-3">
-      <label className="text-[11px] font-semibold uppercase tracking-wide text-muted" htmlFor="prayer-body">
+      <label
+        className="text-[11px] font-semibold uppercase tracking-wide text-muted"
+        htmlFor="prayer-body"
+      >
         {es.prayer.bodyLabel}
       </label>
       <textarea
@@ -280,7 +295,15 @@ function PrayerComposer() {
   );
 }
 
-function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: string | null }) {
+function PrayerCard({
+  item,
+  viewerId,
+  columns = false,
+}: {
+  item: PrayerRequestItem;
+  viewerId: string | null;
+  columns?: boolean;
+}) {
   const intercede = useIntercede();
   const markAnswered = useMarkPrayerAnswered();
   const [closing, setClosing] = useState(false);
@@ -293,7 +316,11 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
   const label = prayerAuthorLabel(item, viewerId);
 
   return (
-    <li className={`card m-0 ${item.answeredAt ? 'border-[1.5px] border-olive' : ''}`}>
+    <li
+      className={`card m-0 ${columns ? 'lg:mb-4 lg:break-inside-avoid' : ''} ${
+        item.answeredAt ? 'border-[1.5px] border-olive' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="text-[11px] font-semibold text-muted">
           {label}
@@ -332,7 +359,10 @@ function PrayerCard({ item, viewerId }: { item: PrayerRequestItem; viewerId: str
       {isMine && !item.answeredAt ? (
         closing ? (
           <div className="mt-3">
-            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted" htmlFor={`note-${item.id}`}>
+            <label
+              className="text-[11px] font-semibold uppercase tracking-wide text-muted"
+              htmlFor={`note-${item.id}`}
+            >
               {es.prayer.answeredNoteLabel}
             </label>
             <textarea

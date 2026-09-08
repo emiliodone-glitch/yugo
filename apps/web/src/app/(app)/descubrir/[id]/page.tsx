@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { demoCurrentUser, demoDiscover, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
+import { useCurrentMember, useProfileCard } from '@/lib/hooks';
 import { ScoreBar, YugoLink } from '@/components/ui';
-import { ChevronLeft } from '@/components/icons';
+import { PageHeader } from '@/components/page-header';
+import { QueryError } from '@/components/query-error';
 
 const COMPONENT_LABELS: Record<string, string> = {
   denomination: es.affinity.denomination,
@@ -14,65 +14,100 @@ const COMPONENT_LABELS: Record<string, string> = {
   age: es.affinity.age,
 };
 
+/**
+ * Afinidad de fe con una persona (RF-DES-02): por qué la sugerimos, en
+ * componentes explicados. La ficha viene de la API; el nombre propio, de la
+ * cuenta que entró.
+ */
 export default function AffinityDetailPage({ params }: { params: { id: string } }) {
-  const profile = demoDiscover.find((p) => p.userId === params.id);
-  if (!profile) notFound();
+  const card = useProfileCard(params.id);
+  const member = useCurrentMember();
+  const profile = card.data;
+
+  if (card.isError) {
+    return (
+      <div className="px-4 pt-6">
+        <QueryError error={card.error} onRetry={() => void card.refetch()} />
+      </div>
+    );
+  }
+  if (card.isLoading) {
+    return <div className="px-4 pt-10 text-center text-sm text-muted">{es.common.loading}</div>;
+  }
+  if (!profile) {
+    return (
+      <div>
+        <PageHeader title={es.affinity.title} backHref="/descubrir" />
+        <div className="card mx-4 py-8 text-center text-sm text-muted">{es.notFound.body}</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 pt-3">
-      <div className="flex items-center justify-between pb-2">
-        <Link
-          href="/descubrir"
-          aria-label={es.common.back}
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-line bg-white"
-        >
-          <ChevronLeft className="h-4 w-4 text-ink" />
-        </Link>
-        <h1 className="h-display text-[15px]">{es.affinity.title}</h1>
-        <span className="w-[34px]" />
-      </div>
-
-      {/* Signature: two avatars joined by the yoke arc */}
-      <YugoLink nameA={demoCurrentUser.displayName} nameB={profile.displayName} />
-
-      <div className="mb-3 text-center">
-        <div className="font-display text-[30px] font-semibold leading-none text-ink">
-          {profile.affinity.total}
-          <span className="text-[15px] text-muted"> / 100</span>
+    <div className="pb-6">
+      <PageHeader title={es.affinity.title} backHref="/descubrir" />
+      <div className="px-4 lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-x-8">
+        <div className="card lg:sticky lg:top-4">
+          {/* Signature: two avatars joined by the yoke arc */}
+          <YugoLink nameA={member.data?.displayName ?? 'Tú'} nameB={profile.displayName} />
+          <div className="mb-1 text-center">
+            <div className="font-display text-[34px] font-semibold leading-none text-ink">
+              {profile.affinity.total}
+              <span className="text-[15px] text-muted"> / 100</span>
+            </div>
+            <p className="mt-1 text-xs text-muted">{es.affinity.summary(profile.displayName)}</p>
+            {profile.affinityReason ? (
+              <p className="mt-3 rounded-field bg-olive-soft px-3 py-2 text-[12.5px] text-olive-text">
+                {profile.affinityReason}
+              </p>
+            ) : null}
+          </div>
         </div>
-        <p className="mt-1 text-xs text-muted">{es.affinity.summary(profile.displayName)}</p>
-      </div>
 
-      <div className="card">
-        {profile.affinity.components.map((component) => (
-          <ScoreBar
-            key={component.key}
-            label={COMPONENT_LABELS[component.key]}
-            value={component.score}
-            note={component.note}
-          />
-        ))}
-      </div>
-
-      {profile.inCommon?.length ? (
-        <>
-          <h2 className="h-display mb-1.5 mt-1 text-[15px]">{es.affinity.inCommon}</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {profile.inCommon.map((item, index) => (
-              <span key={item} className={`chip ${index < 3 ? 'chip-olive' : ''}`}>
-                {item}
-              </span>
+        <div>
+          <div className="card">
+            {profile.affinity.components.map((component) => (
+              <ScoreBar
+                key={component.key}
+                label={COMPONENT_LABELS[component.key] ?? component.key}
+                value={component.score}
+                note={component.note}
+              />
             ))}
           </div>
-        </>
-      ) : null}
 
-      {profile.verse ? (
-        <div className="card mt-3 border-0 bg-wheat-soft">
-          <div className="text-[11px] font-semibold text-wheat-text">VERSÍCULO FAVORITO</div>
-          <div className="h-display mt-1 text-[15px]">{profile.verse}</div>
+          {profile.inCommon?.length ? (
+            <>
+              <h2 className="h-display mb-1.5 mt-1 text-[15px]">{es.affinity.inCommon}</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.inCommon.map((item, index) => (
+                  <span key={item} className={`chip ${index < 3 ? 'chip-olive' : ''}`}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {profile.testimony ? (
+            <div className="card mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                {es.affinity.testimony}
+              </div>
+              <p className="mt-1 text-[13.5px] leading-relaxed">
+                {profile.testimony.replace(/^["“«]+|["”»]+$/g, '')}
+              </p>
+            </div>
+          ) : null}
+
+          {profile.verse ? (
+            <div className="card mt-3 border-0 bg-wheat-soft">
+              <div className="text-[11px] font-semibold text-wheat-text">VERSÍCULO FAVORITO</div>
+              <div className="h-display mt-1 text-[15px]">{profile.verse}</div>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

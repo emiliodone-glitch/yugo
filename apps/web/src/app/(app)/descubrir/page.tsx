@@ -7,13 +7,7 @@ import { es, LIMITS } from '@yugo/shared';
 import { useDiscover, useMarkInterest, usePassProfile, useSaveProfile } from '@/lib/hooks';
 import { errorMessage } from '@/lib/api';
 import { AffinityRing, EndorsedBadge, PhotoPlaceholder } from '@/components/ui';
-import { FilterIcon, PersonSilhouette, StarIcon } from '@/components/icons';
-
-const CARD_GRADIENTS = [
-  'linear-gradient(160deg,#C9C1B1,#8E8A80)',
-  'linear-gradient(160deg,#B8AE9C,#7C766C)',
-  'linear-gradient(160deg,#C4B8A4,#867F72)',
-];
+import { FilterIcon, StarIcon } from '@/components/icons';
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -54,7 +48,7 @@ export default function DiscoverPage() {
   return (
     <div className="px-4 pt-3">
       <div className="flex items-center justify-between pb-1.5">
-        <h1 className="h-display text-[19px]">{es.discover.title}</h1>
+        <h1 className="h-display text-[19px] lg:text-[24px]">{es.discover.title}</h1>
         <div className="flex items-center gap-2">
           <span className="chip">
             {remaining === null
@@ -143,21 +137,18 @@ export default function DiscoverPage() {
           </div>
         </div>
       ) : (
-        <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-4">
-          {items.map((profile, index) => {
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 xl:grid-cols-3">
+          {items.map((profile) => {
             const alreadySent = sent[profile.userId];
             return (
-              <article key={profile.userId} className="card mb-3 overflow-hidden p-0 xl:mb-0">
+              <article key={profile.userId} className="card mb-3 overflow-hidden p-0 lg:mb-0">
                 <Link href={`/descubrir/${profile.userId}`} className="block">
                   <PhotoPlaceholder
                     photoUrl={profile.photoUrl}
                     alt={`Foto de ${profile.displayName}`}
-                    className="h-[250px]"
-                    gradient={CARD_GRADIENTS[index % CARD_GRADIENTS.length]}
+                    className="h-[250px] xl:h-[280px]"
+                    name={profile.displayName}
                   >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <PersonSilhouette className="h-[72px] w-[72px] text-white/45" />
-                    </div>
                     {profile.badges.endorsedBy ? (
                       <div className="absolute left-3 top-3">
                         <EndorsedBadge

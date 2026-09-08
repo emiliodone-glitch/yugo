@@ -21,7 +21,7 @@ export function PageHeader({
       >
         <ChevronLeft className="h-4 w-4 text-ink" />
       </Link>
-      <h1 className="h-display flex-1 text-[19px]">{title}</h1>
+      <h1 className="h-display flex-1 text-[19px] lg:text-[24px]">{title}</h1>
       {right}
     </div>
   );

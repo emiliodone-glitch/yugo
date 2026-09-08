@@ -475,7 +475,9 @@ export interface PublicEvent {
   id: string;
   title: string;
   description: string | null;
+  type: string;
   typeName: string;
+  imageUrl?: string;
   startsAt: string;
   endsAt: string | null;
   address: string | null;

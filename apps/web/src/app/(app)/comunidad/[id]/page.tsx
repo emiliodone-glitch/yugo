@@ -2,9 +2,9 @@
 
 import { notFound } from 'next/navigation';
 import { useState } from 'react';
-import { demoCurrentUser, es } from '@yugo/shared';
+import { es } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
-import { useCreatePost, useGroupDetail, useJoinRequests } from '@/lib/hooks';
+import { useCreatePost, useCurrentMember, useGroupDetail, useJoinRequests } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
 import { PageHeader } from '@/components/page-header';
 
@@ -14,6 +14,9 @@ type Tab = 'wall' | 'activities' | 'members';
 export default function GroupDetailPage({ params }: { params: { id: string } }) {
   const { data: group, isLoading } = useGroupDetail(params.id);
   const createPost = useCreatePost(params.id);
+  // Mis publicaciones recién enviadas se firman con mi nombre real.
+  const { data: member } = useCurrentMember();
+  const myName = member?.displayName ?? 'Tú';
 
   const [tab, setTab] = useState<Tab>('wall');
   const [draft, setDraft] = useState('');
@@ -22,7 +25,8 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
   const [localPosts, setLocalPosts] = useState<
     Array<{ id: string; body: string; isPrayer: boolean; held: boolean }>
   >([]);
-  const { praying, amen, togglePraying, toggleAmen, activityJoined, toggleActivity } = useDemoStore();
+  const { praying, amen, togglePraying, toggleAmen, activityJoined, toggleActivity } =
+    useDemoStore();
 
   const isAdmin = group?.myRole === 'ADMIN' || group?.myRole === 'MODERATOR';
   const { data: joinRequests = [] } = useJoinRequests(params.id, !!isAdmin);
@@ -86,96 +90,107 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
               { value: 'activities', label: 'Actividades' },
               {
                 value: 'members',
-                label: isAdmin && joinRequests.length > 0 ? `Miembros (${joinRequests.length})` : 'Miembros',
+                label:
+                  isAdmin && joinRequests.length > 0
+                    ? `Miembros (${joinRequests.length})`
+                    : 'Miembros',
               },
             ]}
           />
         </div>
 
         {tab === 'wall' ? (
-          <>
-            {/* Composer — text and one image; every post is moderated (RF-COM-04/08) */}
-            <div className="card">
-              <textarea
-                className="field h-20 resize-none"
-                placeholder="Comparte algo con el grupo…"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                maxLength={1200}
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <label className="flex items-center gap-2 text-[11px] text-muted">
-                  <input
-                    type="checkbox"
-                    checked={isPrayer}
-                    onChange={(event) => setIsPrayer(event.target.checked)}
-                    className="accent-olive"
-                  />
-                  {es.community.newPrayerRequest}
-                </label>
-                <button type="button" className="btn btn-sm btn-olive" onClick={publish}>
-                  Publicar
-                </button>
-              </div>
-            </div>
-
-            {notice ? (
-              <div className="mb-3 rounded-field bg-wheat-soft px-3 py-2 text-[11px] text-wheat-text">
-                {notice}
-              </div>
-            ) : null}
-
-            {localPosts.map((post) => (
-              <div key={post.id} className={`card ${post.held ? 'border-dashed border-wheat' : ''}`}>
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={demoCurrentUser.displayName} size="s" />
-                  <div>
-                    <b className="text-xs">{demoCurrentUser.displayName}</b>
-                    <div className="text-[11px] text-muted">
-                      {post.held ? 'En revisión' : 'hace un momento'}
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-1.5 text-[12.5px]">{post.body}</p>
-              </div>
-            ))}
-
-            {posts.map((post) => (
-              <div key={post.id} className="card">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={post.author.displayName} size="s" />
-                  <div>
-                    <b className="text-xs">{post.author.displayName}</b>
-                    <div className="text-[11px] text-muted">
-                      {new Intl.DateTimeFormat('es-DO', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                        timeZone: 'America/Santo_Domingo',
-                      }).format(new Date(post.createdAt))}
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-1.5 text-[12.5px]">{post.body}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {post.isPrayerRequest ? (
-                    <button
-                      type="button"
-                      onClick={() => togglePraying(post.id)}
-                      className={`chip chip-olive ${praying[post.id] ? 'ring-1 ring-olive' : ''}`}
-                    >
-                      🙏 {es.community.praying} · {post.prayingCount + (praying[post.id] ? 1 : 0)}
-                    </button>
-                  ) : null}
-                  <button type="button" onClick={() => toggleAmen(post.id)} className="chip">
-                    {es.community.amen} · {post.amenCount + (amen[post.id] ? 1 : 0)}
+          /* En escritorio, el redactor queda fijo a la izquierda y el muro
+             corre a la derecha; en el teléfono, uno debajo del otro. */
+          <div className="lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-x-6">
+            <div className="lg:sticky lg:top-4">
+              {/* Composer — text and one image; every post is moderated (RF-COM-04/08) */}
+              <div className="card">
+                <textarea
+                  className="field h-20 resize-none"
+                  placeholder="Comparte algo con el grupo…"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  maxLength={1200}
+                />
+                <div className="mt-2 flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-[11px] text-muted">
+                    <input
+                      type="checkbox"
+                      checked={isPrayer}
+                      onChange={(event) => setIsPrayer(event.target.checked)}
+                      className="accent-olive"
+                    />
+                    {es.community.newPrayerRequest}
+                  </label>
+                  <button type="button" className="btn btn-sm btn-olive" onClick={publish}>
+                    Publicar
                   </button>
                 </div>
               </div>
-            ))}
-          </>
+
+              {notice ? (
+                <div className="mb-3 rounded-field bg-wheat-soft px-3 py-2 text-[11px] text-wheat-text">
+                  {notice}
+                </div>
+              ) : null}
+            </div>
+            <div>
+              {localPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className={`card ${post.held ? 'border-dashed border-wheat' : ''}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={myName} size="s" />
+                    <div>
+                      <b className="text-xs">{myName}</b>
+                      <div className="text-[11px] text-muted">
+                        {post.held ? 'En revisión' : 'hace un momento'}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-1.5 text-[12.5px]">{post.body}</p>
+                </div>
+              ))}
+
+              {posts.map((post) => (
+                <div key={post.id} className="card">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={post.author.displayName} size="s" />
+                    <div>
+                      <b className="text-xs">{post.author.displayName}</b>
+                      <div className="text-[11px] text-muted">
+                        {new Intl.DateTimeFormat('es-DO', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true,
+                          timeZone: 'America/Santo_Domingo',
+                        }).format(new Date(post.createdAt))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-1.5 text-[12.5px]">{post.body}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {post.isPrayerRequest ? (
+                      <button
+                        type="button"
+                        onClick={() => togglePraying(post.id)}
+                        className={`chip chip-olive ${praying[post.id] ? 'ring-1 ring-olive' : ''}`}
+                      >
+                        🙏 {es.community.praying} · {post.prayingCount + (praying[post.id] ? 1 : 0)}
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => toggleAmen(post.id)} className="chip">
+                      {es.community.amen} · {post.amenCount + (amen[post.id] ? 1 : 0)}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         {tab === 'activities' ? (

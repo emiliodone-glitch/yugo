@@ -3,6 +3,53 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.9.0 — Pantallas que dicen la verdad y una web que usa la pantalla
+
+### Lo primero: ocho pantallas mostraban datos de otra persona
+Con la cuenta de prueba, Perfil decía «Emilio, 34 · QA Analyst · Bautista ·
+82 %». Era la ficha de demostración incrustada en el código, no la cuenta que
+había entrado. Lo mismo pasaba en Preferencias, Visibilidad, «Te interesan»,
+Comunidad, el detalle de un evento (con un evento real daba 404), el detalle
+de afinidad y la firma de tus publicaciones en un grupo.
+
+- Nuevo `useCurrentMember()` en `app-core`: una sola forma para la demo y la
+  API real (`/auth/me` + `/profiles/me/preview`), con completitud y la
+  sugerencia siguiente traducida a palabras de la persona.
+- Hooks nuevos que faltaban para que esas pantallas escriban de verdad:
+  `useUpdatePreferences`, `useUpdateProfile`, `useSetOroBadge`,
+  `useSetTravelMode` (con selector de ciudad), `useWhoViewedMe`,
+  `usePauseProfile`.
+- Perfil lee verificaciones, plan, fotos y completitud reales; Preferencias
+  y Visibilidad parten de lo guardado y lo escriben en la API (Descubrir se
+  regenera); «Te interesan» usa el conteo real y no inventa nombres cuando
+  el plan no permite ver quiénes; Comunidad lista los grupos reales y el
+  muro de oración real; el detalle de evento usa la agenda, guarda la
+  asistencia, descarga el .ics y comparte el enlace público.
+
+### La web usa la pantalla
+- Contenido **centrado** a la derecha del riel, hasta 1400 px de ancho útil
+  (antes ~1000 px pegados al riel: la mitad derecha de una pantalla de 1920
+  quedaba vacía).
+- Descubrir a tres tarjetas por fila; Eventos con la lista a dos columnas y
+  el mapa fijo a la derecha; detalle de evento con la ficha a la izquierda y
+  la asistencia a la derecha; afinidad con la firma a un lado y el desglose
+  al otro; muro de oración a dos columnas; grupo con el redactor fijo y el
+  muro al lado; Plus con fondo oscuro de borde a borde.
+- Títulos de sección más grandes en escritorio; botones de guardar con
+  ancho natural.
+
+### Fotos y portadas
+- Sin foto, la tarjeta de una persona lleva un degradado de **su** color (el
+  del avatar) con su inicial al fondo, en vez de la silueta gris igual para
+  todas.
+- Cada tipo de encuentro tiene portada propia (velas, montañas, ondas,
+  arcos, rayos…) en SVG: Inicio, Eventos, detalle y página pública.
+
+Verificación: E2E Playwright completa; capturas a 1920 y 390 px de todas las
+secciones; build en modo real contra la API local y recorrido como
+`prueba@yugo.do` por las pantallas corregidas (perfil con su nombre, guardar
+preferencias, evento real, grupo real).
+
 ## v0.8.0 — La web como web: escritorio de verdad y diagnóstico de conexión
 
 ### Escritorio

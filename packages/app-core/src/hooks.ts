@@ -43,8 +43,13 @@ import {
   type ConnectionSummary,
   type EventSummary,
   type GroupSummary,
+  type Intention,
+  type MyProfile,
   type NotificationItem,
   type ProfileCard,
+  type ProfileUpdateInput,
+  type SearchPreferencesInput,
+  type SubscriptionTier,
 } from '@yugo/shared';
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
@@ -666,21 +671,43 @@ export function useJoinRequests(groupId: string, enabled: boolean) {
 // Events
 // ---------------------------------------------------------------------------
 
+/**
+ * En demo, la asistencia que la persona marca vive en el almacén de la demo
+ * (los fixtures son constantes). Se funde aquí para que lista y detalle
+ * reflejen «Asistiré» o «lista de espera» igual que lo haría la API.
+ */
+function withDemoAttendance(
+  event: EventSummary,
+  statuses: Record<string, 'GOING' | 'INTERESTED' | 'WAITLIST' | undefined>,
+): EventSummary {
+  return eventIdIn(statuses, event.id) ? { ...event, myStatus: statuses[event.id] } : event;
+}
+
+const eventIdIn = (
+  statuses: Record<string, 'GOING' | 'INTERESTED' | 'WAITLIST' | undefined>,
+  id: string,
+) => Object.prototype.hasOwnProperty.call(statuses, id);
+
 export function useEvents() {
+  const statuses = useDemoStore((s) => s.eventStatus);
   return useQuery({
-    queryKey: ['events'],
+    queryKey: ['events', isDemoMode() ? statuses : null],
     queryFn: async (): Promise<EventSummary[]> => {
-      if (isDemoMode()) return demoEvents;
+      if (isDemoMode()) return demoEvents.map((event) => withDemoAttendance(event, statuses));
       return api().events.agenda();
     },
   });
 }
 
 export function useEventDetail(eventId: string) {
+  const statuses = useDemoStore((s) => s.eventStatus);
   return useQuery({
-    queryKey: ['event', eventId],
+    queryKey: ['event', eventId, isDemoMode() ? statuses : null],
     queryFn: async (): Promise<EventSummary | null> => {
-      if (isDemoMode()) return demoEvents.find((e) => e.id === eventId) ?? null;
+      if (isDemoMode()) {
+        const event = demoEvents.find((e) => e.id === eventId);
+        return event ? withDemoAttendance(event, statuses) : null;
+      }
       const events = await api().events.agenda();
       return events.find((e) => e.id === eventId) ?? null;
     },
@@ -729,6 +756,190 @@ export function useMyProfile() {
       return api().profiles.mine();
     },
     enabled: !isDemoMode(),
+  });
+}
+
+/**
+ * Quién soy, en una sola forma para la demo y la API real.
+ *
+ * Perfil, Preferencias, Visibilidad y los detalles que firman con mi nombre
+ * leían `demoCurrentUser` directamente, así que en producción una persona
+ * real veía «Emilio, 34, QA Analyst» en su propio perfil. Este hook es la
+ * única puerta: en demo devuelve la ficha de muestra; en vivo compone
+ * `/auth/me` (suscripción, verificaciones) con `/profiles/me/preview`
+ * (perfil y completitud con la sugerencia siguiente).
+ */
+export interface CurrentMember {
+  userId: string;
+  displayName: string;
+  age: number | null;
+  city: string | null;
+  occupation: string | null;
+  denomination: string | null;
+  churchName: string | null;
+  intention: Intention;
+  completeness: number;
+  /** Qué añadir para subir y hasta dónde llega; null cuando está al 100 %. */
+  completenessNext: { key: string; targetPct: number } | null;
+  ageMin: number;
+  ageMax: number;
+  maxDistanceKm: number;
+  minVerificationLevel: number | null;
+  tier: SubscriptionTier | null;
+  verse: string | null;
+  testimony: string | null;
+}
+
+export function useCurrentMember() {
+  return useQuery({
+    queryKey: ['current-member'],
+    queryFn: async (): Promise<CurrentMember | null> => {
+      if (isDemoMode()) {
+        const demo = demoCurrentUser;
+        return {
+          userId: demo.userId,
+          displayName: demo.displayName,
+          age: demo.age,
+          city: demo.city,
+          occupation: demo.occupation,
+          denomination: demo.denomination,
+          churchName: 'Iglesia Bautista Central',
+          intention: demo.intention,
+          completeness: demo.completeness,
+          completenessNext: { key: 'verse', targetPct: demo.completenessNext.targetPct },
+          ageMin: demo.ageMin,
+          ageMax: demo.ageMax,
+          maxDistanceKm: demo.maxDistanceKm,
+          minVerificationLevel: 2,
+          tier: demo.subscription.tier,
+          verse: 'Rut 1:16',
+          testimony: null,
+        };
+      }
+      const [me, preview] = await Promise.all([
+        api().auth.me(),
+        // Sin perfil todavía (registro a medias) el preview responde 404:
+        // se sigue con lo que haya en /auth/me.
+        api().profiles.preview().catch(() => null),
+      ]);
+      const profile = preview?.profile ?? me.profile;
+      if (!profile) return null;
+      // La API guarda la preferencia como `prefMinVerification`; el tipo
+      // público del perfil no la declara todavía.
+      const extended = profile as MyProfile & { prefMinVerification?: number | null };
+      return {
+        userId: me.id,
+        displayName: profile.displayName,
+        age: profile.age ?? null,
+        city: profile.city,
+        occupation: profile.occupation,
+        denomination: profile.denomination?.name ?? null,
+        churchName: profile.church?.name ?? profile.churchFreeText ?? null,
+        intention: profile.intention,
+        completeness: preview?.completeness.completeness ?? profile.completeness,
+        completenessNext: preview?.completeness.nextSuggestion ?? null,
+        ageMin: profile.ageMin,
+        ageMax: profile.ageMax,
+        maxDistanceKm: profile.maxDistanceKm,
+        minVerificationLevel: extended.prefMinVerification ?? null,
+        tier: me.subscriptions[0]?.tier ?? null,
+        verse: profile.verse,
+        testimony: profile.testimony,
+      };
+    },
+  });
+}
+
+/** RF-PER-08: guarda el rango de edad, la distancia y la intención de búsqueda. */
+export function useUpdatePreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SearchPreferencesInput) => {
+      if (isDemoMode()) return null;
+      return api().profiles.updatePreferences(input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-member'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      // La lista de Descubrir depende del rango: se regenera.
+      queryClient.invalidateQueries({ queryKey: ['discover'] });
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ProfileUpdateInput) => {
+      if (isDemoMode()) return null;
+      return api().profiles.update(input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-member'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
+/** Insignia Oro visible en el perfil (opt-in). */
+export function useSetOroBadge() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setShowOroBadge);
+  return useMutation({
+    mutationFn: async (show: boolean) => {
+      if (isDemoMode()) {
+        setDemo(show);
+        return { showOroBadge: show };
+      }
+      return api().subscriptions.setOroBadge(show);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+  });
+}
+
+/** RF-DES-14: modo viaje (Oro). `null` lo apaga. */
+export function useSetTravelMode() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setTravelMode);
+  return useMutation({
+    mutationFn: async (input: { city: string; lat: number; lng: number; days: number } | null) => {
+      if (isDemoMode()) {
+        setDemo(input !== null);
+        return { travelMode: input ? { city: input.city, activeUntil: '' } : null };
+      }
+      return api().subscriptions.setTravelMode(input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['discover'] });
+    },
+  });
+}
+
+/** RF-DES-15: quién vio mi perfil (Oro). Sin Oro llega `available: false`. */
+export function useWhoViewedMe() {
+  return useQuery({
+    queryKey: ['who-viewed-me'],
+    queryFn: async () => {
+      if (isDemoMode()) return { available: true, count: 27, viewers: [] };
+      return api().discover.whoViewedMe();
+    },
+  });
+}
+
+/** Pausar el perfil: desaparece de Descubrir sin borrar nada. */
+export function usePauseProfile() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setPausedProfile);
+  return useMutation({
+    mutationFn: async (paused: boolean) => {
+      if (isDemoMode()) {
+        setDemo(paused);
+        return { paused };
+      }
+      return api().auth.pause(paused);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['session'] }),
   });
 }
 

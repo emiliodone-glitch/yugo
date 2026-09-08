@@ -7,7 +7,8 @@ import { Avatar, AffinityRing } from '@/components/ui';
 import { DevotionalCard } from '@/components/devotional';
 import { QueryError } from '@/components/query-error';
 import { usePrayerWall } from '@/lib/hooks';
-import { CalendarIcon, PinIcon } from '@/components/icons';
+import { PinIcon } from '@/components/icons';
+import { EventCover } from '@/components/event-cover';
 
 function formatDate(date: Date): string {
   const text = new Intl.DateTimeFormat('es-DO', {
@@ -95,12 +96,12 @@ export default function HomePage() {
     // En pantallas anchas, dos columnas: lo del día a la izquierda y, a la
     // derecha, lo que vale abrir todos los días. En el teléfono, una sola
     // columna en el orden en que se lee.
-    <div className="px-4 pt-3 xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:gap-x-8 xl:px-8">
+    <div className="px-4 pt-3 xl:grid xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-x-10 xl:pt-5">
       {/* Greeting */}
       <div className="flex items-center justify-between pb-2 xl:col-start-1">
         <div>
           <div className="text-xs text-muted">{today}</div>
-          <h1 className="h-display text-[19px]">{es.home.greeting(displayName)}</h1>
+          <h1 className="h-display text-[19px] lg:text-[26px]">{es.home.greeting(displayName)}</h1>
         </div>
         <Link href="/perfil" aria-label={es.profile.title}>
           <Avatar name={displayName} size="s" />
@@ -156,20 +157,19 @@ export default function HomePage() {
 
         {/* Featured event */}
         <div className="mb-2 mt-3 flex items-center justify-between">
-          <h2 className="h-display text-[15px]">{es.home.featuredEvents}</h2>
+          <h2 className="h-display text-[15px] lg:text-[17px]">{es.home.featuredEvents}</h2>
           <Link href="/eventos" className="text-xs text-muted">
             {es.common.seeAll}
           </Link>
         </div>
         {featured ? (
-          <div className="card overflow-hidden p-0">
-            <div
-              className="flex h-[92px] items-center justify-center"
-              style={{ background: 'linear-gradient(160deg,#7B2D4B,#22315C)' }}
-            >
-              <CalendarIcon className="h-16 w-16 text-white/45" />
-            </div>
-            <div className="p-3.5">
+          <div className="card overflow-hidden p-0 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+            <EventCover
+              type={featured.type}
+              imageUrl={featured.imageUrl}
+              className="h-[92px] lg:h-full lg:min-h-[150px]"
+            />
+            <div className="p-3.5 lg:p-4">
               <div className="flex items-center justify-between">
                 <span className="chip chip-wine">{featured.typeName}</span>
                 <span className="text-[11px] capitalize text-muted">
@@ -208,17 +208,17 @@ export default function HomePage() {
 
         {/* Suggestions */}
         <div className="mb-2 mt-3 flex items-center justify-between">
-          <h2 className="h-display text-[15px]">{es.home.suggestionsToday}</h2>
+          <h2 className="h-display text-[15px] lg:text-[17px]">{es.home.suggestionsToday}</h2>
           <Link href="/descubrir" className="text-xs text-muted">
             {es.tabs.discover}
           </Link>
         </div>
-        <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-2">
+        <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-2 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
           {suggestions.map((profile) => (
             <Link
               key={profile.userId}
               href={`/descubrir/${profile.userId}`}
-              className="card m-0 min-w-[130px] p-2.5"
+              className="card m-0 min-w-[130px] p-2.5 lg:min-w-0 lg:p-3"
             >
               <div className="flex items-center justify-between">
                 <Avatar name={profile.displayName} size="s" photoUrl={profile.photoUrl} />

@@ -180,34 +180,72 @@ export function ScoreBar({ label, value, note }: { label: string; value: number;
   );
 }
 
-/** Photo placeholder gradient with a person silhouette, as in the mockups. */
+/** Oscurece un color hexadecimal; si no es hex, lo devuelve tal cual. */
+function shade(color: string, amount: number): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return color;
+  const value = parseInt(match[1], 16);
+  const channel = (shift: number) =>
+    Math.max(0, Math.min(255, Math.round(((value >> shift) & 255) * (1 + amount))));
+  return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
+}
+
+/**
+ * Superficie de foto de una persona. Con foto aprobada, la foto. Sin foto, un
+ * degradado del color propio de esa persona (el mismo de su avatar) con su
+ * inicial al fondo: la tarjeta sigue siendo suya y no una silueta gris igual
+ * a todas las demás, que hacía que Descubrir pareciera un prototipo.
+ */
 export function PhotoPlaceholder({
   className = '',
   children,
-  gradient = 'linear-gradient(160deg,#C9C1B1,#8E8A80)',
+  gradient,
+  name,
   photoUrl,
   alt = '',
 }: {
   className?: string;
   children?: React.ReactNode;
+  /** Fondo explícito; si falta, se deriva de `name`. */
   gradient?: string;
-  /** Approved photo. Without one the surface keeps the neutral gradient. */
+  /** Nombre de la persona: decide el color y la inicial de respaldo. */
+  name?: string;
+  /** Approved photo. Without one the surface keeps the gradient. */
   photoUrl?: string;
   alt?: string;
 }) {
+  const base = name ? avatarColor(name) : '#8E8A80';
+  const background =
+    gradient ??
+    `linear-gradient(160deg, ${shade(base, 0.18)} 0%, ${base} 45%, ${shade(base, -0.38)} 100%)`;
   return (
-    <div className={`relative overflow-hidden ${className}`} style={{ background: gradient }}>
+    <div className={`relative overflow-hidden ${className}`} style={{ background }}>
       {photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photoUrl} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,.35), transparent 50%)',
-          }}
-        />
+        <>
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(ellipse at 50% 25%, rgba(255,255,255,.30), transparent 55%)',
+            }}
+          />
+          {name ? (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -bottom-6 -right-2 select-none font-display text-[190px] font-semibold leading-none text-white/[0.14]"
+            >
+              {name.charAt(0).toUpperCase()}
+            </span>
+          ) : null}
+          {/* Sombra inferior para que el nombre en blanco se lea sobre cualquier color. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3"
+            style={{ background: 'linear-gradient(180deg, transparent, rgba(22,31,61,.55))' }}
+          />
+        </>
       )}
       {children}
     </div>

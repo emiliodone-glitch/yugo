@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { es } from '@yugo/shared';
 import { usePublicEvent } from '@/lib/hooks';
 import { YugoMark, PinIcon } from '@/components/icons';
+import { EventCover } from '@/components/event-cover';
 
 const when = new Intl.DateTimeFormat('es-DO', {
   weekday: 'long',
@@ -31,7 +32,10 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
             <YugoMark className="h-7 w-7 text-white" />
             <span className="font-display text-lg font-semibold">Yugo</span>
           </Link>
-          <Link href="/registro" className="rounded-full bg-wheat px-3.5 py-1.5 text-[13px] font-semibold text-ink">
+          <Link
+            href="/registro"
+            className="rounded-full bg-wheat px-3.5 py-1.5 text-[13px] font-semibold text-ink"
+          >
             {es.explore.create}
           </Link>
         </div>
@@ -48,11 +52,17 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
           </div>
         ) : (
           <article className="card overflow-hidden p-0">
-            <div className="h-28" style={{ background: 'linear-gradient(160deg,#7B2D4B,#22315C)' }} />
+            <EventCover
+              type={event.data.type}
+              imageUrl={event.data.imageUrl}
+              className="h-36 md:h-52"
+            />
             <div className="p-5">
               <span className="chip chip-wine">{event.data.typeName}</span>
               <h1 className="h-display mt-2 text-[24px] leading-tight">{event.data.title}</h1>
-              <p className="mt-1 text-[14px] capitalize text-muted">{when.format(new Date(event.data.startsAt))}</p>
+              <p className="mt-1 text-[14px] capitalize text-muted">
+                {when.format(new Date(event.data.startsAt))}
+              </p>
               <div className="mt-2 flex items-center gap-1 text-[13.5px] text-muted">
                 <PinIcon className="h-3.5 w-3.5" />
                 {event.data.churchName}
@@ -66,7 +76,9 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
                 ) : null}
               </div>
               {event.data.description ? (
-                <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{event.data.description}</p>
+                <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">
+                  {event.data.description}
+                </p>
               ) : null}
               <div className="mt-5 rounded-card bg-wheat-soft px-4 py-3 text-[13.5px] text-wheat-text">
                 {es.explore.eventCta}
