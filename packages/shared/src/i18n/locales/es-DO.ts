@@ -50,6 +50,23 @@ export const es = {
     socialHint: 'Continuar con Google · Apple',
     chipVerified: 'Perfiles verificados por iglesias',
     chipAdults: 'Solo mayores de 18',
+    todayTitle: 'Hoy en Yugo',
+    readDevotional: 'Leer el devocional',
+    insideTitle: 'Lo que hay dentro',
+    points: [
+      {
+        title: 'Afinidad de fe, explicada',
+        body: 'Cada día una lista corta ordenada por denominación, intención y prácticas. Se te dice por qué alguien aparece.',
+      },
+      {
+        title: 'Verificación e iglesias que respaldan',
+        body: 'Identidad verificada y, si tu congregación participa, un respaldo visible en tu perfil.',
+      },
+      {
+        title: 'Etapas que declaran los dos',
+        body: 'Conociéndonos, amistad intencional, noviazgo. Uno propone, el otro acepta.',
+      },
+    ],
   },
 
   covenant: {
