@@ -3,8 +3,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, NOTIFICATION_CATEGORIES, type NotificationCategory } from '@yugo/shared';
 import {
+  useDigestSetting,
+  useMarkAllNotificationsRead,
   useNotifications,
   useNotificationSettings,
+  useSetDigest,
   useSetNotificationPreference,
   useSetQuietHours,
 } from '@yugo/app-core';
@@ -17,6 +20,8 @@ type Tab = 'inbox' | 'preferences';
 
 const CATEGORY_TONE: Record<string, 'default' | 'olive' | 'wheat' | 'wine'> = {
   CONNECTION: 'olive',
+  RELATIONSHIP: 'olive',
+  ACCOMPANIMENT: 'default',
   MESSAGE: 'default',
   INTEREST: 'wheat',
   EVENT: 'default',
@@ -38,7 +43,11 @@ export default function NotificationsScreen() {
   const { data: settings } = useNotificationSettings();
   const setPreference = useSetNotificationPreference();
   const setQuietHours = useSetQuietHours();
+  const markAllRead = useMarkAllNotificationsRead();
+  const digest = useDigestSetting();
+  const setDigest = useSetDigest();
   const [tab, setTab] = useState<Tab>('inbox');
+  const unread = notifications.filter((notification) => !notification.readAt).length;
 
   const quiet = settings?.quietHours ?? { enabled: true, startHour: 22, endHour: 7 };
   const pushFor = (category: NotificationCategory) =>
@@ -59,6 +68,16 @@ export default function NotificationsScreen() {
             { value: 'preferences', label: 'Preferencias' },
           ]}
         />
+
+        {tab === 'inbox' && unread > 0 ? (
+          <View style={[styles.rowBetween, { marginTop: 10 }]}>
+            <Sub style={{ fontSize: 12 }}>{unread === 1 ? '1 sin leer' : `${unread} sin leer`}</Sub>
+            <Chip
+              label="Marcar todas como leídas"
+              onPress={() => (markAllRead.isPending ? undefined : markAllRead.mutate())}
+            />
+          </View>
+        ) : null}
 
         {tab === 'inbox' ? (
           isLoading ? (
@@ -119,6 +138,26 @@ export default function NotificationsScreen() {
                   />
                 </View>
               ))}
+            </Card>
+
+            {/* Resumen semanal por correo, sin rachas. Se apaga con un toque. */}
+            <Card>
+              <View style={styles.rowBetween}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.prefLabel}>Resumen semanal por correo</Text>
+                  <Sub style={{ fontSize: 11 }}>
+                    {digest.data?.hasEmail === false
+                      ? 'Añade un correo a tu cuenta para recibirlo.'
+                      : 'Los lunes por la mañana: interés recibido, conexiones, mensajes sin leer y eventos cerca. Sin rachas.'}
+                  </Sub>
+                </View>
+                <Toggle
+                  on={digest.data?.enabled ?? true}
+                  disabled={digest.data?.hasEmail === false || setDigest.isPending}
+                  onChange={(value) => setDigest.mutate(value)}
+                  label="Resumen semanal por correo"
+                />
+              </View>
             </Card>
 
             {/* RF-NOT-02: nothing pushes inside this window; it waits for it to close. */}

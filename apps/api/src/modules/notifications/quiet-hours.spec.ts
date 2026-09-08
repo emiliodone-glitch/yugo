@@ -4,8 +4,7 @@ import { DEFAULT_QUIET_HOURS, localTime, quietHoursDelayMs } from './notificatio
  * RF-NOT-02. The window is expressed in America/Santo_Domingo (UTC-4, no DST),
  * so the tests pin instants in UTC and assert the local reading.
  */
-const at = (utcHour: number, minute = 0) =>
-  new Date(Date.UTC(2026, 7, 20, utcHour, minute, 0));
+const at = (utcHour: number, minute = 0) => new Date(Date.UTC(2026, 7, 20, utcHour, minute, 0));
 
 describe('quiet hours (RF-NOT-02)', () => {
   it('reads the local hour in Santo Domingo, not the server timezone', () => {

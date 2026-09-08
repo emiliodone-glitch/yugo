@@ -573,6 +573,8 @@ model User {
   pausedAt           DateTime?
   deletionRequestedAt DateTime?
   deletedAt          DateTime?
+  /// Resumen semanal por correo: null = lo recibe. Se apaga con un toque.
+  weeklyDigestOptOutAt DateTime?
 
   profile              Profile?
   photos               Photo[]
@@ -617,6 +619,9 @@ model User {
   blocksReceived       Block[]              @relation("Blocked")
   endorsementRequests  EndorsementRequest[]
   moderationCasesAssigned ModerationCase[]  @relation("Assignee")
+
+  cityWaitlist       CityWaitlist?
+  churchInvitationsSent ChurchInvitation[] @relation("ChurchInvitedBy")
 
   @@index([status, lastActiveAt])
 }
@@ -798,6 +803,7 @@ model Church {
 
   users             ChurchUser[]
   events            Event[]
+  invitations       ChurchInvitation[]
   officialGroup     Group?
   endorsementCodes  EndorsementCode[]
   endorsementRequests EndorsementRequest[]
@@ -1434,4 +1440,56 @@ model AuditLog {
 
   @@index([actorId, createdAt])
   @@index([action, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Ronda de experiencia: arranque por ciudad, invitaciones al portal, eventos de producto
+// ---------------------------------------------------------------------------
+
+/// «Avísame cuando haya más gente en mi ciudad». Se crea desde Descubrir
+/// cuando la lista sale corta; se notifica una sola vez al llegar al umbral.
+model CityWaitlist {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city       String
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  @@index([city, notifiedAt])
+}
+
+/// Invitación al portal por enlace: la persona puede no tener cuenta todavía.
+/// Al registrarse (o entrar) con el token queda como usuaria del portal.
+model ChurchInvitation {
+  id               String          @id @default(cuid())
+  churchId         String
+  church           Church          @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  email            String
+  role             ChurchUserRole  @default(EVENT_EDITOR)
+  token            String          @unique
+  invitedById      String
+  invitedBy        User            @relation("ChurchInvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  acceptedByUserId String?
+
+  @@index([churchId, acceptedAt])
+}
+
+/// Eventos de producto para el embudo (RF-ADM-12). Sin PII: un identificador
+/// anónimo por instalación y, si hay sesión, un hash del usuario que no se
+/// puede revertir. Sirve para ver dónde se cae la gente, no para seguirla.
+model ProductEvent {
+  id          String   @id @default(cuid())
+  name        String
+  anonymousId String
+  userHash    String?
+  platform    String?
+  props       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([anonymousId, createdAt])
 }

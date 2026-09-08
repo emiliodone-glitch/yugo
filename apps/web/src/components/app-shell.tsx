@@ -13,6 +13,7 @@ import {
   YugoMark,
 } from './icons';
 import { ApiStatusBanner, SessionGate } from './session-gate';
+import { NotificationBell } from './notification-bell';
 
 const TABS = [
   { href: '/inicio', label: es.tabs.home, Icon: HomeIcon },
@@ -76,6 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         ))}
         <div className="mt-auto">
+          <NotificationBell active={isActive('/perfil/notificaciones')} />
           <Link
             href="/perfil"
             className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-[13px] transition ${

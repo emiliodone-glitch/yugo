@@ -99,6 +99,32 @@ export async function joinConversation(
   };
 }
 
+/** Lo que llega por el socket cuando se guarda una notificación (RF-NOT-01). */
+export interface LiveNotification {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  data?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+/**
+ * Subscribes to the member's own room: every stored notification arrives
+ * here the moment it exists, so the badge and the inbox update without
+ * polling. Returns the cleanup.
+ */
+export async function subscribeNotifications(
+  onNotification: (notification: LiveNotification) => void,
+): Promise<() => void> {
+  const active = await ensureSocket();
+  if (!active) return () => {};
+  active.on('notification:new', onNotification);
+  return () => {
+    active.off('notification:new', onNotification);
+  };
+}
+
 /** Tells the other person we are writing. Best effort: never awaited. */
 export function emitTyping(conversationId: string, typing: boolean): void {
   socket?.emit('typing', { conversationId, typing });

@@ -1124,9 +1124,17 @@ export class YugoApiClient {
   // ---- Notifications (RF-NOT-01..03) --------------------------------------
   readonly notifications = {
     list: () => this.http.get<NotificationItem[]>('/notifications'),
+    unreadCount: () => this.http.get<{ count: number }>('/notifications/unread-count'),
     markRead: (id: string) => this.http.put<{ ok: boolean }>(`/notifications/${id}/read`),
+    markAllRead: () => this.http.put<{ ok: boolean }>('/notifications/read-all'),
     registerPushToken: (token: string, platform: 'ios' | 'android' | 'web') =>
       this.http.post<{ ok: boolean }>('/notifications/push-token', { token, platform }),
+    removePushToken: (token: string) =>
+      this.http.delete<{ ok: boolean }>('/notifications/push-token', { body: { token } }),
+    /** Resumen semanal por correo (sin rachas). */
+    digest: () => this.http.get<{ enabled: boolean; hasEmail: boolean }>('/notifications/digest'),
+    setDigest: (enabled: boolean) =>
+      this.http.put<{ enabled: boolean }>('/notifications/digest', { enabled }),
     preferences: () =>
       this.http.get<Array<{ category: string; push: boolean; email: boolean }>>(
         '/notifications/preferences',

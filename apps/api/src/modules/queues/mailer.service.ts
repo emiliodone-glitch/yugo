@@ -9,7 +9,8 @@ export type EmailTemplate =
   | 'PAYMENT_RECEIPT'
   | 'WEEKLY_DIGEST'
   | 'MODERATION_NOTICE'
-  | 'DATA_EXPORT_READY';
+  | 'DATA_EXPORT_READY'
+  | 'NOTIFICATION';
 
 interface TemplateInput {
   displayName?: string;
@@ -97,8 +98,7 @@ function layout(title: string, bodyHtml: string): string {
   </td></tr></table></body></html>`;
 }
 
-const p = (text: string) =>
-  `<p style="font-size:14px;line-height:1.6;margin:0 0 12px">${text}</p>`;
+const p = (text: string) => `<p style="font-size:14px;line-height:1.6;margin:0 0 12px">${text}</p>`;
 
 /** Pure renderer — unit-tested so the copy cannot silently break. */
 export function renderTemplate(
@@ -157,7 +157,9 @@ export function renderTemplate(
           p(`Gracias por tu suscripción <b>Yugo ${input.tier}</b> (${input.plan}).`) +
             p(`Monto: <b>${input.amount} ${input.currency}</b>`) +
             p(`Próxima renovación: ${input.renewsAt}`) +
-            p('Puedes cancelar cuando quieras; conservas el acceso hasta el fin del período pagado.'),
+            p(
+              'Puedes cancelar cuando quieras; conservas el acceso hasta el fin del período pagado.',
+            ),
         ),
       };
     case 'MODERATION_NOTICE':
@@ -181,16 +183,48 @@ export function renderTemplate(
           ) + p('El enlace vence en 24 horas.'),
         ),
       };
-    case 'WEEKLY_DIGEST':
+    case 'WEEKLY_DIGEST': {
+      // Solo lo que pasó alrededor de la persona; una línea por número mayor
+      // que cero. Nada de rachas ni de «te perdiste» (principio del producto).
+      const n = (key: string) => Number(input[key] ?? 0);
+      const lines: Array<[number, string, string]> = [
+        [
+          n('newInterests'),
+          'persona marcó interés en tu perfil',
+          'personas marcaron interés en tu perfil',
+        ],
+        [n('newConnections'), 'conexión nueva', 'conexiones nuevas'],
+        [n('unreadMessages'), 'mensaje sin leer te espera', 'mensajes sin leer te esperan'],
+        [n('prayersReceived'), 'persona oró por tu petición', 'personas oraron por tu petición'],
+        [n('upcomingEvents'), 'evento cerca de ti esta semana', 'eventos cerca de ti esta semana'],
+      ];
+      const shown = lines.filter(([count]) => count > 0);
+      const devotional = typeof input.devotionalTitle === 'string' ? input.devotionalTitle : null;
+      const textLines = shown.map(([count, one, many]) => `${count} ${count === 1 ? one : many}.`);
+      if (devotional) textLines.push(`Devocional de hoy: «${devotional}».`);
       return {
-        subject: 'Tu resumen de la semana en Yugo',
-        text: `Esta semana: ${input.newInterests ?? 0} personas marcaron interés, ${input.newConnections ?? 0} conexiones nuevas y ${input.upcomingEvents ?? 0} eventos cerca de ti.`,
+        subject: 'Tu semana en Yugo',
+        text: `Bendiciones, ${name}. ${textLines.join(' ')} Ábrelo cuando tengas un momento tranquilo.`,
         html: layout(
-          'Tu resumen de la semana',
-          p(`<b>${input.newInterests ?? 0}</b> personas marcaron interés en tu perfil.`) +
-            p(`<b>${input.newConnections ?? 0}</b> conexiones nuevas.`) +
-            p(`<b>${input.upcomingEvents ?? 0}</b> eventos cerca de ti esta semana.`),
+          `Bendiciones, ${name}`,
+          shown
+            .map(([count, one, many]) => p(`<b>${count}</b> ${count === 1 ? one : many}.`))
+            .join('') +
+            (devotional ? p(`Devocional de hoy: <i>«${devotional}»</i>.`) : '') +
+            p(
+              'Ábrelo cuando tengas un momento tranquilo. Si prefieres no recibir este resumen, apágalo en Notificaciones dentro de la app.',
+            ),
         ),
       };
+    }
+    case 'NOTIFICATION': {
+      const title = String(input.title ?? 'Tienes una novedad en Yugo');
+      const body = String(input.body ?? '');
+      return {
+        subject: title,
+        text: `${title}. ${body}`.trim(),
+        html: layout(title, p(body) + p('Ábrelo en la app para responder.')),
+      };
+    }
   }
 }

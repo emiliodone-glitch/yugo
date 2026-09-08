@@ -8,6 +8,7 @@ import {
   useMyPhotos,
   usePauseProfile,
   useSession,
+  useUnreadNotifications,
   useVerificationStatus,
 } from '@yugo/app-core';
 import {
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
   const { data: myPhotos = [] } = useMyPhotos();
   const pausedDemo = useDemoStore((s) => s.pausedProfile);
   const pauseProfile = usePauseProfile();
+  const { data: unread = 0 } = useUnreadNotifications();
 
   const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
   const user = member.data;
@@ -225,6 +227,7 @@ export default function ProfileScreen() {
         />
         <ListRow
           label={es.notifications.title}
+          hint={unread > 0 ? (unread === 1 ? '1 sin leer' : `${unread} sin leer`) : undefined}
           onPress={() => router.push('/perfil/notificaciones')}
         />
         <ListRow

@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { es, NOTIFICATION_CATEGORIES, type NotificationCategory } from '@yugo/shared';
 import {
+  useDigestSetting,
+  useMarkAllNotificationsRead,
   useNotifications,
   useNotificationSettings,
+  useSetDigest,
   useSetNotificationPreference,
   useSetQuietHours,
 } from '@/lib/hooks';
@@ -15,6 +18,8 @@ type Tab = 'inbox' | 'preferences';
 
 const CATEGORY_TONE: Record<string, string> = {
   CONNECTION: 'chip-olive',
+  RELATIONSHIP: 'chip-olive',
+  ACCOMPANIMENT: '',
   MESSAGE: '',
   INTEREST: 'chip-wheat',
   EVENT: '',
@@ -36,7 +41,11 @@ export default function NotificationsPage() {
   const { data: settings } = useNotificationSettings();
   const setPreference = useSetNotificationPreference();
   const setQuietHours = useSetQuietHours();
+  const markAllRead = useMarkAllNotificationsRead();
+  const digest = useDigestSetting();
+  const setDigest = useSetDigest();
   const [tab, setTab] = useState<Tab>('inbox');
+  const unread = notifications.filter((notification) => !notification.readAt).length;
 
   const quiet = settings?.quietHours ?? { enabled: true, startHour: 22, endHour: 7 };
   const pushFor = (category: NotificationCategory) =>
@@ -56,6 +65,20 @@ export default function NotificationsPage() {
             ]}
           />
         </div>
+
+        {tab === 'inbox' && unread > 0 ? (
+          <div className="mb-2 flex items-center justify-between text-[12px] text-muted">
+            <span>{unread === 1 ? '1 sin leer' : `${unread} sin leer`}</span>
+            <button
+              type="button"
+              className="underline"
+              disabled={markAllRead.isPending}
+              onClick={() => markAllRead.mutate()}
+            >
+              Marcar todas como leídas
+            </button>
+          </div>
+        ) : null}
 
         {tab === 'inbox' ? (
           isLoading ? (
@@ -111,6 +134,27 @@ export default function NotificationsPage() {
                   </span>
                 </div>
               ))}
+            </div>
+
+            {/* Resumen semanal por correo: lo que pasó alrededor de la persona,
+                nunca rachas ni «te perdiste». Se apaga aquí con un toque. */}
+            <div className="card">
+              <div className="flex items-center justify-between text-[12.5px]">
+                <div>
+                  <span>Resumen semanal por correo</span>
+                  <div className="text-[11px] text-muted">
+                    {digest.data?.hasEmail === false
+                      ? 'Añade un correo a tu cuenta para recibirlo.'
+                      : 'Los lunes por la mañana: interés recibido, conexiones, mensajes sin leer y eventos cerca. Sin rachas.'}
+                  </div>
+                </div>
+                <Toggle
+                  on={digest.data?.enabled ?? true}
+                  disabled={digest.data?.hasEmail === false || setDigest.isPending}
+                  onChange={(value) => setDigest.mutate(value)}
+                  label="Resumen semanal por correo"
+                />
+              </div>
             </div>
 
             {/* RF-NOT-02: nothing pushes inside this window; it waits for it to close. */}

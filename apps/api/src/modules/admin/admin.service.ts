@@ -531,6 +531,20 @@ export class AdminService {
       targetId: caseId,
       after: { reason },
     });
+
+    // Cierra el ciclo con quien reportó: sabe que alguien revisó, nunca qué
+    // sanción se aplicó ni contra quién (RF-ADM-04, privacidad de la otra parte).
+    const reporterId = moderationCase.report?.reporterId;
+    if (decision !== 'ESCALATE' && reporterId && reporterId !== subjectId) {
+      await this.notifications.notify(
+        reporterId,
+        'MODERATION',
+        'Revisamos tu reporte',
+        decision === 'NO_ACTION'
+          ? 'Una persona del equipo lo revisó. No encontramos una falta al Pacto, pero tu aviso queda registrado y nos ayuda a cuidar la comunidad.'
+          : 'Una persona del equipo lo revisó y tomó medidas. Gracias por avisar: así cuidamos la comunidad entre todos.',
+      );
+    }
     return { done: true };
   }
 
@@ -827,7 +841,18 @@ export class AdminService {
     const church = await this.prisma.church.update({
       where: { id: churchId },
       data: approve ? { status: 'APPROVED', approvedAt: new Date() } : { status: 'REJECTED' },
+      include: { users: { select: { userId: true } } },
     });
+    for (const portalUser of church.users) {
+      await this.notifications.notify(
+        portalUser.userId,
+        'GROUP',
+        approve ? `${church.name} ya está en Yugo` : `Revisamos la solicitud de ${church.name}`,
+        approve
+          ? 'El equipo de Yugo aprobó la iglesia. Ya tienen grupo oficial y pueden publicar eventos y entregar códigos de respaldo.'
+          : `No pudimos aprobarla por ahora.${note ? ` Nota del equipo: ${note}` : ''} Puedes escribirnos para revisarlo.`,
+      );
+    }
     if (approve) {
       // Official group is created with the church (RF-COM-03).
       const existing = await this.prisma.group.findUnique({ where: { churchId } });
@@ -864,7 +889,7 @@ export class AdminService {
   }
 
   async decideEvent(actorId: string, eventId: string, approve: boolean, note?: string) {
-    await this.prisma.event.update({
+    const event = await this.prisma.event.update({
       where: { id: eventId },
       data: approve
         ? {
@@ -874,6 +899,7 @@ export class AdminService {
             qrToken: randomBytes(12).toString('hex'),
           }
         : { status: 'REJECTED', reviewNote: note },
+      include: { church: { select: { users: { select: { userId: true } } } } },
     });
     await this.audit.log({
       actorId,
@@ -882,6 +908,18 @@ export class AdminService {
       targetId: eventId,
       after: { note },
     });
+    // Quien publicó desde el portal se entera sin tener que volver a mirar.
+    for (const portalUser of event.church?.users ?? []) {
+      await this.notifications.notify(
+        portalUser.userId,
+        'EVENT',
+        approve ? `«${event.title}» ya está publicado` : `«${event.title}» necesita cambios`,
+        approve
+          ? 'Ya aparece en la agenda de la app. Imprime el QR desde el portal para el check-in.'
+          : `El equipo lo devolvió${note ? `: ${note}` : ' con una nota'}. Corrígelo y vuelve a enviarlo.`,
+        { eventId },
+      );
+    }
     return { done: true };
   }
 
@@ -906,7 +944,7 @@ export class AdminService {
   }
 
   async decideGroup(actorId: string, groupId: string, approve: boolean) {
-    await this.prisma.group.update({
+    const group = await this.prisma.group.update({
       where: { id: groupId },
       data: { status: approve ? 'ACTIVE' : 'CLOSED' },
     });
@@ -916,6 +954,17 @@ export class AdminService {
       targetType: 'GROUP',
       targetId: groupId,
     });
+    if (group.ownerId) {
+      await this.notifications.notify(
+        group.ownerId,
+        'GROUP',
+        approve ? `«${group.name}» ya está abierto` : `Revisamos «${group.name}»`,
+        approve
+          ? 'El equipo aprobó tu grupo. Ya aparece en Comunidad y puedes invitar a otras personas.'
+          : 'No pudimos aprobarlo tal como está. Revisa el nombre y la descripción y vuelve a proponerlo.',
+        approve ? { groupId } : undefined,
+      );
+    }
     return { done: true };
   }
 

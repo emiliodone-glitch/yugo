@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,22 +10,41 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../common/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
- * Real-time chat transport (RF-CON-03): one Socket.IO room per conversation,
- * delivered/read receipts and typing indicator. Message PERSISTENCE and
- * moderation happen in ChatService over HTTP; the gateway only fans out.
+ * Real-time transport (RF-CON-03, RF-NOT-01): one Socket.IO room per
+ * conversation for messages, receipts and typing, plus one room per member
+ * for notifications so an open app updates its badge without polling.
+ * PERSISTENCE and moderation happen over HTTP; the gateway only fans out.
  */
 @Injectable()
 @WebSocketGateway({ namespace: '/chat', cors: { origin: true, credentials: true } })
-export class ChatGateway implements OnGatewayConnection {
+export class ChatGateway implements OnGatewayConnection, OnModuleInit {
   @WebSocketServer()
   server: Server;
 
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  onModuleInit() {
+    // Every stored notification reaches the member's own room. The listener
+    // lives here (and not in NotificationsService) to keep that module free
+    // of a dependency on the chat transport.
+    this.notifications.onCreated((notification) => {
+      this.emitToUser(notification.userId, 'notification:new', {
+        id: notification.id,
+        category: notification.category,
+        title: notification.title,
+        body: notification.body,
+        data: notification.data,
+        createdAt: notification.createdAt,
+      });
+    });
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -37,9 +56,14 @@ export class ChatGateway implements OnGatewayConnection {
       if (!token) throw new Error('missing token');
       const payload = await this.jwt.verifyAsync(token);
       client.data.userId = payload.sub as string;
+      await client.join(`user:${client.data.userId}`);
     } catch {
       client.disconnect(true);
     }
+  }
+
+  emitToUser(userId: string, event: string, payload: unknown) {
+    this.server?.to(`user:${userId}`).emit(event, payload);
   }
 
   @SubscribeMessage('conversation:join')
@@ -58,7 +82,10 @@ export class ChatGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('typing')
-  typing(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; typing: boolean }) {
+  typing(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { conversationId: string; typing: boolean },
+  ) {
     client.to(`conversation:${body.conversationId}`).emit('typing', {
       userId: client.data.userId,
       typing: body.typing,

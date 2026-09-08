@@ -37,9 +37,7 @@ export async function registerForPush(): Promise<void> {
 
   try {
     const existing = await Notifications.getPermissionsAsync();
-    const granted =
-      existing.granted ||
-      (await Notifications.requestPermissionsAsync()).granted;
+    const granted = existing.granted || (await Notifications.requestPermissionsAsync()).granted;
     if (!granted) return;
 
     if (Platform.OS === 'android') {
@@ -51,11 +49,8 @@ export async function registerForPush(): Promise<void> {
       });
     }
 
-    const projectId =
-      Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-    const token = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
-    );
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    const token = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
 
     await getApiClient().notifications.registerPushToken(
       token.data,
@@ -85,17 +80,45 @@ export function routeFromNotification(data: Record<string, unknown> | undefined)
     case 'verification':
       router.push('/perfil/verificacion');
       return;
+    case 'accompaniment':
+      // La pareja acompañada se ve desde «Acompañar», nunca desde su chat.
+      router.push('/perfil/acompanar');
+      return;
     default:
       router.push('/perfil/notificaciones');
   }
 }
 
-/** Subscribes to taps. Returns the unsubscribe. */
+let handledColdStart = false;
+
+/**
+ * Subscribes to taps. Returns the unsubscribe.
+ *
+ * A tap that LAUNCHES the app (cold start) never reaches the listener: it
+ * arrives as the "last response", so it is read once here. Without this the
+ * push opened the app on Inicio and the person had to find the message alone.
+ */
 export function listenToNotificationTaps(): () => void {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
     routeFromNotification(
       response.notification.request.content.data as Record<string, unknown> | undefined,
     );
   });
+  if (!handledColdStart) {
+    handledColdStart = true;
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (!response) return;
+        // Small delay so the root navigator is mounted before the push.
+        setTimeout(
+          () =>
+            routeFromNotification(
+              response.notification.request.content.data as Record<string, unknown> | undefined,
+            ),
+          400,
+        );
+      })
+      .catch(() => undefined);
+  }
   return () => subscription.remove();
 }

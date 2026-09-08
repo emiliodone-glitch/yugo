@@ -53,7 +53,7 @@ import {
 } from '@yugo/shared';
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
-import { emitTyping, joinConversation } from './realtime';
+import { emitTyping, joinConversation, subscribeNotifications } from './realtime';
 import {
   demoAccompanimentFor,
   demoStageQuestions,
@@ -1126,6 +1126,73 @@ export function useNotifications() {
       if (isDemoMode()) return demoNotifications;
       return api().notifications.list();
     },
+  });
+}
+
+/**
+ * Unread badge, kept live: the socket announces every stored notification and
+ * the count refetches; without a socket (demo, red caída) sigue valiendo lo
+ * último que se leyó.
+ */
+export function useUnreadNotifications(enabled = true) {
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    queryKey: ['notifications', 'unread'],
+    enabled,
+    queryFn: async (): Promise<number> => {
+      if (isDemoMode()) return demoNotifications.filter((n) => !n.readAt).length;
+      return (await api().notifications.unreadCount()).count;
+    },
+  });
+  useEffect(() => {
+    if (isDemoMode() || !enabled) return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    void subscribeNotifications((notification) => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      // Lo que cambia el resto de la app también se refresca: una conexión
+      // nueva o un mensaje mueven la lista de Conexiones.
+      if (notification.category === 'MESSAGE' || notification.category === 'CONNECTION') {
+        queryClient.invalidateQueries({ queryKey: ['connections'] });
+      }
+      if (notification.category === 'INTEREST') {
+        queryClient.invalidateQueries({ queryKey: ['who-marked-me'] });
+      }
+    }).then((off) => {
+      if (cancelled) off();
+      else cleanup = off;
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [queryClient, enabled]);
+  return query;
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (isDemoMode() ? { ok: true } : api().notifications.markAllRead()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
+/** Resumen semanal por correo: activado por defecto, sin rachas. */
+export function useDigestSetting() {
+  return useQuery({
+    queryKey: ['notifications', 'digest'],
+    queryFn: async () =>
+      isDemoMode() ? { enabled: true, hasEmail: true } : api().notifications.digest(),
+  });
+}
+
+export function useSetDigest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (enabled: boolean) =>
+      isDemoMode() ? { enabled } : api().notifications.setDigest(enabled),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', 'digest'] }),
   });
 }
 
