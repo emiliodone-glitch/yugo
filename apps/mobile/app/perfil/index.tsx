@@ -231,6 +231,11 @@ export default function ProfileScreen() {
           onPress={() => router.push('/perfil/acompanar')}
         />
         <ListRow
+          label="Mi suscripción"
+          hint="Nivel, recibos y cancelación"
+          onPress={() => router.push('/perfil/suscripcion')}
+        />
+        <ListRow
           label={es.notifications.title}
           hint={unread > 0 ? (unread === 1 ? '1 sin leer' : `${unread} sin leer`) : undefined}
           onPress={() => router.push('/perfil/notificaciones')}

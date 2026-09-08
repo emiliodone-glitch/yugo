@@ -36,9 +36,14 @@ export default function PaywallScreen() {
         channel: Platform.OS === 'ios' ? 'APP_STORE' : 'GOOGLE_PLAY',
         currency: 'DOP',
       });
-      router.back();
+      router.replace('/perfil/suscripcion');
     } catch (caught) {
-      setError(errorMessage(caught));
+      const message = errorMessage(caught);
+      setError(
+        /receipt_required|not_configured|stub_only/.test(message)
+          ? 'La compra dentro de la app todavía no está activa en las tiendas. Mientras tanto puedes suscribirte desde la web de Yugo con tu misma cuenta.'
+          : message,
+      );
     }
   };
 
@@ -97,7 +102,11 @@ export default function PaywallScreen() {
         </Pressable>
 
         <Pressable
-          style={[styles.tierCard, styles.oroCard, selected === 'ORO' ? { borderColor: colors.wheat } : null]}
+          style={[
+            styles.tierCard,
+            styles.oroCard,
+            selected === 'ORO' ? { borderColor: colors.wheat } : null,
+          ]}
           onPress={() => setSelected('ORO')}
         >
           <View style={styles.mostChosen}>
@@ -109,7 +118,9 @@ export default function PaywallScreen() {
             <Text style={[styles.tierName, { color: colors.wheat }]}>{es.paywall.oro}</Text>
             <Text style={styles.tierPrice}>{price('ORO')}</Text>
           </View>
-          <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkMuted, marginTop: 2 }}>
+          <Text
+            style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkMuted, marginTop: 2 }}
+          >
             {es.paywall.allOfPlus}
           </Text>
           {es.paywall.oroFeatures.map((feature) => (
@@ -145,7 +156,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: '#fff', marginTop: 14 },
-  sub: { fontFamily: fonts.body, fontSize: 12, lineHeight: 17, color: colors.inkMuted, marginVertical: 10 },
+  sub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.inkMuted,
+    marginVertical: 10,
+  },
   segment: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,.1)',
@@ -164,7 +181,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   tierSelected: { borderColor: 'rgba(255,255,255,.6)', backgroundColor: 'rgba(255,255,255,.12)' },
-  oroCard: { borderWidth: 1.5, borderColor: 'rgba(224,178,90,.5)', backgroundColor: 'rgba(224,178,90,.12)' },
+  oroCard: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(224,178,90,.5)',
+    backgroundColor: 'rgba(224,178,90,.12)',
+  },
   mostChosen: {
     position: 'absolute',
     right: 12,
@@ -177,7 +198,13 @@ const styles = StyleSheet.create({
   tierName: { fontFamily: fonts.display, fontSize: 15, color: '#fff' },
   tierPrice: { fontFamily: fonts.bodyBold, fontSize: 12.5, color: '#fff' },
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 },
-  featureText: { fontFamily: fonts.body, fontSize: 12, color: '#fff', flexShrink: 1, lineHeight: 16 },
+  featureText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: '#fff',
+    flexShrink: 1,
+    lineHeight: 16,
+  },
   footer: {
     textAlign: 'center',
     fontFamily: fonts.body,

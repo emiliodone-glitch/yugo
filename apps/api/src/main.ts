@@ -5,7 +5,8 @@ import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: el webhook de Stripe verifica la firma sobre el cuerpo exacto.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   // La raíz queda fuera del prefijo para que abrir el dominio pelado diga
   // «la API está viva» en vez de un 404 (ver RootController).
   app.setGlobalPrefix('v1', { exclude: ['/'] });

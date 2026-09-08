@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Post,
+  Put,
+  Req,
+  type RawBodyRequest,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { Cron } from '@nestjs/schedule';
 import { z } from 'zod';
 import { SubscriptionsService } from './subscriptions.service';
@@ -11,6 +22,11 @@ const purchaseSchema = z.object({
   channel: z.enum(['STRIPE', 'AZUL', 'APP_STORE', 'GOOGLE_PLAY']),
   currency: z.enum(['DOP', 'USD']),
   token: z.string().optional(),
+});
+const checkoutSchema = z.object({
+  tier: z.enum(['PLUS', 'ORO']),
+  plan: z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL']),
+  currency: z.enum(['DOP', 'USD']),
 });
 const invisibleSchema = z.object({ enabled: z.boolean() });
 const promoSchema = z.object({ code: z.string().trim().min(3).max(40) });
@@ -89,6 +105,31 @@ export class SubscriptionsController {
   @Delete('me')
   cancel(@CurrentUser() user: AuthUser) {
     return this.subscriptions.cancel(user.id);
+  }
+
+  /** Web checkout: activa al instante (stub) o devuelve la URL de Stripe. */
+  @Post('checkout')
+  checkout(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(checkoutSchema)) body: z.infer<typeof checkoutSchema>,
+  ) {
+    return this.subscriptions.checkout(user.id, body.tier, body.plan, body.currency);
+  }
+
+  /** Recibos del miembro. */
+  @Get('payments')
+  payments(@CurrentUser() user: AuthUser) {
+    return this.subscriptions.myPayments(user.id);
+  }
+
+  /** Stripe → Yugo. Sin sesión: la firma es la autenticación. */
+  @Public()
+  @Post('webhooks/stripe')
+  stripeWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string | undefined,
+  ) {
+    return this.subscriptions.handleStripeWebhook(req.rawBody, signature);
   }
 
   @Put('invisible-mode')

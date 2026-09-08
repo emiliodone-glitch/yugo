@@ -50,7 +50,11 @@ export class StripeProvider implements PaymentProvider {
       },
       body,
     });
-    const data = (await response.json()) as { id?: string; status?: string; error?: { message: string } };
+    const data = (await response.json()) as {
+      id?: string;
+      status?: string;
+      error?: { message: string };
+    };
     if (!response.ok || data.status !== 'succeeded') {
       return { ok: false, error: data.error?.message ?? `stripe_status_${data.status}` };
     }

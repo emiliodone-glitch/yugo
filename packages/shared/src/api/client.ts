@@ -606,11 +606,30 @@ export interface BoostStatus {
   activeUntil: string | null;
 }
 
+export type CheckoutResult =
+  | { mode: 'activated'; subscription: { id: string; tier: string; endsAt: string } }
+  | { mode: 'scheduled'; effectiveAt: string }
+  | { mode: 'redirect'; url: string; sessionId: string };
+
+export interface PaymentReceipt {
+  id: string;
+  amount: number;
+  currency: string;
+  provider: string;
+  status: string;
+  createdAt: string;
+  tier: SubscriptionTier | null;
+  plan: SubscriptionPlan | null;
+  periodEndsAt: string | null;
+}
+
 export interface SubscriptionStateResponse {
   tier: SubscriptionTier | null;
   plan?: SubscriptionPlan;
   status?: string;
   renewsAt?: string;
+  canceledAt?: string | null;
+  channel?: string | null;
   downgradeToTier: SubscriptionTier | null;
   invisibleMode: boolean;
   showOroBadge: boolean;
@@ -1137,6 +1156,10 @@ export class YugoApiClient {
         { code },
       ),
     cancel: () => this.http.delete<{ accessUntil: string }>('/subscriptions/me'),
+    /** Web: activa (stub) o redirige a Stripe Checkout. */
+    checkout: (input: { tier: SubscriptionTier; plan: SubscriptionPlan; currency: 'DOP' | 'USD' }) =>
+      this.http.post<CheckoutResult>('/subscriptions/checkout', input),
+    payments: () => this.http.get<PaymentReceipt[]>('/subscriptions/payments'),
     setInvisibleMode: (enabled: boolean) =>
       this.http.put<{ invisibleMode: boolean }>('/subscriptions/invisible-mode', { enabled }),
     setOroBadge: (show: boolean) =>

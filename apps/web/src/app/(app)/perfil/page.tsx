@@ -161,7 +161,7 @@ export default function ProfilePage() {
 
         {/* Plus / Oro card */}
         <Link
-          href="/plus"
+          href={subscription?.tier ? '/perfil/suscripcion' : '/plus'}
           className="card mt-3 flex items-center justify-between border-0 bg-ink text-white"
         >
           <div>

@@ -54,7 +54,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode } from './runtime';
 import { emitTyping, joinConversation, subscribeNotifications } from './realtime';
-import type { DiscoverResponse, GroupDetail } from '@yugo/shared';
+import type { CheckoutResult, DiscoverResponse, GroupDetail, PaymentReceipt } from '@yugo/shared';
 import {
   demoAccompanimentFor,
   demoStageQuestions,
@@ -1224,6 +1224,67 @@ export function usePurchaseSubscription() {
       return api().subscriptions.purchase(input);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+  });
+}
+
+/** Web checkout: activa al instante en local o devuelve la URL de Stripe. */
+export function useCheckout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      tier: 'PLUS' | 'ORO';
+      plan: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+      currency: 'DOP' | 'USD';
+    }): Promise<CheckoutResult> => {
+      if (isDemoMode()) {
+        return {
+          mode: 'activated',
+          subscription: {
+            id: 'demo-subscription',
+            tier: input.tier,
+            endsAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+          },
+        };
+      }
+      return api().subscriptions.checkout(input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+  });
+}
+
+/** RF-PLU-05: cancelar; el acceso sigue hasta el fin del período. */
+export function useCancelSubscription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      isDemoMode()
+        ? { accessUntil: demoCurrentUser.subscription.renewsAt }
+        : api().subscriptions.cancel(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subscription'] }),
+  });
+}
+
+export function useMyPayments() {
+  return useQuery({
+    queryKey: ['subscription', 'payments'],
+    queryFn: async (): Promise<PaymentReceipt[]> => {
+      if (isDemoMode()) {
+        return [
+          {
+            id: 'pay-demo',
+            amount: 1490,
+            currency: 'DOP',
+            provider: 'STRIPE',
+            status: 'SUCCEEDED',
+            createdAt: new Date(Date.now() - 12 * 86400000).toISOString(),
+            tier: demoCurrentUser.subscription.tier,
+            plan: demoCurrentUser.subscription.plan ?? null,
+            periodEndsAt: demoCurrentUser.subscription.renewsAt ?? null,
+          },
+        ];
+      }
+      return api().subscriptions.payments();
+    },
   });
 }
 
