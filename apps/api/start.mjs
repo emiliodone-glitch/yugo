@@ -96,6 +96,24 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+// Una referencia ${{Postgres.POSTGRES_PASSWORD}} que no resolvió deja la URL
+// como `postgresql://yugo:@host:5432/yugo`: contraseña vacía. Prisma la
+// rechaza con P1000 en cada arranque y el mensaje no dice por qué.
+try {
+  const parsed = new URL(process.env.DATABASE_URL);
+  if (parsed.password === '') {
+    console.error(
+      `[yugo] DATABASE_URL no lleva contraseña (usuario «${parsed.username}» en ${parsed.host}). ` +
+        'En Railway, la referencia a la contraseña debe usar el nombre exacto del servicio de base de ' +
+        'datos, con mayúsculas y minúsculas iguales (p. ej. ${{Postgres.POSTGRES_PASSWORD}}), o bien ' +
+        'pegar la contraseña literal del servicio Postgres.',
+    );
+    process.exit(1);
+  }
+} catch {
+  // URL ilegible: que lo diga Prisma con su código.
+}
+
 migrateWaitingForDatabase();
 // SEED_ON_BOOT=true → solo si la base está vacía (primer arranque).
 // SEED_ON_BOOT=always → en cada arranque: la semilla es idempotente (upserts)

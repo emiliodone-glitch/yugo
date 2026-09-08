@@ -34,7 +34,11 @@ export class HealthController {
       checks.cache = 'down';
     }
     const healthy = Object.values(checks).every((status) => status === 'ok');
-    return { status: healthy ? 'ok' : 'degraded', checks, uptimeSeconds: Math.round(process.uptime()) };
+    return {
+      status: healthy ? 'ok' : 'degraded',
+      checks,
+      uptimeSeconds: Math.round(process.uptime()),
+    };
   }
 
   /**

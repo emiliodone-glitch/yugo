@@ -6,7 +6,9 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('v1');
+  // La raíz queda fuera del prefijo para que abrir el dominio pelado diga
+  // «la API está viva» en vez de un 404 (ver RootController).
+  app.setGlobalPrefix('v1', { exclude: ['/'] });
   app.useGlobalInterceptors(new LoggingInterceptor());
   // La API autentica solo con tokens Bearer (nunca cookies), así que el
   // origen del navegador no es una frontera de seguridad: otro sitio no puede
@@ -29,6 +31,16 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? process.env.API_PORT ?? 4000);
   await app.listen(port, '0.0.0.0');
   Logger.log(`Yugo API listening on http://localhost:${port}/v1`, 'Bootstrap');
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    // Lo que más veces ha fallado en Railway es que el dominio público apunta
+    // a un puerto distinto del que escucha la API. Dejarlo dicho en el log
+    // ahorra adivinar.
+    Logger.log(
+      `En Railway, el dominio público de este servicio debe apuntar al puerto ${port} ` +
+        `(Settings → Networking). Si no coincide, añade la variable PORT con el puerto del dominio.`,
+      'Bootstrap',
+    );
+  }
 }
 
 void bootstrap();
