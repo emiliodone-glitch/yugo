@@ -54,6 +54,15 @@ Lo que apareció y se corrigió:
 - `expo-system-ui` instalado: `userInterfaceStyle: light` no se aplicaba en
   Android sin él (lo avisaba el prebuild).
 
+### Primer arranque sin manos: la API siembra si la base está vacía
+Con `SEED_ON_BOOT=true`, el contenedor corre `prisma/seed-if-empty.ts` tras
+las migraciones: si no hay denominaciones, siembra el catálogo y los datos de
+demo; si hay una sola fila, no toca nada aunque la variable siga puesta. Es lo
+que evita exponer Postgres o correr la semilla desde otra máquina para poner
+el sistema en marcha. Probado contra una base recién creada (siembra), la
+misma base otra vez (no siembra) y sin la variable (no se ejecuta). `tsx` pasa
+a dependencia de producción por esto.
+
 ### Desplegar y generar el APK desde GitHub, con un secreto y un clic
 Para que no haga falta instalar nada en una máquina propia:
 

@@ -46,5 +46,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
 # Las migraciones se aplican en el arranque, antes de servir: Railway no tiene
 # fase de «release», y una API nueva contra un esquema viejo falla peor que
 # unos segundos de espera. `prisma` va en dependencias de producción por esto.
+#
+# Con SEED_ON_BOOT=true, y solo si la base está vacía, se siembra el catálogo
+# y los datos de demo (prisma/seed-if-empty.ts). Es lo que evita tener que
+# exponer Postgres para el primer arranque. `tsx` va en dependencias de
+# producción por esto.
 WORKDIR /app/apps/api
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ \"$SEED_ON_BOOT\" = \"true\" ]; then npx tsx prisma/seed-if-empty.ts; fi && node dist/main.js"]

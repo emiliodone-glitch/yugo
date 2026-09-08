@@ -57,8 +57,10 @@ keywords = ["postgres://", "postgresql://", "redis://", "rediss://", "mysql://",
     '''://yugo:yugo@''',
     '''://postgres:postgres@''',
     '''://(?:[^\s:/@]*):(?:password|passwd|secret|changeme|change-me|example|placeholder|tu-clave|clave)@''',
-    # Marcadores de documentación: <pass>, <contraseña>, ${POSTGRES_PASSWORD}.
-    '''://(?:[^\s:/@]*):(?:<[^>@\s]+>|\$\{[^}@\s]+\})@''',
+    # Marcadores de documentación: <pass>, <contraseña>, ${POSTGRES_PASSWORD} y
+    # las referencias entre servicios de Railway, ${{postgres.POSTGRES_PASSWORD}}.
+    # Ninguno contiene el valor: es el nombre de dónde vive.
+    '''://(?:[^\s:/@]*):(?:<[^>@\s]+>|\$\{\{?[^}@\s]+\}\}?)@''',
   ]
 
 [[rules]]

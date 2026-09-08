@@ -141,6 +141,8 @@ debe_ignorar 'un marcador <pass> en la documentación' 'RAILWAY.md' \
   'DATABASE_URL=postgresql://yugo:<pass>@postgres.railway.internal:5432/yugo'
 debe_ignorar 'una contraseña interpolada en una URI' 'compose.yml' \
   'DATABASE_URL=postgresql://yugo:${POSTGRES_PASSWORD}@postgres:5432/yugo'
+debe_ignorar 'una referencia entre servicios de Railway' 'RAILWAY.md' \
+  'DATABASE_URL=postgresql://yugo:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/yugo'
 
 echo
 if [ "$fallos" -gt 0 ]; then

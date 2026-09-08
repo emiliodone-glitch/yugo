@@ -86,10 +86,11 @@ Variables:
 
 | Variable | Valor | Nota |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql://yugo:<pass>@postgres.railway.internal:5432/yugo?schema=public` | Host privado del paso 2 |
+| `DATABASE_URL` | `postgresql://yugo:${{postgres.POSTGRES_PASSWORD}}@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/yugo?schema=public` | Referencias al servicio `postgres` del paso 2; no hay que copiar la contraseña |
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` | Referencia al plugin; omitir si no hay Redis |
 | `NODE_ENV` | `production` | |
-| `WEB_URL` | `https://<dominio-de-la-web>` | **CORS.** Sin esto el navegador rechaza las llamadas de la web |
+| `SEED_ON_BOOT` | `true` | **Primer arranque.** Si la base está vacía, siembra el catálogo y los datos de demo (`prisma/seed-if-empty.ts`); con datos, no hace nada. Quítala después del piloto |
+| `WEB_URL` | `https://${{web.RAILWAY_PUBLIC_DOMAIN}}` | **CORS.** Referencia al dominio del servicio `web`; se resuelve sola cuando la web tenga dominio |
 | `JWT_ACCESS_SECRET` | 48+ caracteres aleatorios | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | otros 48+ caracteres, distintos | Rotar el de refresco invalida sesiones |
 | `JWT_ACCESS_TTL` | `900s` | |
