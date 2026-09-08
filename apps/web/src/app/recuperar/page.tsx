@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { es } from '@yugo/shared';
 import { DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
+import { AuthLayout } from '@/components/auth-layout';
 import { YugoMark } from '@/components/icons';
 
 /** RF-AUT-05: password recovery by email or SMS with an OTP. */
@@ -37,9 +38,11 @@ export default function PasswordResetPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-ink text-white">
+    <AuthLayout>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10">
-        <YugoMark className="h-12 w-12" />
+        <Link href="/" className="inline-flex" aria-label={es.common.back}>
+          <YugoMark className="h-12 w-12" />
+        </Link>
 
         {stage === 'done' ? (
           <>
@@ -91,7 +94,10 @@ export default function PasswordResetPage() {
               )}
 
               {error ? (
-                <div className="mt-3 rounded-field bg-wine-soft px-3 py-2 text-[12px] text-wine">
+                <div
+                  role="alert"
+                  className="mt-3 rounded-field bg-wine-soft px-3 py-2 text-[12px] text-wine"
+                >
                   {error}
                 </div>
               ) : null}
@@ -109,6 +115,6 @@ export default function PasswordResetPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

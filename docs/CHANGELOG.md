@@ -3,6 +3,36 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.8.0 — La web como web: escritorio de verdad y diagnóstico de conexión
+
+### Escritorio
+La web se veía como un teléfono estirado: una columna de 670 px en el centro
+de una pantalla de 1440. Ahora usa el ancho como una aplicación web, sin
+tocar la experiencia del teléfono:
+
+- **Entrar, crear perfil y recuperar contraseña** (`AuthLayout`): a la
+  izquierda qué es Yugo (la promesa, el devocional de hoy, las tres cosas que
+  lo distinguen), a la derecha el formulario en un ancho de lectura.
+- **Conexiones** con lista y conversación lado a lado (≥1280 px), con la fila
+  activa resaltada y un estado vacío que invita a elegir una conversación. En
+  el teléfono sigue el flujo lista → chat.
+- **Perfil** en dos columnas (quién soy y cómo voy / ajustes) y **Comunidad**
+  con las tarjetas a dos columnas.
+- Todas las secciones se abren a ~1000 px; lo que se lee con calma
+  (devocional, oración, Plus, textos legales) se queda en columna de lectura.
+
+### «No se pudo conectar con el servidor»
+Ese mensaje tenía tres causas indistinguibles desde la pantalla de entrar.
+Ahora, cuando el fallo es de red, la pantalla añade la URL de API con la que
+se construyó la web y un enlace a **`/estado`**, una página que prueba desde
+el navegador si la web llega a la API y separa los tres casos
+(`NEXT_PUBLIC_API_URL` mal construida, API caída, CORS por `WEB_URL`) con el
+paso concreto para cada uno. No expone nada sensible: la URL de la API es
+pública por definición.
+
+Verificación: E2E Playwright completa, capturas a 1440 px y 390 px de entrar,
+registro, conexiones, chat, perfil, comunidad, inicio, eventos y descubrir.
+
 ## v0.7.0 — Explorar sin cuenta, panel y portal reales, cuenta de prueba
 
 ### Auditoría contra la API real: lo que la demo tapaba

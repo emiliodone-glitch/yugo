@@ -356,6 +356,8 @@ export const es = {
 
   connections: {
     title: 'Conexiones',
+    pickOneTitle: 'Elige una conversación',
+    pickOneBody: 'Aquí verás los mensajes de la conexión que abras en la lista de la izquierda.',
     newSection: 'NUEVAS',
     conversations: 'CONVERSACIONES',
     newConnectionToday: 'Nueva conexión · hoy',
@@ -850,6 +852,27 @@ export const es = {
     eventNotFound: 'Este evento ya no está disponible.',
     eventCta: 'Para apuntarte y ver quién de tus conexiones irá, crea tu perfil.',
     backToExplore: 'Volver a explorar',
+  },
+  status: {
+    title: 'Estado de la conexión',
+    heading: '¿La web llega a la API?',
+    sub: 'Esta página prueba la conexión desde tu navegador y dice qué variable tocar si falla. Para quien despliega; no hay nada aquí que un miembro necesite.',
+    webOrigin: 'Esta web',
+    apiUrl: 'API configurada',
+    demoMode: 'Modo demo',
+    probe: 'Prueba en vivo',
+    ok: (ms: number) => `La API responde (${ms} ms).`,
+    okNext: 'Si aun así no puedes entrar, el problema es de credenciales o de la propia cuenta, no de conexión.',
+    http: (status: number) => `La API respondió con error ${status}.`,
+    httpHint: 'La dirección es correcta pero el servicio no está sano. Revisa los Deploy Logs de la API en Railway.',
+    unreachable: 'El navegador no pudo conectar con la API.',
+    fixUrl:
+      'La dirección de la API no parece válida. En Railway, servicio web → Variables → NEXT_PUBLIC_API_URL debe ser la URL pública literal de la API (https://…up.railway.app, sin /v1). Al cambiarla, la web se reconstruye sola.',
+    openHealth: 'Abre esta dirección en otra pestaña:',
+    ifHealthWorks: (origin: string) =>
+      `Si ahí ves {"status":"ok"…}, la API está bien y lo que falla es CORS: en Railway, servicio api → Variables → WEB_URL debe ser exactamente ${origin} (sin barra final). La API se reinicia sola.`,
+    ifHealthFails: 'Si ahí tampoco carga, la API está caída o la dirección es otra: revisa Deployments y Networking del servicio api.',
+    backToSignIn: '← Volver a entrar',
   },
   gate: {
     staffOnly: 'Esta área es del equipo de Yugo.',

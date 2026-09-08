@@ -214,8 +214,11 @@ comprobaciones). Necesita la base sembrada y acceso a la base para dos
 comprobaciones (lee `DATABASE_URL`); si no la expones públicamente, córrela
 con `railway run --service api`.
 
-En el navegador: abre la web, entra con `demo1@yugo.do` / `Yugo.demo1`, y
-verifica que Descubrir trae perfiles. Si trae la demo en vez de datos reales,
+En el navegador, primero abre `https://<web>/estado`: esa página prueba desde
+tu navegador que la web llega a la API y, si no, dice qué variable tocar
+(`NEXT_PUBLIC_API_URL` mal construida, API caída o `WEB_URL`/CORS). Cuando
+diga «La API responde», entra con `prueba@yugo.do` / `Yugo.prueba1` y verifica
+que Descubrir trae perfiles. Si trae la demo en vez de datos reales,
 `NEXT_PUBLIC_DEMO_MODE` quedó en `true` en el build.
 
 ## 7. La app móvil apunta a la API
@@ -234,6 +237,7 @@ API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 | La web carga pero todo está vacío y la consola dice CORS | `WEB_URL` en la API no coincide con el dominio de la web | Poner la URL exacta con `https://` y sin barra final |
 | La web muestra datos de demo | `NEXT_PUBLIC_DEMO_MODE=true` en el build | Ponerla en `false` y redesplegar la web |
 | La web muestra «Yugo no puede comunicarse con el servidor» con una dirección rara o vacía | `NEXT_PUBLIC_API_URL` no se resolvió al construir: las referencias `${{api.…}}` solo funcionan si el servicio se llama exactamente `api` (Railway nombra `@yugo/api` a los que crea desde el monorepo) | Poner la URL literal de la API (`https://…up.railway.app`, sin `/v1`) y redesplegar la web; lo mismo con `WEB_URL` en la API |
+| Al entrar sale «No se pudo conectar con el servidor» | Una de tres: `NEXT_PUBLIC_API_URL` mal construida, la API caída, o CORS (`WEB_URL`) | Abrir `https://<web>/estado`: hace la prueba desde el navegador y separa los tres casos con el paso a seguir en cada uno |
 | Nadie puede entrar como admin | 2FA por correo con `OTP_PROVIDER=console` | Leer el código en los logs de la API, o configurar SMTP |
 | Las fotos no suben | Variables `S3_*` vacías | Configurar R2/S3 (RF-PER-02) |
 

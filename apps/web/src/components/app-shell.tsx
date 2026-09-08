@@ -31,10 +31,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
-  // En pantallas anchas, las listas usan el ancho; lo que se lee o se escribe
-  // —un chat, un perfil, un formulario— se queda en una columna cómoda. Una
-  // conversación estirada a 1000 px se lee peor, no mejor.
-  const wide = ['/inicio', '/descubrir', '/eventos'].includes(pathname);
+  // En pantallas anchas la web usa el ancho, como una web: las secciones se
+  // abren a ~1000 px y Conexiones a más, porque lleva lista y chat lado a
+  // lado. Lo que se lee con calma —el devocional, una oración, el plan Plus,
+  // un texto legal— se queda en una columna de lectura: un párrafo estirado a
+  // 1000 px se lee peor, no mejor.
+  const reading = ['/devocional', '/oracion', '/plus', '/legal'].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  const split = pathname === '/conexiones' || pathname.startsWith('/conexiones/');
+  const widthAtXl = split ? 'xl:max-w-6xl' : reading ? 'xl:max-w-3xl' : 'xl:max-w-5xl';
 
   return (
     <div className="min-h-dvh md:flex">
@@ -76,9 +82,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column */}
       <main
-        className={`mx-auto w-full max-w-xl flex-1 pb-24 md:ml-[220px] md:max-w-2xl md:pb-8 ${
-          wide ? 'xl:max-w-5xl' : ''
-        }`}
+        className={`mx-auto w-full max-w-xl flex-1 pb-24 md:ml-[220px] md:max-w-2xl ${
+          // Conexiones ocupa el alto exacto de la ventana (lista y chat con su
+          // propio scroll); un relleno inferior haría scroll a toda la página.
+          split ? 'xl:pb-0 md:pb-8' : 'md:pb-8'
+        } ${widthAtXl}`}
       >
         <SessionGate>
           <ApiStatusBanner />
