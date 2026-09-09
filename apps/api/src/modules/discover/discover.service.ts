@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import {
   affinityReason,
+  affinityReasons,
   ageFromBirthDate,
   relativeDayLabel,
   EXCLUSIVE_STAGES,
@@ -16,6 +17,7 @@ import { AffinityService, ScorableProfile } from './affinity.service';
 import { DailyLimitsService } from './daily-limits.service';
 import { rankCandidates } from './rank';
 import { StorageService } from '../media/storage.service';
+import { CommunitySignalsService } from '../../common/community-signals.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PrivacyService } from '../privacy/privacy.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -43,6 +45,7 @@ export class DiscoverService {
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
     private readonly notifications: NotificationsService,
+    private readonly communitySignals: CommunitySignalsService,
   ) {}
 
   /**
@@ -447,6 +450,12 @@ export class DiscoverService {
       viewer.user.id,
       candidates.map((candidate) => candidate.id),
     );
+    // Lo que ya hicieron juntos en Yugo (grupos, oración, devocional,
+    // eventos pasados): la comunidad alimentando las razones de la tarjeta.
+    const communityByUser = await this.communitySignals.forCandidates(
+      viewer.user.id,
+      candidates.map((candidate) => candidate.id),
+    );
 
     const scored: Array<{
       card: ProfileCard;
@@ -482,6 +491,30 @@ export class DiscoverService {
       const inCommon = candidate.profile.serviceAreas
         .filter((sa) => viewerPractices.has(sa.serviceArea.slug))
         .map((sa) => sa.serviceArea.name);
+
+      // RF-DES-02: el porqué, en la tarjeta misma. Una lista corta se
+      // sostiene si la persona entiende de dónde sale cada sugerencia.
+      const reasonInput = {
+        affinity: breakdown,
+        inCommon,
+        sameDenomination:
+          !!viewer.profile.denominationId &&
+          viewer.profile.denominationId === candidate.profile.denominationId,
+        sameChurch:
+          !!viewer.profile.churchId && viewer.profile.churchId === candidate.profile.churchId,
+        bothSeekMarriage:
+          viewer.profile.intention === 'MARRIAGE' && candidate.profile.intention === 'MARRIAGE',
+        endorsedBy: level3?.church?.name,
+        sameCity:
+          !!viewer.profile.city &&
+          viewer.profile.city.toLowerCase() === (candidate.profile.city ?? '').toLowerCase(),
+        // Solo cuando la persona deja ver la distancia exacta (RF-SEG-07).
+        distanceKm: candidate.profile.hideExactDistance ? undefined : distanceKm,
+        sharedEvent: sharedEvent
+          ? { title: sharedEvent.title, whenLabel: relativeDayLabel(sharedEvent.startsAt) }
+          : undefined,
+        community: communityByUser.get(candidate.id),
+      };
 
       scored.push({
         userId: candidate.id,
@@ -533,21 +566,9 @@ export class DiscoverService {
           affinity: breakdown,
           // RF-DES-02: el porqué, en la tarjeta misma. Una lista corta se
           // sostiene si la persona entiende de dónde sale cada sugerencia.
-          affinityReason: affinityReason({
-            affinity: breakdown,
-            inCommon,
-            sameDenomination:
-              !!viewer.profile.denominationId &&
-              viewer.profile.denominationId === candidate.profile.denominationId,
-            sameChurch:
-              !!viewer.profile.churchId && viewer.profile.churchId === candidate.profile.churchId,
-            bothSeekMarriage:
-              viewer.profile.intention === 'MARRIAGE' && candidate.profile.intention === 'MARRIAGE',
-            endorsedBy: level3?.church?.name,
-            sharedEvent: sharedEvent
-              ? { title: sharedEvent.title, whenLabel: relativeDayLabel(sharedEvent.startsAt) }
-              : undefined,
-          }),
+          affinityReason: affinityReason(reasonInput),
+          affinityReasons: affinityReasons(reasonInput),
+          community: communityByUser.get(candidate.id),
           sharedEvent: sharedEvent
             ? {
                 id: sharedEvent.id,

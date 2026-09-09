@@ -31,6 +31,21 @@ por separado; esta entrada crece con cada una.
 - Semilla: respuestas para los 40 perfiles de demostración; fixtures con las
   respuestas de Mariel. Migración `0015_voz_propia`.
 
+### Razones de afinidad visibles y comunidad que alimenta Descubrir (RF-DES-02, RF-CON-04)
+- **Dos o tres razones en cada tarjeta**, nunca un porcentaje:
+  `affinityReasons()` en shared ordena por lo que más dice de una persona
+  (evento próximo compartido → lo que ya hicieron juntos → prácticas →
+  iglesia/denominación → intención → cercanía). La frase única
+  `affinityReason` se conserva para diseños estrechos.
+- **La comunidad entra en las citas.** `CommunitySignalsService` calcula en
+  lote, por lista, lo que dos personas ya hicieron juntas en Yugo: grupo en
+  común, peticiones por las que ambos oraron (30 días), devocional sobre el
+  que ambos reflexionaron (reflexiones aprobadas), evento pasado al que ambos
+  fueron (respetando quién deja ver su asistencia). Sale en la tarjeta, en la
+  ficha («Lo que ya comparten en Yugo») y abre los rompehielos del chat.
+- Web: lista de razones en la tarjeta y sección «Por qué esta persona» en la
+  ficha; móvil: lista en la tarjeta. Fixtures y E2E `razones-afinidad`.
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

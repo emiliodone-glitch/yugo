@@ -5,6 +5,7 @@ import { CacheService } from './cache.service';
 import { AuditService } from './audit.service';
 import { SettingsService } from './settings.service';
 import { ContentService } from './content.service';
+import { CommunitySignalsService } from './community-signals.service';
 
 @Global()
 @Module({
@@ -15,7 +16,21 @@ import { ContentService } from './content.service';
       signOptions: { expiresIn: process.env.JWT_ACCESS_TTL ?? '900s' },
     }),
   ],
-  providers: [PrismaService, CacheService, AuditService, SettingsService, ContentService],
-  exports: [PrismaService, CacheService, AuditService, SettingsService, ContentService],
+  providers: [
+    PrismaService,
+    CacheService,
+    AuditService,
+    SettingsService,
+    ContentService,
+    CommunitySignalsService,
+  ],
+  exports: [
+    PrismaService,
+    CacheService,
+    AuditService,
+    SettingsService,
+    ContentService,
+    CommunitySignalsService,
+  ],
 })
 export class CommonModule {}

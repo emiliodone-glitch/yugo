@@ -211,6 +211,13 @@ export const es = {
     testimony: 'Su testimonio',
     answers: 'En sus palabras',
     voice: 'En su voz',
+    reasonsTitle: 'Por qué esta persona',
+    communityTitle: 'Lo que ya comparten en Yugo',
+    communityGroup: (name: string) => `Grupo «${name}»`,
+    communityPrayed: (n: number) =>
+      n === 1 ? 'Oraron por la misma petición' : `Oraron por ${n} de las mismas peticiones`,
+    communityDevotional: (reference: string) => `Reflexionaron sobre ${reference}`,
+    communityEvent: (title: string) => `Coincidieron en «${title}»`,
     voiceSeconds: (seconds: number) => `${seconds} s`,
     noteAffine: (a: string, b: string) => `${a} y ${b}: denominaciones afines`,
     noteSameDenomination: 'Comparten la misma denominación',

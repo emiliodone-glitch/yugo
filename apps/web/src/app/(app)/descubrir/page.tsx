@@ -232,7 +232,25 @@ export default function DiscoverPage() {
                   {/* RF-DES-02: por qué esta persona, en la tarjeta misma.
                     Si el motivo es que coinciden en un evento, el motivo es
                     además un plan: por eso lleva enlace. */}
-                  {profile.affinityReason ? (
+                  {profile.affinityReasons && profile.affinityReasons.length > 0 ? (
+                    <ul
+                      aria-label={es.affinity.reasonsTitle}
+                      className="mt-2.5 space-y-1 rounded-field bg-olive-soft px-2.5 py-1.5 text-[11.5px] leading-snug text-olive-text"
+                    >
+                      {profile.affinityReasons.slice(0, 3).map((reason, index) => (
+                        <li key={reason} className="flex items-start gap-1.5">
+                          <span aria-hidden>✦</span>
+                          {index === 0 && profile.sharedEvent ? (
+                            <Link href={`/eventos/${profile.sharedEvent.id}`} className="underline">
+                              {reason}
+                            </Link>
+                          ) : (
+                            <span>{reason}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : profile.affinityReason ? (
                     <p className="mt-2.5 flex items-start gap-1.5 rounded-field bg-olive-soft px-2.5 py-1.5 text-[11.5px] leading-snug text-olive-text">
                       <span aria-hidden>✦</span>
                       {profile.sharedEvent ? (

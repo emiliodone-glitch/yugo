@@ -125,6 +125,10 @@ export interface ProfileCard {
   affinity: AffinityBreakdown;
   /** One short sentence saying why we suggest this person (RF-DES-02). */
   affinityReason?: string;
+  /** Two or three checkable reasons, most telling first; never a percentage. */
+  affinityReasons?: string[];
+  /** What the two already did together in Yugo (groups, prayer, devotional, events). */
+  community?: import('../affinity/reason').CommunitySignals;
   badges: VerificationBadges;
   /** Oro badge shown only if the member opted in (showOroBadge). */
   oroBadge?: boolean;

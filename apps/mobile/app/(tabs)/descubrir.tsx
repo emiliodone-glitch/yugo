@@ -114,7 +114,15 @@ export default function DiscoverScreen() {
             ) : null}
           </View>
           {/* RF-DES-02: por qué esta persona, en la tarjeta misma */}
-          {profile.affinityReason ? (
+          {profile.affinityReasons && profile.affinityReasons.length > 0 ? (
+            <View style={styles.reason} accessibilityLabel={es.affinity.reasonsTitle}>
+              {profile.affinityReasons.slice(0, 3).map((reason) => (
+                <Text key={reason} style={styles.reasonText}>
+                  ✦ {reason}
+                </Text>
+              ))}
+            </View>
+          ) : profile.affinityReason ? (
             <View style={styles.reason}>
               <Text style={styles.reasonText}>✦ {profile.affinityReason}</Text>
             </View>

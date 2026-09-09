@@ -98,6 +98,13 @@ const discoverBase: ProfileCard[] = [
     testimony:
       '"Sirvo en el ministerio de niños desde hace 4 años. Me gusta cocinar para mucha gente y estoy leyendo Rut por tercera vez."',
     verse: 'Rut 1:16',
+    // RF-DES-02: razones que se pueden comprobar, y lo que ya hicieron juntos.
+    affinityReasons: [
+      'Oraron por la misma petición este mes.',
+      'Coinciden en estudio bíblico y servicio social.',
+      'Ambos buscan una relación con propósito de matrimonio.',
+    ],
+    community: { prayedTogether: 1, sharedGroup: 'Jóvenes adultos SD' },
     // RF-PER-09: en sus palabras. Es lo que distingue a Mariel de otra
     // contadora evangélica de Santo Domingo.
     answers: [

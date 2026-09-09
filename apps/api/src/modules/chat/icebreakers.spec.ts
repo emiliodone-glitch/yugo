@@ -113,3 +113,16 @@ describe('coincidir en un evento (RF-EVE-05 / RF-CON-04)', () => {
     expect(questions.join(' ')).not.toContain('nos saludamos allá');
   });
 });
+
+describe('buildIcebreakers con señales de comunidad (RF-CON-04)', () => {
+  it('abre con lo que ya hicieron juntos, antes que con el perfil ajeno', () => {
+    const questions = buildIcebreakers(
+      { practices: ['Niños'], practiceSlugs: ['ninos'], answers: [] },
+      undefined,
+      { community: { sharedDevotional: 'Rut 1:16', attendedTogether: 'Retiro de solteros' } },
+    );
+    expect(questions[0]).toContain('Retiro de solteros');
+    expect(questions[1]).toContain('Rut 1:16');
+    expect(questions).toHaveLength(3);
+  });
+});

@@ -117,6 +117,21 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
    pregunta y guarda; `/perfil/voz` la ofrece en menos de un minuto. Con
    menos de tres preguntas válidas la API vuelve al catálogo compilado.
 
+### Razones de afinidad y comunidad en Descubrir (RF-DES-02, RF-CON-04)
+
+1. Con `prueba@yugo.do`, en Descubrir cada tarjeta trae dos o tres razones
+   («Coinciden en…», «Comparten denominación», «Viven a 4 km»). No hay
+   porcentaje en ninguna.
+2. Ora por una petición del muro con `prueba@yugo.do` y con `demo3@yugo.do`
+   (una de sus conexiones). Al día siguiente (la lista diaria se regenera) o
+   tras cambiar el rango de edad en Preferencias, la tarjeta de demo3 dice
+   «Oraron por la misma petición este mes» y la ficha muestra «Lo que ya
+   comparten en Yugo».
+3. En el chat con esa conexión, «Rompehielos» abre con lo compartido: la
+   petición, un devocional reflexionado por ambos o un evento pasado común.
+4. La distancia exacta solo aparece como razón si la otra persona no activó
+   «ocultar distancia exacta» en Visibilidad.
+
 ### Descubrir y regla mutua de edad (RF-DES-01/05/11/12)
 1. Con `demo1@yugo.do`: `GET /v1/discover` → lista ≤ 30 ordenada por afinidad con desglose.
 2. Cambia tu rango a uno que excluya la edad de un perfil sugerido → desaparece de la lista

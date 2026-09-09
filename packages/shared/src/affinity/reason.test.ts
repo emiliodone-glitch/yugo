@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { affinityReason } from './reason';
+import { affinityReason, affinityReasons } from './reason';
 import type { AffinityBreakdown } from '../types/domain';
 
 const affinity = (total: number, note?: string): AffinityBreakdown => ({
@@ -87,8 +87,48 @@ describe('coincidir en un evento', () => {
   });
 
   it('sin evento compartido, todo sigue igual', () => {
-    expect(affinityReason({ ...base, sameChurch: true })).toBe(
-      'Se congregan en la misma iglesia.',
-    );
+    expect(affinityReason({ ...base, sameChurch: true })).toBe('Se congregan en la misma iglesia.');
+  });
+});
+
+describe('razones de la sugerencia, en lista (RF-DES-02)', () => {
+  it('pone primero lo que ya hicieron juntos y nunca un porcentaje', () => {
+    const reasons = affinityReasons({
+      affinity: affinity(84),
+      inCommon: ['Alabanza'],
+      sameDenomination: true,
+      bothSeekMarriage: true,
+      community: { prayedTogether: 2, sharedGroup: 'Jóvenes adultos SD' },
+    });
+    expect(reasons).toHaveLength(3);
+    expect(reasons[0]).toBe('Oraron por 2 de las mismas peticiones este mes.');
+    expect(reasons[1]).toBe('Comparten el grupo «Jóvenes adultos SD».');
+    expect(reasons[2]).toBe('Coinciden en alabanza.');
+    expect(reasons.join(' ')).not.toMatch(/%|de 100/);
+  });
+
+  it('un evento compartido va antes que todo', () => {
+    const reasons = affinityReasons({
+      affinity: affinity(70),
+      sharedEvent: { title: 'Vigilia de jóvenes', whenLabel: 'este viernes' },
+      community: { attendedTogether: 'Retiro de solteros' },
+    });
+    expect(reasons[0]).toBe('Los dos van a «Vigilia de jóvenes» este viernes.');
+    expect(reasons[1]).toBe('Coincidieron en «Retiro de solteros».');
+  });
+
+  it('la distancia solo aparece cuando la otra persona la deja ver', () => {
+    expect(affinityReasons({ affinity: affinity(60), sameCity: true, distanceKm: 4 })).toEqual([
+      'Viven a 4 km.',
+    ]);
+    expect(affinityReasons({ affinity: affinity(60), sameCity: true })).toEqual([
+      'Viven en la misma ciudad.',
+    ]);
+  });
+
+  it('sin nada en común dice lo que es verdad: el componente más fuerte', () => {
+    expect(affinityReasons({ affinity: affinity(55, 'denominaciones afines') })).toEqual([
+      'Denominaciones afines',
+    ]);
   });
 });

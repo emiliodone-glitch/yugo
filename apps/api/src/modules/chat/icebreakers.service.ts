@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { relativeDayLabel } from '@yugo/shared';
+import type { CommunitySignals } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { ContentService, type IcebreakerTemplates } from '../../common/content.service';
+import { CommunitySignalsService } from '../../common/community-signals.service';
 
 /**
  * RF-CON-04: three suggested questions generated from the OTHER person's
@@ -13,6 +15,7 @@ export class IcebreakersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly content: ContentService,
+    private readonly communitySignals: CommunitySignalsService,
   ) {}
 
   async forConversation(conversationId: string, requesterId: string): Promise<string[]> {
@@ -50,6 +53,9 @@ export class IcebreakersService {
     // Coincidir en un evento próximo es el mejor rompehielos que existe: no
     // hay que inventar un tema, ya van a estar en el mismo lugar.
     const sharedEvent = await this.sharedUpcomingEvent(requesterId, otherId);
+    // Y lo que ya hicieron juntos: orar por lo mismo, el mismo devocional,
+    // el mismo grupo o el mismo evento pasado. Un tema que no hay que inventar.
+    const community = await this.communitySignals.forPair(requesterId, otherId);
 
     return buildIcebreakers(
       {
@@ -68,6 +74,7 @@ export class IcebreakersService {
         sameDenomination:
           !!viewer?.denominationId && viewer.denominationId === other.denominationId,
         event: sharedEvent,
+        community,
       },
     );
   }
@@ -119,6 +126,8 @@ export interface SharedGround {
   sameDenomination?: boolean;
   /** An upcoming event both of them said they are going to. */
   event?: { title: string; whenLabel: string };
+  /** What they already did together in Yugo: prayer, devotional, group, past event. */
+  community?: CommunitySignals;
 }
 
 const DEFAULT_TEMPLATES: IcebreakerTemplates = {
@@ -159,7 +168,27 @@ export function buildIcebreakers(
   // van a estar en el mismo lugar, y verse entre gente conocida es más
   // seguro que cualquier primera cita armada desde cero.
   if (shared.event) {
-    pool.push(`Vi que vas a «${shared.event.title}» ${shared.event.whenLabel}, ¿nos saludamos allá?`);
+    pool.push(
+      `Vi que vas a «${shared.event.title}» ${shared.event.whenLabel}, ¿nos saludamos allá?`,
+    );
+  }
+
+  // Lo que ya hicieron juntos en Yugo va justo después: es un tema real, no
+  // una pregunta de formulario.
+  const community = shared.community ?? {};
+  if (community.attendedTogether) {
+    pool.push(`Los dos estuvimos en «${community.attendedTogether}», ¿qué te llevaste de ese día?`);
+  }
+  if (community.prayedTogether) {
+    pool.push('Vi que oramos por la misma petición este mes, ¿qué te movió a orar por ella?');
+  }
+  if (community.sharedDevotional) {
+    pool.push(`Los dos reflexionamos sobre ${community.sharedDevotional}, ¿qué te dejó a ti?`);
+  }
+  if (community.sharedGroup) {
+    pool.push(
+      `Estamos en «${community.sharedGroup}» y no nos habíamos saludado, ¿qué te trajo al grupo?`,
+    );
   }
 
   const sharedPractices = (shared.practices ?? []).filter(Boolean);
@@ -179,12 +208,14 @@ export function buildIcebreakers(
     if (template) pool.push(template);
   }
 
-  if (facts.verse) pool.push(`¿Qué es lo que más te habla de ${facts.verse.split(' ')[0]} en este tiempo?`);
+  if (facts.verse)
+    pool.push(`¿Qué es lo que más te habla de ${facts.verse.split(' ')[0]} en este tiempo?`);
   if (facts.answers.length > 0) {
     const a = facts.answers[0];
     pool.push(`Contaste que "${a.answer.slice(0, 60)}"… me gustaría saber más de eso.`);
   }
-  if (facts.occupation) pool.push(`¿Qué es lo que más te gusta de tu trabajo como ${facts.occupation.toLowerCase()}?`);
+  if (facts.occupation)
+    pool.push(`¿Qué es lo que más te gusta de tu trabajo como ${facts.occupation.toLowerCase()}?`);
   if (facts.churchName) pool.push(`¿Hace cuánto te congregas en ${facts.churchName}?`);
   if (facts.yearsInFaith && facts.yearsInFaith >= 5) {
     pool.push(`Llevas ${facts.yearsInFaith} años en la fe, ¿qué le dirías a quien va empezando?`);

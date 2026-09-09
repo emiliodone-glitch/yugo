@@ -90,6 +90,56 @@ export default function AffinityDetailPage({ params }: { params: { id: string } 
             </>
           ) : null}
 
+          {profile.affinityReasons && profile.affinityReasons.length > 0 ? (
+            <div className="card mt-3 border-0 bg-olive-soft">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-olive-text">
+                {es.affinity.reasonsTitle}
+              </div>
+              <ul className="mt-1 space-y-1 text-[13px] text-olive-text">
+                {profile.affinityReasons.map((reason) => (
+                  <li key={reason} className="flex items-start gap-1.5">
+                    <span aria-hidden>✦</span>
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {profile.community &&
+          (profile.community.sharedGroup ||
+            profile.community.prayedTogether ||
+            profile.community.sharedDevotional ||
+            profile.community.attendedTogether) ? (
+            <div className="card mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                {es.affinity.communityTitle}
+              </div>
+              <ul className="mt-1 flex flex-wrap gap-1.5">
+                {profile.community.attendedTogether ? (
+                  <li className="chip">
+                    {es.affinity.communityEvent(profile.community.attendedTogether)}
+                  </li>
+                ) : null}
+                {profile.community.prayedTogether ? (
+                  <li className="chip chip-wheat">
+                    {es.affinity.communityPrayed(profile.community.prayedTogether)}
+                  </li>
+                ) : null}
+                {profile.community.sharedDevotional ? (
+                  <li className="chip">
+                    {es.affinity.communityDevotional(profile.community.sharedDevotional)}
+                  </li>
+                ) : null}
+                {profile.community.sharedGroup ? (
+                  <li className="chip chip-olive">
+                    {es.affinity.communityGroup(profile.community.sharedGroup)}
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          ) : null}
+
           {profile.voiceUrl ? (
             <div className="card mt-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
