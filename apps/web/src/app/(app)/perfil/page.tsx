@@ -12,12 +12,14 @@ import {
   useSession,
   useSubscriptionState,
   useVerificationStatus,
+  useSaveLocalePreference,
 } from '@/lib/hooks';
 import { Avatar, Toggle } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
 import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { PageSkeleton } from '@/components/skeleton';
 import { CheckIcon } from '@/components/icons';
+import { LanguageSwitch } from '@/lib/locale';
 
 function shortDate(iso?: string | null): string | null {
   if (!iso) return null;
@@ -36,6 +38,7 @@ function shortDate(iso?: string | null): string | null {
  * demostración y una persona real veía a otra en su propio perfil.
  */
 export default function ProfilePage() {
+  const saveLocale = useSaveLocalePreference();
   const member = useCurrentMember();
   const session = useSession();
   const { pausedProfile } = useDemoStore();
@@ -195,6 +198,11 @@ export default function ProfilePage() {
           <SettingsLink href="/perfil/acompanar" label={es.accompaniment.mentorTitle} />
           <SettingsLink href="/perfil/notificaciones" label={es.notifications.title} />
           <SettingsLink href="/perfil/privacidad" label={es.profile.privacySecurity} />
+          {/* RNF-06: español dominicano por defecto, inglés para la diáspora. */}
+          <div className="list-row text-[12.5px]">
+            <span>{es.common.language}</span>
+            <LanguageSwitch className="ml-auto" onChange={(locale) => saveLocale.mutate(locale)} />
+          </div>
           <div className="list-row text-[12.5px]">
             <div>
               <span>{es.profile.pauseProfile}</span>

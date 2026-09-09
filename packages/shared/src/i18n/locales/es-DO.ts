@@ -31,6 +31,7 @@ export const es = {
     verified: 'Verificada',
     official: 'Oficial',
     members: 'miembros',
+    language: 'Idioma',
     step: (n: number, total: number) => `PASO ${n} DE ${total}`,
   },
 
@@ -312,7 +313,8 @@ export const es = {
       `${name} quiere pedirle consejería a ${church}. Si confirmas, la iglesia lo verá.`,
     confirm: 'Confirmo, que la iglesia lo vea',
     notNow: 'Ahora no',
-    waitingChurch: (church: string) => `${church} ya recibió la petición. Les avisaremos cuando responda.`,
+    waitingChurch: (church: string) =>
+      `${church} ya recibió la petición. Les avisaremos cuando responda.`,
     accepted: (church: string) => `${church} aceptó acompañarlos.`,
     declinedByChurch: (church: string) => `${church} no puede tomarla ahora.`,
     declinedByPartner: 'La otra persona prefirió esperar. Pueden volver a pedirla cuando quieran.',
@@ -515,6 +517,13 @@ export const es = {
       'Sin fotos ni archivos en el chat. Los mensajes se revisan para mantener el respeto.',
     writeMessage: 'Escribe un mensaje…',
     messageHeld: 'Tu mensaje está en revisión.',
+    pendingSend: 'Pendiente de enviar · saldrá cuando vuelva la señal',
+    queuedOffline: 'Sin señal: el mensaje se enviará solo cuando vuelva la conexión.',
+    queuedSent: (count: number) =>
+      count === 1
+        ? 'Se envió el mensaje que tenías pendiente.'
+        : `Se enviaron ${count} mensajes pendientes.`,
+    queuedRejected: 'Un mensaje pendiente no pasó la moderación y no se envió.',
     messageRejected:
       'Tu mensaje no se entregó porque incumple el Pacto de conducta. Cuida el respeto en la conversación.',
     report: 'Reportar',

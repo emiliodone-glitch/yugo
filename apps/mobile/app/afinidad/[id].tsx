@@ -9,11 +9,21 @@ import { theme } from '../../lib/theme';
 const { colors, fonts } = theme;
 
 const LABELS: Record<string, string> = {
-  denomination: es.affinity.denomination,
-  intention: es.affinity.intention,
-  practices: es.affinity.practices,
-  distance: es.affinity.distance,
-  age: es.affinity.age,
+  get denomination() {
+    return es.affinity.denomination;
+  },
+  get intention() {
+    return es.affinity.intention;
+  },
+  get practices() {
+    return es.affinity.practices;
+  },
+  get distance() {
+    return es.affinity.distance;
+  },
+  get age() {
+    return es.affinity.age;
+  },
 };
 
 /** Explains the affinity score component by component — never a black box. */

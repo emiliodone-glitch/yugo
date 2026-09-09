@@ -11,6 +11,7 @@ import {
   QueryClientProvider,
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient } from './api';
+import { LocaleGate } from './locale';
 
 // Tells the shared hooks which client to use. Runs at module scope so it is
 // in place before any screen renders.
@@ -56,5 +57,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('yugo:signed-out', onSignedOut);
   }, [queryClient, router]);
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LocaleGate>{children}</LocaleGate>
+    </QueryClientProvider>
+  );
 }

@@ -1,12 +1,7 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Observable, tap } from 'rxjs';
+import { captureServerError } from './sentry';
 
 /**
  * Structured request logs (RNF-08): one JSON line per request with a
@@ -49,7 +44,19 @@ export class LoggingInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: () => record(http.getResponse()?.statusCode ?? 200),
-        error: (error) => record(error?.status ?? 500, error?.message),
+        error: (error) => {
+          const status = error?.status ?? 500;
+          record(status, error?.message);
+          // Solo lo que es culpa del servidor: un 4xx es una respuesta, no un error.
+          if (status >= 500) {
+            captureServerError(error, {
+              requestId,
+              method: request.method,
+              route: request.route?.path ?? request.url?.split('?')[0],
+              userId: request.user?.id ?? null,
+            });
+          }
+        },
       }),
     );
   }

@@ -11,7 +11,7 @@ import {
   flushAnalytics,
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient, onSignOut } from './api';
-import { bindNetworkState, queryPersister } from './offline';
+import { bindNetworkState, queryPersister, startOutboxSync } from './offline';
 import { listenToNotificationTaps, registerForPush } from './push';
 
 // Points the shared hooks at this app's client. At module scope so it is in
@@ -36,6 +36,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // React Native does not report connectivity to React Query on its own, so
   // without this queries fire into a dead radio instead of waiting for signal.
   useEffect(() => bindNetworkState(), []);
+  // RNF-06: lo escrito sin señal sale solo al volver la red, y la conversación
+  // se refresca para que el mensaje pase de «pendiente» a entregado.
+  useEffect(
+    () =>
+      startOutboxSync((sent) => {
+        for (const item of sent) {
+          void queryClient.invalidateQueries({ queryKey: ['messages', item.conversationId] });
+        }
+      }),
+    [queryClient],
+  );
 
   // RF-NOT-01/03: registrar el token y llevar el toque a su pantalla.
   useEffect(() => {

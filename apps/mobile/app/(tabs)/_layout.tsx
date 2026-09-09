@@ -1,3 +1,4 @@
+import { es } from '@yugo/shared';
 import { Tabs } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { theme } from '../../lib/theme';
@@ -71,23 +72,35 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="inicio"
-        options={{ title: 'Inicio', tabBarIcon: ({ color }) => <HomeIcon color={color} /> }}
+        options={{ title: es.tabs.home, tabBarIcon: ({ color }) => <HomeIcon color={color} /> }}
       />
       <Tabs.Screen
         name="descubrir"
-        options={{ title: 'Descubrir', tabBarIcon: ({ color }) => <DiscoverIcon color={color} /> }}
+        options={{
+          title: es.tabs.discover,
+          tabBarIcon: ({ color }) => <DiscoverIcon color={color} />,
+        }}
       />
       <Tabs.Screen
         name="conexiones"
-        options={{ title: 'Conexiones', tabBarIcon: ({ color }) => <ChatIcon color={color} /> }}
+        options={{
+          title: es.tabs.connections,
+          tabBarIcon: ({ color }) => <ChatIcon color={color} />,
+        }}
       />
       <Tabs.Screen
         name="comunidad"
-        options={{ title: 'Comunidad', tabBarIcon: ({ color }) => <GroupIcon color={color} /> }}
+        options={{
+          title: es.tabs.community,
+          tabBarIcon: ({ color }) => <GroupIcon color={color} />,
+        }}
       />
       <Tabs.Screen
         name="eventos"
-        options={{ title: 'Eventos', tabBarIcon: ({ color }) => <CalendarIcon color={color} /> }}
+        options={{
+          title: es.tabs.events,
+          tabBarIcon: ({ color }) => <CalendarIcon color={color} />,
+        }}
       />
     </Tabs>
   );

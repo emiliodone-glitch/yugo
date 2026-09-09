@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Fraunces } from 'next/font/google';
 import { Providers } from '@/lib/providers';
+import { ErrorReporting } from '@/lib/error-reporting';
 import './globals.css';
 
 // La dirección de la API se lee del entorno del servidor en cada petición
@@ -44,8 +45,17 @@ export const viewport: Viewport = {
  * pueda cerrar la etiqueta.
  */
 function runtimeConfigScript(): string {
+  const safe = (value: string) => JSON.stringify(value).replace(/</g, '\\u003c');
   const apiUrl = process.env.API_URL ?? '';
-  return `window.__YUGO_API_URL__=${JSON.stringify(apiUrl).replace(/</g, '\\u003c')};`;
+  // SENTRY_DSN_WEB (RNF-08) y la versión desplegada llegan por el mismo camino
+  // para poder activar el reporte de errores sin reconstruir.
+  const sentryDsn = process.env.SENTRY_DSN_WEB ?? '';
+  const release = process.env.RAILWAY_GIT_COMMIT_SHA ?? '';
+  return (
+    `window.__YUGO_API_URL__=${safe(apiUrl)};` +
+    `window.__YUGO_SENTRY_DSN__=${safe(sentryDsn)};` +
+    `window.__YUGO_RELEASE__=${safe(release)};`
+  );
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -58,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <ErrorReporting />
         <Providers>{children}</Providers>
       </body>
     </html>

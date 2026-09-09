@@ -27,15 +27,55 @@ function ChurchFooter() {
 }
 
 const NAV = [
-  { href: '/iglesias', label: es.church.home },
+  {
+    href: '/iglesias',
+    get label() {
+      return es.church.home;
+    },
+  },
   { href: '/iglesias/arranque', label: 'Arranque' },
-  { href: '/iglesias/eventos', label: es.church.events },
-  { href: '/iglesias/solteros', label: es.singlesMinistry.title },
-  { href: '/iglesias/consejeria', label: es.church.counseling },
-  { href: '/iglesias/grupo', label: es.church.officialGroup },
-  { href: '/iglesias/codigos', label: es.church.endorsementCodes },
-  { href: '/iglesias/metricas', label: es.church.metrics },
-  { href: '/iglesias/usuarios', label: es.church.portalUsers },
+  {
+    href: '/iglesias/eventos',
+    get label() {
+      return es.church.events;
+    },
+  },
+  {
+    href: '/iglesias/solteros',
+    get label() {
+      return es.singlesMinistry.title;
+    },
+  },
+  {
+    href: '/iglesias/consejeria',
+    get label() {
+      return es.church.counseling;
+    },
+  },
+  {
+    href: '/iglesias/grupo',
+    get label() {
+      return es.church.officialGroup;
+    },
+  },
+  {
+    href: '/iglesias/codigos',
+    get label() {
+      return es.church.endorsementCodes;
+    },
+  },
+  {
+    href: '/iglesias/metricas',
+    get label() {
+      return es.church.metrics;
+    },
+  },
+  {
+    href: '/iglesias/usuarios',
+    get label() {
+      return es.church.portalUsers;
+    },
+  },
 ];
 
 export default function ChurchLayout({ children }: { children: React.ReactNode }) {

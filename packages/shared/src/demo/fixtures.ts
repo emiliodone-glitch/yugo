@@ -240,11 +240,25 @@ const discoverBase: ProfileCard[] = [
  * gente conocida, que es más segura que cualquier primera cita armada desde
  * cero.
  */
+/**
+ * Un día próximo, en hora de Santo Domingo, para que la demo no envejezca: un
+ * evento con fecha fija ya pasó a los pocos días y la razón «los dos van a»
+ * desaparecía en silencio.
+ */
+function upcomingAt(daysAhead: number, hour: number): string {
+  const base = new Date();
+  base.setUTCDate(base.getUTCDate() + daysAhead);
+  const day = base.toISOString().slice(0, 10);
+  return `${day}T${String(hour).padStart(2, '0')}:00:00-04:00`;
+}
+const DEMO_VIGIL_STARTS = upcomingAt(3, 20);
+const DEMO_VIGIL_ENDS = upcomingAt(3, 23);
+
 const demoSharedEvents: Record<string, { id: string; title: string; startsAt: string }> = {
   'u-mariel': {
     id: 'ev-vigilia',
     title: 'Vigilia de jóvenes adultos',
-    startsAt: '2026-09-04T20:00:00-04:00',
+    startsAt: DEMO_VIGIL_STARTS,
   },
 };
 
@@ -253,9 +267,19 @@ export const demoDiscover: ProfileCard[] = discoverBase.map((profile) => {
   const sharedEvent = event
     ? { ...event, whenLabel: relativeDayLabel(new Date(event.startsAt)) }
     : undefined;
+  // RF-DES-02: coincidir en un evento va primero y con enlace (la tarjeta
+  // enlaza la primera razón cuando hay evento compartido).
+  const eventReason = sharedEvent
+    ? `Los dos van a «${sharedEvent.title}» ${sharedEvent.whenLabel}.`
+    : null;
+  const affinityReasons =
+    eventReason && profile.affinityReasons
+      ? [eventReason, ...profile.affinityReasons.filter((r) => r !== eventReason)]
+      : profile.affinityReasons;
   return {
     ...profile,
     sharedEvent,
+    affinityReasons,
     affinityReason: affinityReason({
       affinity: profile.affinity,
       inCommon: profile.inCommon,
@@ -425,8 +449,8 @@ export const demoEvents: EventSummary[] = [
     title: 'Noche de adoración de jóvenes adultos',
     type: 'VIGILIA',
     typeName: 'Vigilia',
-    startsAt: '2026-09-04T20:00:00-04:00',
-    endsAt: '2026-09-04T23:00:00-04:00',
+    startsAt: DEMO_VIGIL_STARTS,
+    endsAt: DEMO_VIGIL_ENDS,
     churchName: 'Iglesia Monte de Sion',
     city: 'Santo Domingo Este',
     address: 'Av. San Vicente de Paúl 45, Santo Domingo Este',

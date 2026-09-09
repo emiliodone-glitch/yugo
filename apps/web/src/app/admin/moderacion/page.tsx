@@ -138,15 +138,45 @@ export default function ModerationQueuePage() {
 }
 
 const DECISIONS: Array<{ value: string; label: string }> = [
-  { value: 'NO_ACTION', label: es.admin.decisionNoAction },
-  { value: 'WARNING', label: es.admin.decisionWarning },
+  {
+    value: 'NO_ACTION',
+    get label() {
+      return es.admin.decisionNoAction;
+    },
+  },
+  {
+    value: 'WARNING',
+    get label() {
+      return es.admin.decisionWarning;
+    },
+  },
   { value: 'SUSPEND_3', label: 'Suspender 3 días' },
   { value: 'SUSPEND_7', label: 'Suspender 7 días' },
   { value: 'SUSPEND_30', label: 'Suspender 30 días' },
-  { value: 'BAN', label: es.admin.decisionBan },
-  { value: 'REMOVE_CONTENT', label: es.admin.decisionRemove },
-  { value: 'REVOKE_VERIFICATION', label: es.admin.decisionRevoke },
-  { value: 'ESCALATE', label: es.admin.decisionEscalate },
+  {
+    value: 'BAN',
+    get label() {
+      return es.admin.decisionBan;
+    },
+  },
+  {
+    value: 'REMOVE_CONTENT',
+    get label() {
+      return es.admin.decisionRemove;
+    },
+  },
+  {
+    value: 'REVOKE_VERIFICATION',
+    get label() {
+      return es.admin.decisionRevoke;
+    },
+  },
+  {
+    value: 'ESCALATE',
+    get label() {
+      return es.admin.decisionEscalate;
+    },
+  },
 ];
 
 /**

@@ -634,6 +634,8 @@ model User {
   googleId           String?    @unique
   appleId            String?    @unique
   role               UserRole   @default(MEMBER)
+  /// Idioma de la interfaz (RNF-06): 'es-DO' o 'en-US'.
+  locale             String     @default("es-DO")
   status             UserStatus @default(ACTIVE)
   birthDate          DateTime
   gender             Gender

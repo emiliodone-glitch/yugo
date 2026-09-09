@@ -14,27 +14,112 @@ const NAV: Array<
   | { kind: 'link'; href: string; label: string; queue?: QueueKey }
   | { kind: 'section'; label: string }
 > = [
-  { kind: 'link', href: '/admin', label: es.admin.dashboard },
-  { kind: 'link', href: '/admin/miembros', label: es.admin.members },
+  {
+    kind: 'link',
+    href: '/admin',
+    get label() {
+      return es.admin.dashboard;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/miembros',
+    get label() {
+      return es.admin.members;
+    },
+  },
   {
     kind: 'link',
     href: '/admin/verificaciones',
-    label: es.admin.verifications,
+    get label() {
+      return es.admin.verifications;
+    },
     queue: 'verifications',
   },
-  { kind: 'link', href: '/admin/moderacion', label: es.admin.moderation, queue: 'moderation' },
+  {
+    kind: 'link',
+    href: '/admin/moderacion',
+    get label() {
+      return es.admin.moderation;
+    },
+    queue: 'moderation',
+  },
   { kind: 'link', href: '/admin/fotos', label: 'Fotos', queue: 'photos' },
-  { kind: 'section', label: es.admin.community },
-  { kind: 'link', href: '/admin/organizaciones', label: es.admin.organizations, queue: 'churches' },
-  { kind: 'link', href: '/admin/eventos', label: es.admin.events },
-  { kind: 'link', href: '/admin/grupos', label: es.admin.groups },
-  { kind: 'link', href: '/admin/devocionales', label: es.admin.devotionals },
-  { kind: 'section', label: es.admin.business },
-  { kind: 'link', href: '/admin/suscripciones', label: es.admin.subscriptions },
-  { kind: 'link', href: '/admin/reportes', label: es.admin.reports },
-  { kind: 'section', label: es.admin.system },
-  { kind: 'link', href: '/admin/configuracion', label: es.admin.settings },
-  { kind: 'link', href: '/admin/auditoria', label: es.admin.rolesAudit },
+  {
+    kind: 'section',
+    get label() {
+      return es.admin.community;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/organizaciones',
+    get label() {
+      return es.admin.organizations;
+    },
+    queue: 'churches',
+  },
+  {
+    kind: 'link',
+    href: '/admin/eventos',
+    get label() {
+      return es.admin.events;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/grupos',
+    get label() {
+      return es.admin.groups;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/devocionales',
+    get label() {
+      return es.admin.devotionals;
+    },
+  },
+  {
+    kind: 'section',
+    get label() {
+      return es.admin.business;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/suscripciones',
+    get label() {
+      return es.admin.subscriptions;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/reportes',
+    get label() {
+      return es.admin.reports;
+    },
+  },
+  {
+    kind: 'section',
+    get label() {
+      return es.admin.system;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/configuracion',
+    get label() {
+      return es.admin.settings;
+    },
+  },
+  {
+    kind: 'link',
+    href: '/admin/auditoria',
+    get label() {
+      return es.admin.rolesAudit;
+    },
+  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

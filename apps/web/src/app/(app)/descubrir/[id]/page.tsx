@@ -8,11 +8,21 @@ import { PageHeader } from '@/components/page-header';
 import { QueryError } from '@/components/query-error';
 
 const COMPONENT_LABELS: Record<string, string> = {
-  denomination: es.affinity.denomination,
-  intention: es.affinity.intention,
-  practices: es.affinity.practices,
-  distance: es.affinity.distance,
-  age: es.affinity.age,
+  get denomination() {
+    return es.affinity.denomination;
+  },
+  get intention() {
+    return es.affinity.intention;
+  },
+  get practices() {
+    return es.affinity.practices;
+  },
+  get distance() {
+    return es.affinity.distance;
+  },
+  get age() {
+    return es.affinity.age;
+  },
 };
 
 /**

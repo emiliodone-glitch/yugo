@@ -22,7 +22,9 @@ describe('i18n (RNF-06)', () => {
     expect(resolveLocale(['es-DO'])).toBe('es-DO');
     expect(resolveLocale(['es-MX', 'en-US'])).toBe('es-DO');
     expect(resolveLocale(['ES'])).toBe('es-DO');
-    expect(resolveLocale(['en-US', 'pt-BR'])).toBe(DEFAULT_LOCALE);
+    // Inglés existe para la diáspora (RNF-06); portugués todavía no.
+    expect(resolveLocale(['en-US', 'pt-BR'])).toBe('en-US');
+    expect(resolveLocale(['pt-BR'])).toBe(DEFAULT_LOCALE);
     expect(resolveLocale([])).toBe(DEFAULT_LOCALE);
   });
 

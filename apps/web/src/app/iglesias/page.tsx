@@ -17,9 +17,15 @@ const when = new Intl.DateTimeFormat('es-DO', {
 });
 
 const STATUS_LABEL: Record<string, string> = {
-  PUBLISHED: es.church.published,
-  IN_REVIEW: es.church.inReview,
-  DRAFT: es.church.draft,
+  get PUBLISHED() {
+    return es.church.published;
+  },
+  get IN_REVIEW() {
+    return es.church.inReview;
+  },
+  get DRAFT() {
+    return es.church.draft;
+  },
 };
 
 /** Portada del portal: la iglesia de quien entró, sus cifras y su agenda. */

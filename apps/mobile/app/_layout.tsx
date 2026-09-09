@@ -8,7 +8,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { Providers } from '../lib/providers';
 import { useIsOnline } from '../lib/offline';
+import { startMonitoring } from '../lib/monitoring';
+import { loadLocale, useLocale } from '../lib/locale';
 import { OfflineBanner } from '../components/ui';
+
+// Antes del primer render: un error al montar también tiene que llegar.
+startMonitoring();
+// El idioma guardado (o el del sistema) antes de que se vea la primera pantalla.
+void loadLocale();
 
 /**
  * Accesibilidad: la letra sigue el tamaño del sistema (allowFontScaling) con
@@ -54,10 +61,15 @@ export default function RootLayout() {
 /** Inside Providers so it can read the connectivity React Query tracks. */
 function Shell() {
   const online = useIsOnline();
+  // Cambiar de idioma vuelve a montar la navegación: todas las pantallas
+  // leen sus textos al pintarse, así que es la forma segura de que ninguna
+  // quede a medias.
+  const locale = useLocale();
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.linen }}>
       <OfflineBanner visible={!online} />
       <Stack
+        key={locale}
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.linen },

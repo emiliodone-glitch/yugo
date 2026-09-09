@@ -130,4 +130,10 @@ export class ProfilesService {
     });
     return { profile, completeness: suggestion };
   }
+
+  /** Idioma de la interfaz (RNF-06). Solo los registrados en @yugo/shared. */
+  async setLocale(userId: string, locale: string) {
+    await this.prisma.user.update({ where: { id: userId }, data: { locale } });
+    return { locale };
+  }
 }

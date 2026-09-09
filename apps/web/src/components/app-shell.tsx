@@ -16,11 +16,41 @@ import { ApiStatusBanner, SessionGate } from './session-gate';
 import { NotificationBell } from './notification-bell';
 
 const TABS = [
-  { href: '/inicio', label: es.tabs.home, Icon: HomeIcon },
-  { href: '/descubrir', label: es.tabs.discover, Icon: DiscoverIcon },
-  { href: '/conexiones', label: es.tabs.connections, Icon: ChatIcon },
-  { href: '/comunidad', label: es.tabs.community, Icon: GroupIcon },
-  { href: '/eventos', label: es.tabs.events, Icon: CalendarIcon },
+  {
+    href: '/inicio',
+    get label() {
+      return es.tabs.home;
+    },
+    Icon: HomeIcon,
+  },
+  {
+    href: '/descubrir',
+    get label() {
+      return es.tabs.discover;
+    },
+    Icon: DiscoverIcon,
+  },
+  {
+    href: '/conexiones',
+    get label() {
+      return es.tabs.connections;
+    },
+    Icon: ChatIcon,
+  },
+  {
+    href: '/comunidad',
+    get label() {
+      return es.tabs.community;
+    },
+    Icon: GroupIcon,
+  },
+  {
+    href: '/eventos',
+    get label() {
+      return es.tabs.events;
+    },
+    Icon: CalendarIcon,
+  },
 ] as const;
 
 const startsWithAny = (pathname: string, prefixes: string[]) =>

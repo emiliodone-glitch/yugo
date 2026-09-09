@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
-import { profileUpdateSchema, searchPreferencesSchema } from '@yugo/shared';
+import { profileUpdateSchema, searchPreferencesSchema, SUPPORTED_LOCALES } from '@yugo/shared';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '@yugo/shared';
 import { ProfilesService } from './profiles.service';
 import { AnswersService } from './answers.service';
@@ -18,6 +18,8 @@ const voiceConfirmSchema = z.object({
   durationMs: z.number().int().min(1).max(120_000),
   contentType: z.string().min(3).max(60),
 });
+
+const localeSchema = z.object({ locale: z.enum(SUPPORTED_LOCALES) });
 
 @Controller('profiles')
 export class ProfilesController {
@@ -90,6 +92,14 @@ export class ProfilesController {
     @Body(new ZodPipe(profileUpdateSchema)) body: ProfileUpdateInput,
   ) {
     return this.profiles.upsert(user.id, body);
+  }
+
+  @Put('me/locale')
+  updateLocale(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(localeSchema)) body: { locale: (typeof SUPPORTED_LOCALES)[number] },
+  ) {
+    return this.profiles.setLocale(user.id, body.locale);
   }
 
   @Put('me/preferences')

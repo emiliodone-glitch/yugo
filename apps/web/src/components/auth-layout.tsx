@@ -38,7 +38,7 @@ export function AuthLayout({
 
         <div className="my-10 max-w-md">
           <h2 className="font-display text-[38px] font-semibold leading-[1.1] tracking-[-0.5px]">
-            Conoce a alguien que ya ora como tú.
+            {es.welcome.headline}
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">{es.welcome.sub}</p>
           <div className="mt-8">

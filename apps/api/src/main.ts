@@ -3,8 +3,13 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
+import { flushSentry, initSentry } from './common/sentry';
 
 async function bootstrap() {
+  // Errores a Sentry (RNF-08) solo con SENTRY_DSN; antes de crear la app
+  // para que un fallo de arranque también llegue.
+  if (initSentry()) Logger.log('Errores de servidor reportados a Sentry', 'Bootstrap');
+  process.on('beforeExit', () => void flushSentry());
   // rawBody: el webhook de Stripe verifica la firma sobre el cuerpo exacto.
   const app = await NestFactory.create(AppModule, { rawBody: true });
   // La raíz queda fuera del prefijo para que abrir el dominio pelado diga

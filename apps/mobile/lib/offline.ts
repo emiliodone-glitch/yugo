@@ -43,3 +43,55 @@ export function useIsOnline(): boolean {
   useEffect(() => onlineManager.subscribe(setOnline), []);
   return online;
 }
+
+// ---------------------------------------------------------------------------
+// Cola de mensajes sin conexión (RNF-06)
+// ---------------------------------------------------------------------------
+
+import { getApiClient } from './api';
+import { Outbox, type OutboxItem } from './outbox';
+
+/** La cola de la app: AsyncStorage detrás, el cliente tipado delante. */
+export const outbox = new Outbox(AsyncStorage, {
+  send: (conversationId, body) => getApiClient().connections.send(conversationId, body),
+});
+
+/**
+ * Reenvía lo pendiente cada vez que vuelve la red (y una vez al arrancar, por
+ * si la app se cerró con mensajes en cola). Devuelve la función para dejar de
+ * escuchar.
+ */
+export function startOutboxSync(onFlushed?: (sent: OutboxItem[]) => void): () => void {
+  let wasOnline = onlineManager.isOnline();
+  const flush = () =>
+    outbox
+      .flush()
+      .then((result) => {
+        if (result.sent.length > 0) onFlushed?.(result.sent);
+      })
+      .catch(() => undefined);
+  if (wasOnline) void flush();
+  return onlineManager.subscribe((online) => {
+    if (online && !wasOnline) void flush();
+    wasOnline = online;
+  });
+}
+
+/** Lo pendiente de una conversación, para pintarlo como «por enviar». */
+export function useOutboxItems(conversationId: string): OutboxItem[] {
+  const [items, setItems] = useState<OutboxItem[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      outbox.list(conversationId).then((next) => {
+        if (alive) setItems(next);
+      });
+    void load();
+    const unsubscribe = outbox.subscribe(() => void load());
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [conversationId]);
+  return items;
+}

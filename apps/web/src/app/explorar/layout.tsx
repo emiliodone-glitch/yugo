@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { es } from '@yugo/shared';
 import { YugoMark } from '@/components/icons';
@@ -17,7 +19,10 @@ export default function ExploreLayout({ children }: { children: React.ReactNode 
             <YugoMark className="h-7 w-7 text-white" />
             <span className="font-display text-lg font-semibold">Yugo</span>
           </Link>
-          <nav aria-label="Explorar" className="hidden items-center gap-4 text-[13px] text-ink-muted sm:flex">
+          <nav
+            aria-label="Explorar"
+            className="hidden items-center gap-4 text-[13px] text-ink-muted sm:flex"
+          >
             <Link href="/explorar" className="hover:text-white">
               {es.explore.cta}
             </Link>
@@ -29,10 +34,16 @@ export default function ExploreLayout({ children }: { children: React.ReactNode 
             </Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link href="/entrar" className="rounded-full border border-white/40 px-3.5 py-1.5 text-[13px] font-semibold text-white">
+            <Link
+              href="/entrar"
+              className="rounded-full border border-white/40 px-3.5 py-1.5 text-[13px] font-semibold text-white"
+            >
               {es.explore.enter}
             </Link>
-            <Link href="/registro" className="rounded-full bg-wheat px-3.5 py-1.5 text-[13px] font-semibold text-ink">
+            <Link
+              href="/registro"
+              className="rounded-full bg-wheat px-3.5 py-1.5 text-[13px] font-semibold text-ink"
+            >
               {es.explore.create}
             </Link>
           </div>

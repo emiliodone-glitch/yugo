@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { TrackView } from '@/components/track-view';
 import { es } from '@yugo/shared';
 import { YugoMark } from '@/components/icons';
 import { WelcomeInside } from '@/components/welcome-inside';
+import { LanguageSwitch } from '@/lib/locale';
 
 /**
  * Bienvenida: la promesa en una frase, serena, sin corazones ni llamas.
@@ -21,11 +24,7 @@ export default function WelcomePage() {
         <div className="md:py-6">
           <YugoMark className="h-14 w-14 text-white" />
           <h1 className="mt-5 font-display text-[34px] font-semibold leading-[1.1] tracking-[-0.5px] md:text-[46px]">
-            Conoce a alguien
-            <br />
-            que ya ora
-            <br />
-            como tú.
+            {es.welcome.headline}
           </h1>
           <p className="mt-3.5 max-w-sm text-[13.5px] leading-relaxed text-ink-muted md:text-[15px]">
             {es.welcome.sub}
@@ -60,6 +59,8 @@ export default function WelcomePage() {
               <p className="mt-3 text-center text-[11px] text-ink-muted2">
                 {es.welcome.socialHint}
               </p>
+              {/* RNF-06: la diáspora llega con el teléfono en inglés. */}
+              <LanguageSwitch className="mt-4 justify-center" />
             </div>
             <div className="mt-6 flex justify-center gap-5 text-[11px] text-ink-muted2 md:justify-start">
               <Link href="/admin" className="hover:text-white">

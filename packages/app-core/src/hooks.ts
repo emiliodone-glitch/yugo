@@ -2574,3 +2574,21 @@ export function useRespondCounseling(matchId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journey', matchId] }),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Idioma (RNF-06)
+// ---------------------------------------------------------------------------
+
+/**
+ * Guarda el idioma elegido en la cuenta, para que web y app coincidan. La
+ * interfaz ya cambió antes de llamar a esto (el idioma vive en el cliente);
+ * si la API no responde, no pasa nada visible.
+ */
+export function useSaveLocalePreference() {
+  return useMutation({
+    mutationFn: async (locale: string) => {
+      if (isDemoMode()) return { locale };
+      return api().profiles.setLocale(locale);
+    },
+  });
+}

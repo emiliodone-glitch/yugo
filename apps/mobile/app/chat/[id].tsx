@@ -41,6 +41,8 @@ import {
 } from '../../components/relationship';
 import { theme } from '../../lib/theme';
 import { ChatSkeleton } from '../../components/skeleton';
+import { outbox, useIsOnline, useOutboxItems } from '../../lib/offline';
+import { isNetworkFailure } from '../../lib/outbox';
 import { CoupleJourneyCard } from '../../components/couple-journey';
 
 const { colors, fonts } = theme;
@@ -55,6 +57,8 @@ export default function ChatScreen() {
   const { data: connections = [], isLoading: connectionsLoading } = useConnections();
   const { data: conversation } = useConversation(conversationId);
   const sendMessage = useSendMessage(conversationId);
+  const online = useIsOnline();
+  const pending = useOutboxItems(conversationId);
   const inviteToEvent = useInviteToEvent(conversationId);
   const { data: events = [] } = useEvents();
   const report = useReport();
@@ -112,11 +116,28 @@ export default function ChatScreen() {
   const messages = conversation?.messages ?? [];
   const icebreakers = conversation?.icebreakers ?? [];
 
-  const send = (text: string) => {
+  // RNF-06: sin señal, el mensaje se guarda y sale solo al volver la red. Un
+  // fallo de red a mitad de envío también va a la cola; un rechazo del
+  // servidor (moderación, conversación cerrada) se muestra y no se reintenta.
+  const send = async (text: string) => {
     const body = text.trim();
     if (!body) return;
-    sendMessage.mutate(body);
     setDraft('');
+    if (!online) {
+      await outbox.enqueue(conversationId, body);
+      setNotice(es.connections.queuedOffline);
+      return;
+    }
+    try {
+      await sendMessage.mutateAsync(body);
+    } catch (error) {
+      if (isNetworkFailure(error)) {
+        await outbox.enqueue(conversationId, body);
+        setNotice(es.connections.queuedOffline);
+      } else {
+        setNotice(errorMessage(error));
+      }
+    }
   };
 
   const submitReport = () => {
@@ -275,7 +296,11 @@ export default function ChatScreen() {
             <View style={styles.icebreakerCard}>
               <Text style={styles.icebreakerTitle}>{es.connections.icebreakers}</Text>
               {icebreakers.map((question) => (
-                <Pressable key={question} style={styles.icebreaker} onPress={() => send(question)}>
+                <Pressable
+                  key={question}
+                  style={styles.icebreaker}
+                  onPress={() => void send(question)}
+                >
                   <Text style={styles.icebreakerText}>{question}</Text>
                 </Pressable>
               ))}
@@ -332,6 +357,13 @@ export default function ChatScreen() {
             );
           })}
 
+          {pending.map((item) => (
+            <View key={item.id} style={[styles.bubble, styles.bubbleMine, styles.bubblePending]}>
+              <Text style={[styles.bubbleText, { color: colors.text }]}>{item.body}</Text>
+              <Sub style={{ fontSize: 10, marginTop: 2 }}>⏳ {es.connections.pendingSend}</Sub>
+            </View>
+          ))}
+
           <Sub style={{ textAlign: 'center', marginVertical: 8, fontSize: 11 }}>
             {es.connections.chatRules}
           </Sub>
@@ -356,7 +388,7 @@ export default function ChatScreen() {
             onBlur={() => notifyTyping(false)}
             maxLength={2000}
           />
-          <Button label={es.common.send} small onPress={() => send(draft)} />
+          <Button label={es.common.send} small onPress={() => void send(draft)} />
         </View>
       </KeyboardAvoidingView>
 
@@ -601,6 +633,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.ink, borderBottomRightRadius: 4 },
+  bubblePending: {
+    backgroundColor: colors.linen2,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+  },
   bubbleTheirs: {
     alignSelf: 'flex-start',
     backgroundColor: '#fff',

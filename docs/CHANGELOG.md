@@ -120,6 +120,43 @@ por separado; esta entrada crece con cada una.
 - Migración `0018_ruta_de_pareja`. Pruebas del catálogo (siete reglas), del
   servicio (siete) y E2E `ruta-de-pareja`.
 
+### Robustez (RNF-06/07/08/09)
+- **Errores a Sentry, opcional.** API (`SENTRY_DSN`: solo 5xx, con requestId
+  y ruta; nunca cuerpos, cookies ni cabeceras), web (`SENTRY_DSN_WEB`, leída
+  al arrancar sin reconstruir; el SDK se descarga solo si hay DSN; sin datos
+  de la persona) y app (`EXPO_PUBLIC_SENTRY_DSN`; exige build nuevo). Página
+  de último recurso en la web cuando falla todo el árbol. Sin las variables no
+  se envía nada.
+- **Mensajes sin señal en la app.** Lo que se escribe sin red se guarda en
+  el teléfono, se ve como «Pendiente de enviar» y sale solo al volver la
+  conexión, en orden y de uno en uno. Un rechazo del servidor se descarta con
+  aviso; nada más se reproduce al reconectar.
+- **E2E contra la API real.** `pnpm e2e:live` recorre la web sin demo contra
+  una API viva con una cuenta real; en CI, trabajo `e2e-live` con PostGIS,
+  migraciones y semilla.
+- **Copias y restauración.** `pnpm db:backup` (pg_dump verificado) y
+  `pnpm db:restore` (se niega a tocar producción sin confirmación explícita,
+  recrea el esquema, aplica migraciones pendientes y cuenta usuarios). Ensayo
+  mensual documentado en RAILWAY.md.
+
+### Inglés para la diáspora (RNF-06)
+- **Diccionario `en-US` completo**, tipado contra el español: una clave que
+  falte o una función con otra firma no compila. Misma voz («I'm interested»,
+  «connection»), sin lenguaje de conquista.
+- **Cambio sin tocar pantallas.** `es` (lo que importan 130 archivos) es
+  ahora un proxy con el tipo del español que resuelve cada lectura contra el
+  idioma activo. `setLocale('en-US')` y la siguiente pintura es en inglés;
+  funciones, arreglos y claves dinámicas incluidas.
+- **Elección y memoria.** Web: selector en Bienvenida y en Perfil; el
+  servidor pinta español, al hidratar se aplica lo guardado o el idioma del
+  navegador y solo entonces se remonta (sin desajuste de hidratación).
+  App: fila «Idioma» en Perfil; arranca en lo guardado o en el idioma del
+  sistema. Con sesión, la elección se guarda en la cuenta
+  (`PUT /profiles/me/locale`, columna `User.locale`, migración `0019_idioma`).
+- **Lo que sigue en español a propósito:** nombres de lugares e iglesias,
+  el texto legal del Pacto (se firma en español), las fechas y lo que
+  escribe el servidor (avisos, correos), pendiente de una segunda etapa.
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

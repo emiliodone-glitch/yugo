@@ -93,6 +93,7 @@ export default function SignInPage() {
               <input
                 className="field mb-2.5"
                 placeholder="Correo o teléfono"
+                aria-label="Correo o teléfono"
                 autoComplete="username"
                 value={identifier}
                 onChange={(event) => setIdentifier(event.target.value)}
@@ -101,6 +102,7 @@ export default function SignInPage() {
                 className="field"
                 type="password"
                 placeholder={es.onboarding.password}
+                aria-label={es.onboarding.password}
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

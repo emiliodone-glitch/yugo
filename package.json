@@ -18,6 +18,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "db:migrate": "pnpm --filter @yugo/api db:migrate",
     "db:seed": "pnpm --filter @yugo/api db:seed",
+    "db:backup": "./scripts/backup-db.sh",
+    "db:restore": "./scripts/restore-backup.sh",
+    "e2e:live": "pnpm --filter @yugo/web e2e:live",
     "prepare": "husky || true"
   },
   "devDependencies": {

@@ -266,6 +266,45 @@ API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 | Nadie puede entrar como admin | 2FA por correo con `OTP_PROVIDER=console` | Leer el código en los logs de la API, o configurar SMTP |
 | Las fotos no suben | Variables `S3_*` vacías | Configurar R2/S3 (RF-PER-02) |
 
+## Copias de seguridad y restauración
+
+Railway hace copias del volumen de Postgres según el plan, pero una copia que
+nadie ha restaurado nunca no cuenta. Yugo trae dos scripts y un ensayo:
+
+**Sacar una copia** (desde cualquier máquina con `pg_dump`):
+
+```bash
+DATABASE_URL="<DATABASE_PUBLIC_URL del servicio Postgres>" pnpm db:backup backups/
+```
+
+Genera `backups/yugo-AAAAMMDD-HHMMSS.dump` (formato *custom*, comprimido) y
+comprueba que se puede listar y contiene la tabla `User`. Guárdala fuera de
+Railway (otro proveedor, otra cuenta): la copia que vive junto a los datos se
+pierde con ellos.
+
+**Restaurar** sobre una base destino (borra lo que haya):
+
+```bash
+pnpm db:restore backups/yugo-20260909-100000.dump "postgresql://.../yugo_restaurada"
+```
+
+El script se niega a tocar una URL que parezca de producción salvo con
+`--yes-production`, pide escribir el nombre de la base para confirmar,
+recrea el esquema con PostGIS, restaura, aplica las migraciones pendientes (si
+la copia es de una versión anterior) y termina diciendo cuántos usuarios y
+migraciones hay. Acepta también `.sql` planos.
+
+**Ensayo mensual:** crear una base vacía (en Railway, un segundo servicio
+PostGIS; en local, `createdb yugo_ensayo`), restaurar la última copia ahí,
+apuntar una API local con `DATABASE_URL` a esa base y entrar con una cuenta
+real. Diez minutos que convierten «tenemos copias» en «sabemos restaurar».
+
+**Errores a Sentry (RNF-08):** opcional. `SENTRY_DSN` en la API manda solo los
+5xx, sin cuerpos ni cabeceras; `SENTRY_DSN_WEB` en el servicio web se lee al
+arrancar (sin reconstruir) y reporta errores del navegador sin datos de la
+persona; `EXPO_PUBLIC_SENTRY_DSN` en la app exige un build nuevo con EAS. Sin
+las variables no se envía nada a ningún sitio.
+
 ## Lo que Railway no resuelve
 
 - **Alguien tiene que escribir el devocional cada día** (`/admin/devocionales`).

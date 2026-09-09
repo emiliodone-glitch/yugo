@@ -348,6 +348,44 @@ configurado responde **400 google_client_id_not_configured**; con un token invá
 **400 invalid_token_signature**. Para una cuenta nueva devuelve `{needsProfile: true}` hasta
 que se envían `birthDate` (mayor de edad) y `gender`.
 
+### Contra la API real (RNF-09)
+
+Las E2E de `apps/web/e2e` corren en modo demo. `apps/web/e2e-live` recorre la
+web construida sin demo contra una API viva con la semilla cargada: entra con
+`prueba@yugo.do`, visita Inicio, Descubrir, Conexiones, Eventos, Comunidad y
+Perfil sin errores ni respuestas 5xx, manda un mensaje en una conversación
+real y entra al portal con `iglesia@yugo.do`.
+
+```bash
+# API en 4123 con la semilla; web sin demo en 3211 apuntando a ella
+cd apps/web && env -u NEXT_PUBLIC_API_URL NEXT_PUBLIC_DEMO_MODE=false pnpm build
+API_URL=http://localhost:4123 NEXT_PUBLIC_DEMO_MODE=false pnpm exec next start -p 3211 &
+PLAYWRIGHT_BASE_URL=http://localhost:3211 pnpm e2e:live
+```
+
+En CI corre solo como trabajo `e2e-live` (PostGIS de servicio, migraciones,
+semilla, API compilada, web sin demo). Contra un despliegue: `PLAYWRIGHT_BASE_URL`
+a la web y `E2E_LIVE_EMAIL`/`E2E_LIVE_PASSWORD` a una cuenta de prueba.
+
+### Mensajes sin señal (RNF-06)
+
+En la app, con el modo avión puesto, escribe en una conversación: el mensaje
+aparece con «Pendiente de enviar» y no hay error. Al quitar el modo avión sale
+solo, en orden, y desaparece la marca. Un mensaje que el servidor rechaza
+(moderación) se descarta con aviso y no se reintenta. Reglas en
+`apps/mobile/__tests__/outbox.test.ts`.
+
+### Inglés (RNF-06)
+
+En la web, Bienvenida y Perfil tienen «Español / English». Al elegir English
+toda la interfaz cambia sin recargar, `<html lang>` pasa a `en-US`, la
+elección se guarda en el navegador (`yugo.locale`) y, con sesión, en la
+cuenta (`PUT /v1/profiles/me/locale`). Un navegador en inglés sin elección
+previa abre en inglés; uno en español, en español. En la app, Perfil →
+Idioma alterna y vuelve a montar la navegación en el idioma nuevo. Reglas en
+`packages/shared/src/i18n/index.test.ts` (incluida la cobertura de todas las
+claves) y E2E `idioma`.
+
 ### Observabilidad (RNF-08)
 ```bash
 curl http://localhost:4000/v1/health          # base de datos, caché, uptime

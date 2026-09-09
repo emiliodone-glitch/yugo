@@ -16,11 +16,36 @@ const when = new Intl.DateTimeFormat('es-DO', {
 });
 
 const STATUS: Record<string, { label: string; chip: string }> = {
-  PUBLISHED: { label: es.church.published, chip: 'chip-olive' },
-  IN_REVIEW: { label: es.church.inReview, chip: 'chip-wheat' },
-  DRAFT: { label: es.church.draft, chip: '' },
-  REJECTED: { label: es.church.rejected, chip: 'chip-wine' },
-  CANCELLED: { label: es.church.cancelled, chip: '' },
+  PUBLISHED: {
+    get label() {
+      return es.church.published;
+    },
+    chip: 'chip-olive',
+  },
+  IN_REVIEW: {
+    get label() {
+      return es.church.inReview;
+    },
+    chip: 'chip-wheat',
+  },
+  DRAFT: {
+    get label() {
+      return es.church.draft;
+    },
+    chip: '',
+  },
+  REJECTED: {
+    get label() {
+      return es.church.rejected;
+    },
+    chip: 'chip-wine',
+  },
+  CANCELLED: {
+    get label() {
+      return es.church.cancelled;
+    },
+    chip: '',
+  },
 };
 
 /** Todos los eventos de la iglesia, con su estado real y la acción que toca. */

@@ -43,6 +43,8 @@ export interface MeResponse {
   gender: 'MALE' | 'FEMALE';
   covenantAcceptedAt: string | null;
   covenantVersion: string | null;
+  /** Idioma elegido (RNF-06); 'es-DO' si nunca eligió. */
+  locale?: string;
   profile: MyProfile | null;
   verifications: Array<{ level: number; status: string; church?: { name: string } | null }>;
   subscriptions: Array<{ tier: SubscriptionTier; status: string; endsAt: string }>;
@@ -894,6 +896,9 @@ export class YugoApiClient {
     update: (input: ProfileUpdateInput) => this.http.put<MyProfile>('/profiles/me', input),
     updatePreferences: (input: SearchPreferencesInput) =>
       this.http.put<MyProfile>('/profiles/me/preferences', input),
+    /** Idioma de la interfaz (RNF-06), para que web y app coincidan. */
+    setLocale: (locale: string) =>
+      this.http.put<{ locale: string }>('/profiles/me/locale', { locale }),
     preview: () =>
       this.http.get<{
         profile: MyProfile;
@@ -1463,8 +1468,7 @@ export class YugoApiClient {
     /** Ministerio de solteros: totales, nunca nombres. */
     singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
     // Consejería prematrimonial pedida por parejas (RF-REL-05).
-    counselingRequests: () =>
-      this.http.get<PortalCounselingRequest[]>('/church-portal/counseling'),
+    counselingRequests: () => this.http.get<PortalCounselingRequest[]>('/church-portal/counseling'),
     respondCounseling: (id: string, input: { accept: boolean; message?: string }) =>
       this.http.put<{ id: string; status: string }>(`/church-portal/counseling/${id}`, input),
   };

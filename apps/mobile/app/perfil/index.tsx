@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, LOCALE_NAMES, SUPPORTED_LOCALES } from '@yugo/shared';
 import {
   useCurrentMember,
   useDemoStore,
@@ -10,6 +10,7 @@ import {
   useSession,
   useUnreadNotifications,
   useVerificationStatus,
+  useSaveLocalePreference,
 } from '@yugo/app-core';
 import {
   AvatarCircle,
@@ -25,6 +26,7 @@ import {
   Toggle,
 } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { chooseLocale, useLocale } from '../../lib/locale';
 import { CompleteProfileCard } from '../../components/complete-profile-card';
 
 const { colors, fonts } = theme;
@@ -41,13 +43,21 @@ const shortDate = (iso?: string | null) =>
     : '';
 
 const INTENTION_LABEL = {
-  MARRIAGE: es.discover.purposeMarriage,
-  FRIENDSHIP: es.onboarding.intentionFriendship,
-  BOTH: es.onboarding.intentionBoth,
+  get MARRIAGE() {
+    return es.discover.purposeMarriage;
+  },
+  get FRIENDSHIP() {
+    return es.onboarding.intentionFriendship;
+  },
+  get BOTH() {
+    return es.onboarding.intentionBoth;
+  },
 } as const;
 
 /** Mi perfil (RF-PER-01/10): la ficha real de quien entró, no la de demostración. */
 export default function ProfileScreen() {
+  const locale = useLocale();
+  const saveLocale = useSaveLocalePreference();
   const member = useCurrentMember();
   const { data: session } = useSession();
   const { data: verification } = useVerificationStatus();
@@ -250,6 +260,15 @@ export default function ProfileScreen() {
           onPress={() => router.push('/perfil/preferencias')}
         />
         <ListRow label={es.visibility.title} onPress={() => router.push('/perfil/visibilidad')} />
+        <ListRow
+          label={es.common.language}
+          hint={LOCALE_NAMES[locale]}
+          onPress={() => {
+            const next = SUPPORTED_LOCALES.find((candidate) => candidate !== locale) ?? locale;
+            void chooseLocale(next);
+            saveLocale.mutate(next);
+          }}
+        />
         <ListRow
           label={es.profile.privacySecurity}
           onPress={() => router.push('/perfil/privacidad')}
