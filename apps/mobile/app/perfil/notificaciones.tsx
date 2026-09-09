@@ -140,11 +140,11 @@ export default function NotificationsScreen() {
               ))}
             </Card>
 
-            {/* Resumen semanal por correo, sin rachas. Se apaga con un toque. */}
+            {/* Resumen semanal y plan de domingo por correo, sin rachas. Se apaga con un toque. */}
             <Card>
               <View style={styles.rowBetween}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={styles.prefLabel}>Resumen semanal por correo</Text>
+                  <Text style={styles.prefLabel}>Resumen semanal y plan de domingo por correo</Text>
                   <Sub style={{ fontSize: 11 }}>
                     {digest.data?.hasEmail === false
                       ? 'Añade un correo a tu cuenta para recibirlo.'
@@ -155,7 +155,7 @@ export default function NotificationsScreen() {
                   on={digest.data?.enabled ?? true}
                   disabled={digest.data?.hasEmail === false || setDigest.isPending}
                   onChange={(value) => setDigest.mutate(value)}
-                  label="Resumen semanal por correo"
+                  label="Resumen semanal y plan de domingo por correo"
                 />
               </View>
             </Card>

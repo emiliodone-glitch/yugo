@@ -8,6 +8,7 @@ import { AccompanimentService } from './accompaniment.service';
 import { MeetingPlanService } from './meeting-plan.service';
 import { StageQuestionsService } from './stage-questions.service';
 import { VideoCallsService } from './video-calls.service';
+import { IntroductionsService } from './introductions.service';
 import { AccompanimentController } from './accompaniment.controller';
 import { ModerationModule } from '../moderation/moderation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -26,6 +27,7 @@ import { MediaModule } from '../media/media.module';
     MeetingPlanService,
     StageQuestionsService,
     VideoCallsService,
+    IntroductionsService,
   ],
   exports: [ChatService],
 })

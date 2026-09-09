@@ -27,6 +27,10 @@ import {
   type VoiceNoteState,
   type VideoCallItem,
   type VideoCallsResponse,
+  demoIntroductions,
+  demoProposedIntroductions,
+  type IntroductionForMember,
+  type IntroductionForMentor,
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
   isExclusive,
@@ -1915,6 +1919,90 @@ export function useRespondToAccompaniment() {
       return api().accompaniment.respond(id, accept);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['accompanied-bonds'] }),
+  });
+}
+
+// ---- Presentación por padrino (RF-ACO-05) ----
+
+let demoIntroductionsState: IntroductionForMember[] = [...demoIntroductions];
+let demoProposedState: IntroductionForMentor[] = [...demoProposedIntroductions];
+
+/** Las presentaciones que me hicieron y esperan mi respuesta. */
+export function useIntroductions() {
+  return useQuery({
+    queryKey: ['introductions'],
+    queryFn: async (): Promise<IntroductionForMember[]> =>
+      isDemoMode() ? demoIntroductionsState : api().accompaniment.introductions(),
+  });
+}
+
+export function useRespondIntroduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, accept }: { id: string; accept: boolean }) => {
+      if (isDemoMode()) {
+        const current = demoIntroductionsState.find((item) => item.id === id);
+        demoIntroductionsState = demoIntroductionsState
+          .map((item) =>
+            item.id === id
+              ? { ...item, myStatus: accept ? ('ACCEPTED' as const) : ('DECLINED' as const) }
+              : item,
+          )
+          .filter((item) => item.myStatus !== 'DECLINED');
+        const matched = accept && !!current?.theyAnswered;
+        if (matched) demoIntroductionsState = demoIntroductionsState.filter((i) => i.id !== id);
+        return {
+          status: !accept
+            ? ('DECLINED' as const)
+            : matched
+              ? ('MATCHED' as const)
+              : ('PENDING' as const),
+          matched,
+          conversationId: matched ? 'm-mariel' : undefined,
+        };
+      }
+      return api().accompaniment.respondIntroduction(id, accept);
+    },
+    onSuccess: (result) => {
+      track(result.matched ? 'introduction_matched' : 'introduction_answered');
+      queryClient.invalidateQueries({ queryKey: ['introductions'] });
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+    },
+  });
+}
+
+/** Lo que el padrino propuso, con su resultado. */
+export function useProposedIntroductions(enabled = true) {
+  return useQuery({
+    queryKey: ['introductions', 'proposed'],
+    enabled,
+    queryFn: async (): Promise<IntroductionForMentor[]> =>
+      isDemoMode() ? demoProposedState : api().accompaniment.proposedIntroductions(),
+  });
+}
+
+export function useProposeIntroduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { a: string; b: string; note: string }) => {
+      if (isDemoMode()) {
+        const item: IntroductionForMentor = {
+          id: `demo-intro-${Date.now()}`,
+          names: [input.a.split('@')[0], input.b.split('@')[0]],
+          note: input.note,
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+        };
+        demoProposedState = [item, ...demoProposedState];
+        return item;
+      }
+      return api().accompaniment.proposeIntroduction(input);
+    },
+    onSuccess: () => {
+      track('introduction_proposed');
+      queryClient.invalidateQueries({ queryKey: ['introductions', 'proposed'] });
+    },
   });
 }
 

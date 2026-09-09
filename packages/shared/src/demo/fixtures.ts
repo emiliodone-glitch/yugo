@@ -160,6 +160,7 @@ const discoverBase: ProfileCard[] = [
     }),
     badges: { contact: true, identity: true },
     inCommon: ['Oración', 'Cada semana'],
+    secondLook: { passedAt: '2026-08-05T10:00:00-04:00', changes: ['photos'] },
   },
   {
     userId: 'u-sarah',
@@ -739,6 +740,40 @@ export const demoMentorProfile = {
   bio: 'Servimos en el ministerio de matrimonios de Emanuel desde 2015.',
   active: true,
 };
+
+/** Presentación por padrino (RF-ACO-05): lo que ve quien la recibe. */
+export const demoIntroductions = [
+  {
+    id: 'intro-1',
+    proposer: { displayName: 'Pastor Luis', churchName: 'Centro Cristiano Vida Nueva' },
+    note: 'Los dos sirven en jóvenes, los dos aman la música y creo que se entenderían desde la primera conversación.',
+    otherHint: { churchName: 'Iglesia Bíblica Emanuel', city: 'Santo Domingo' },
+    myStatus: 'PENDING' as const,
+    theyAnswered: true,
+    createdAt: '2026-09-07T10:00:00-04:00',
+    expiresAt: '2026-09-21T10:00:00-04:00',
+  },
+];
+
+/** Lo que ve el padrino: a quiénes presentó y en qué quedó. */
+export const demoProposedIntroductions = [
+  {
+    id: 'intro-p1',
+    names: ['Abigail', 'Caleb'] as [string, string],
+    note: 'Ambos sirven en alabanza y llevan años pidiendo lo mismo en oración.',
+    status: 'MATCHED' as const,
+    createdAt: '2026-05-01T10:00:00-04:00',
+    expiresAt: '2026-05-15T10:00:00-04:00',
+  },
+  {
+    id: 'intro-p2',
+    names: ['Carla', 'Miguel'] as [string, string],
+    note: 'Los dos se mudaron hace poco a Santiago y no conocen a casi nadie.',
+    status: 'PENDING' as const,
+    createdAt: '2026-09-06T10:00:00-04:00',
+    expiresAt: '2026-09-20T10:00:00-04:00',
+  },
+];
 
 export const demoAccompaniedBonds = [
   {

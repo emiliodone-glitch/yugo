@@ -11,7 +11,8 @@ export type EmailTemplate =
   | 'MODERATION_NOTICE'
   | 'DATA_EXPORT_READY'
   | 'NOTIFICATION'
-  | 'CHURCH_INVITE';
+  | 'CHURCH_INVITE'
+  | 'WEEKEND_PLAN';
 
 interface TemplateInput {
   displayName?: string;
@@ -214,6 +215,55 @@ export function renderTemplate(
             (devotional ? p(`Devocional de hoy: <i>«${devotional}»</i>.`) : '') +
             p(
               'Ábrelo cuando tengas un momento tranquilo. Si prefieres no recibir este resumen, apágalo en Notificaciones dentro de la app.',
+            ),
+        ),
+      };
+    }
+    case 'WEEKEND_PLAN': {
+      // Plan de domingo: el evento, la Palabra de mañana y la persona. Nada
+      // de rachas ni de «te perdiste»; si no hubo nada, no se envió.
+      const lines = Array.isArray(input.lines) ? (input.lines as string[]) : [];
+      const eventTitle = typeof input.eventTitle === 'string' ? input.eventTitle : null;
+      const eventChurch = typeof input.eventChurch === 'string' ? input.eventChurch : null;
+      const eventWhen = typeof input.eventWhen === 'string' ? input.eventWhen : null;
+      const devotionalRef =
+        typeof input.devotionalReference === 'string' ? input.devotionalReference : null;
+      const devotionalTitle =
+        typeof input.devotionalTitle === 'string' ? input.devotionalTitle : null;
+      const quietName = typeof input.quietName === 'string' ? input.quietName : null;
+      const quietDays = Number(input.quietDays ?? 0);
+      const blocks: string[] = [];
+      if (eventTitle) {
+        blocks.push(
+          p(
+            `<b>Este fin de semana:</b> ${eventTitle}${eventChurch ? ` (${eventChurch})` : ''}${
+              eventWhen ? `, ${eventWhen}` : ''
+            }.`,
+          ),
+        );
+      }
+      if (devotionalRef) {
+        blocks.push(
+          p(
+            `<b>Mañana:</b> ${devotionalRef}${devotionalTitle ? `, <i>«${devotionalTitle}»</i>` : ''}.`,
+          ),
+        );
+      }
+      if (quietName) {
+        blocks.push(
+          p(
+            `<b>${quietName}</b> lleva ${quietDays} días sin saber de ti. Un «¿cómo estuvo tu semana?» basta.`,
+          ),
+        );
+      }
+      return {
+        subject: 'Tu plan de domingo',
+        text: `Bendiciones, ${name}. ${lines.join('. ')}. Que sea un fin de semana con propósito.`,
+        html: layout(
+          `Bendiciones, ${name}`,
+          blocks.join('') +
+            p(
+              'Que sea un fin de semana con propósito. Si prefieres no recibir este plan, apágalo en Notificaciones dentro de la app.',
             ),
         ),
       };

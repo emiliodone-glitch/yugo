@@ -12,6 +12,7 @@ export type PushDestination =
   | { screen: 'interested-in-you' }
   | { screen: 'verification' }
   | { screen: 'accompaniment'; id: string }
+  | { screen: 'introductions' }
   | { screen: 'notifications' };
 
 export function destinationFor(data: Record<string, unknown> | undefined): PushDestination {
@@ -29,6 +30,9 @@ export function destinationFor(data: Record<string, unknown> | undefined): PushD
   // Un aviso de acompañamiento lleva a la pareja acompañada, nunca al chat.
   const accompanimentId = text('accompanimentId');
   if (accompanimentId) return { screen: 'accompaniment', id: accompanimentId };
+
+  // Una presentación por padrino se responde desde Conexiones (RF-ACO-05).
+  if (text('introductionId')) return { screen: 'introductions' };
 
   const category = text('category');
   if (category === 'INTEREST') return { screen: 'interested-in-you' };

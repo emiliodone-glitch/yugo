@@ -1,8 +1,15 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
 import { AccompanimentService } from './accompaniment.service';
+import { IntroductionsService } from './introductions.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
+
+const introductionSchema = z.object({
+  a: z.string().trim().min(3).max(120),
+  b: z.string().trim().min(3).max(120),
+  note: z.string().trim().min(20).max(500),
+});
 
 const mentorProfileSchema = z.object({
   spouseName: z.string().min(2).max(80).optional(),
@@ -21,7 +28,41 @@ const respondSchema = z.object({ accept: z.boolean() });
  */
 @Controller('acompanamiento')
 export class AccompanimentController {
-  constructor(private readonly accompaniment: AccompanimentService) {}
+  constructor(
+    private readonly accompaniment: AccompanimentService,
+    private readonly introductions: IntroductionsService,
+  ) {}
+
+  // Presentación por padrino (RF-ACO-05). Van antes de ':id' para que
+  // «presentaciones» no se lea como un id.
+  /** Las presentaciones que me hicieron y siguen esperando mi respuesta. */
+  @Get('presentaciones')
+  myIntroductions(@CurrentUser() user: AuthUser) {
+    return this.introductions.mine(user.id);
+  }
+
+  /** Las que propuse como padrino, con su resultado. */
+  @Get('presentaciones/propuestas')
+  proposedIntroductions(@CurrentUser() user: AuthUser) {
+    return this.introductions.proposed(user.id);
+  }
+
+  @Post('presentaciones')
+  propose(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(introductionSchema)) body: { a: string; b: string; note: string },
+  ) {
+    return this.introductions.propose(user.id, body);
+  }
+
+  @Post('presentaciones/:id/respond')
+  respondIntroduction(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodPipe(respondSchema)) body: { accept: boolean },
+  ) {
+    return this.introductions.respond(id, user.id, body.accept);
+  }
 
   /** Offer to accompany couples. Requires a level-3 endorsement (RF-VER-02). */
   @Put('perfil')

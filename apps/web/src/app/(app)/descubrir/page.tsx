@@ -229,9 +229,18 @@ export default function DiscoverPage() {
                       <span className="chip chip-wheat">{es.discover.purposeMarriage}</span>
                     ) : null}
                   </div>
-                  {/* RF-DES-02: por qué esta persona, en la tarjeta misma.
-                    Si el motivo es que coinciden en un evento, el motivo es
-                    además un plan: por eso lleva enlace. */}
+                  {/* RF-DES-13: segunda mirada. Si la persona vuelve tras un
+                    paso vencido, se dice y se dice qué cambió. */}
+                  {profile.secondLook ? (
+                    <p className="mt-2 text-[11px] text-wheat-text">
+                      <span className="chip chip-wheat mr-1.5">{es.discover.secondLook}</span>
+                      {profile.secondLook.changes.length > 0
+                        ? profile.secondLook.changes
+                            .map((change) => es.discover.secondLookChanges[change] ?? change)
+                            .join(' · ')
+                        : es.discover.secondLookHint}
+                    </p>
+                  ) : null}
                   {profile.affinityReasons && profile.affinityReasons.length > 0 ? (
                     <ul
                       aria-label={es.affinity.reasonsTitle}

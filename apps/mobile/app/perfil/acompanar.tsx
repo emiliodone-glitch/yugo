@@ -18,6 +18,7 @@ import {
 } from '@yugo/app-core';
 import { Button, Card, Chip, Field, H, ScreenHeader, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
+import { ProposeIntroduction } from '../../components/propose-introduction';
 
 const { colors, fonts } = theme;
 
@@ -118,6 +119,9 @@ export default function AccompanyScreen() {
             ) : null}
           </Card>
         )}
+
+        {/* Presentación por padrino (RF-ACO-05): solo con perfil de padrino activo */}
+        <ProposeIntroduction enabled={!!profile} />
 
         {pending.map((bond) => (
           <View key={bond.id} style={styles.pendingCard}>

@@ -197,6 +197,63 @@ export class DiscoverService {
    * will be at an event (RF-EVE-05), and it would be indefensible to honour it
    * for connections and quietly ignore it for strangers.
    */
+  /**
+   * Segunda mirada (RF-DES-13). A pass hides a person for `passHideDays`;
+   * when it lapses and both are still active, the card comes back marked
+   * with what changed since: new approved photos, a voice note, an updated
+   * profile. Nothing else is different — same list, same rules — but the
+   * person knows why they are seeing someone twice.
+   */
+  private async secondLooks(
+    viewerId: string,
+    candidates: Array<{ id: string; profileUpdatedAt: Date | null; voiceApprovedAt: Date | null }>,
+  ): Promise<Map<string, { passedAt: string; changes: string[] }>> {
+    const result = new Map<string, { passedAt: string; changes: string[] }>();
+    if (candidates.length === 0) return result;
+    const passes = await this.prisma.pass.findMany({
+      where: {
+        fromUserId: viewerId,
+        toUserId: { in: candidates.map((c) => c.id) },
+        undoneAt: null,
+        expiresAt: { lte: new Date() },
+      },
+      select: { toUserId: true, createdAt: true },
+    });
+    if (passes.length === 0) return result;
+    const passedAt = new Map(passes.map((row) => [row.toUserId, row.createdAt]));
+    const oldest = new Date(Math.min(...passes.map((row) => row.createdAt.getTime())));
+    const photos = await this.prisma.photo.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: [...passedAt.keys()] },
+        moderationStatus: 'APPROVED',
+        createdAt: { gt: oldest },
+      },
+      _min: { createdAt: true },
+      _count: { id: true },
+    });
+    const newPhotos = new Map(
+      photos.map((row) => [row.userId, { since: row._min.createdAt, count: row._count.id }]),
+    );
+    for (const candidate of candidates) {
+      const since = passedAt.get(candidate.id);
+      if (!since) continue;
+      const changes: string[] = [];
+      const photo = newPhotos.get(candidate.id);
+      if (photo && photo.since && photo.since > since) changes.push('photos');
+      if (candidate.voiceApprovedAt && candidate.voiceApprovedAt > since) changes.push('voice');
+      if (
+        candidate.profileUpdatedAt &&
+        candidate.profileUpdatedAt > since &&
+        changes.length === 0
+      ) {
+        changes.push('profile');
+      }
+      result.set(candidate.id, { passedAt: since.toISOString(), changes });
+    }
+    return result;
+  }
+
   private async sharedUpcomingEvents(
     viewerId: string,
     candidateIds: string[],
@@ -429,7 +486,9 @@ export class DiscoverService {
         subscriptions: {
           where: { status: { in: ['ACTIVE', 'TRIAL'] }, endsAt: { gt: new Date() } },
         },
-        voiceNote: { select: { storageKey: true, durationMs: true, moderationStatus: true } },
+        voiceNote: {
+          select: { storageKey: true, durationMs: true, moderationStatus: true, createdAt: true },
+        },
       },
     });
 
@@ -455,6 +514,19 @@ export class DiscoverService {
     const communityByUser = await this.communitySignals.forCandidates(
       viewer.user.id,
       candidates.map((candidate) => candidate.id),
+    );
+    // Segunda mirada (RF-DES-13): a quien se pasó hace más de un mes y sigue
+    // activa se la vuelve a mostrar, diciendo qué cambió desde entonces.
+    const secondLooks = await this.secondLooks(
+      viewer.user.id,
+      candidates.map((candidate) => ({
+        id: candidate.id,
+        profileUpdatedAt: candidate.profile?.updatedAt ?? null,
+        voiceApprovedAt:
+          candidate.voiceNote?.moderationStatus === 'APPROVED'
+            ? (candidate.voiceNote.createdAt ?? null)
+            : null,
+      })),
     );
 
     const scored: Array<{
@@ -569,6 +641,7 @@ export class DiscoverService {
           affinityReason: affinityReason(reasonInput),
           affinityReasons: affinityReasons(reasonInput),
           community: communityByUser.get(candidate.id),
+          secondLook: secondLooks.get(candidate.id),
           sharedEvent: sharedEvent
             ? {
                 id: sharedEvent.id,

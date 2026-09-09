@@ -6,6 +6,7 @@ import { ListSkeleton } from './skeleton';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { StarIcon, CheckIcon } from '@/components/icons';
+import { IntroductionsCard } from '@/components/introductions-card';
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -57,6 +58,9 @@ export function ConnectionsList({ activeId }: { activeId?: string }) {
       </div>
 
       {isLoading ? <ListSkeleton rows={5} /> : null}
+
+      {/* Presentación por padrino (RF-ACO-05): se responde desde aquí */}
+      <IntroductionsCard />
 
       {/* New connections */}
       <div className="mb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">

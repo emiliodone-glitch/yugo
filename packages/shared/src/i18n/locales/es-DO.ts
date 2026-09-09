@@ -175,6 +175,15 @@ export const es = {
     interestedUnlockBody:
       'La cuenta gratuita ve la cantidad; Plus y Oro ven los perfiles completos.',
     pass: 'Pasar',
+    /** Segunda mirada (RF-DES-13): volvió después de pasar, con lo que cambió. */
+    secondLook: 'Segunda mirada',
+    secondLookHint: 'Pasaste hace un tiempo; sigue activa y algo cambió.',
+    secondLookChanges: {
+      photos: 'fotos nuevas',
+      answers: 'respuestas nuevas',
+      voice: 'testimonio en audio',
+      profile: 'perfil actualizado',
+    } as Record<string, string>,
     interested: 'Me interesa',
     interestSent: 'Interés enviado ✓',
     saveForLater: 'Guardar para después',
@@ -383,6 +392,49 @@ export const es = {
 
     /** El otro lado: la pareja que acompaña. */
     mentorTitle: 'Parejas que acompañas',
+    /** Presentación por padrino (RF-ACO-05). */
+    introTitle: 'Presentar a dos personas',
+    introIntro:
+      'Conoces a dos personas de tu congregación que podrían conocerse. Escribe por qué; cada una recibe tu nota y solo si las dos dicen que sí se ven y pueden conversar. Nadie sabe quién dijo que no.',
+    introPersonA: 'Correo o teléfono de la primera persona',
+    introPersonB: 'Correo o teléfono de la segunda persona',
+    introNote: 'Por qué crees que deberían conocerse',
+    introNotePlaceholder:
+      'Los dos sirven en jóvenes, los dos aman la música y los dos… (mínimo 20 letras)',
+    introSend: 'Proponer presentación',
+    introSent: 'Presentación enviada. Las dos personas recibieron tu nota.',
+    introMine: 'Presentaciones que propusiste',
+    introStatus: {
+      PENDING: 'Esperando respuesta',
+      MATCHED: 'Se saludaron',
+      DECLINED: 'No se concretó',
+      EXPIRED: 'Venció sin respuesta',
+    } as Record<string, string>,
+    introErrors: {
+      person_not_found: 'No encontramos a una de las dos personas con ese correo o teléfono.',
+      same_person: 'Son la misma persona.',
+      cannot_include_self: 'No puedes presentarte a ti mismo.',
+      incompatible_people: 'Las dos personas no son compatibles en Yugo.',
+      already_connected: 'Esas dos personas ya están conectadas.',
+      introduction_pending: 'Ya hay una presentación pendiente entre ellas.',
+      note_too_short: 'Cuenta un poco más: al menos 20 letras.',
+      note_rejected: 'La nota no pasó la moderación. Escríbela de otra forma.',
+      needs_mentor_profile: 'Activa tu perfil de padrino para presentar personas.',
+    } as Record<string, string>,
+    /** Lo que ve quien recibe la presentación. */
+    introReceivedTitle: 'Alguien quiere presentarte a una persona',
+    introReceivedBy: (name: string) => `${name} quiere presentarte a alguien`,
+    introReceivedHint: (church?: string, city?: string) =>
+      [church ? `Se congrega en ${church}` : null, city ? `vive en ${city}` : null]
+        .filter(Boolean)
+        .join(' y ') || 'Una persona de tu comunidad',
+    introReceivedRule:
+      'Verás su perfil solo si los dos dicen que sí. Si dices que no, nadie sabrá que fuiste tú.',
+    introAccept: 'Sí, me gustaría',
+    introDecline: 'Ahora no',
+    introWaitingOther: 'Dijiste que sí. Falta la otra persona.',
+    introMatched: '¡Los dos dijeron que sí! Ya pueden conversar.',
+    introDeclined: 'Listo. Nadie sabrá que fuiste tú.',
     mentorEmpty: 'Todavía no acompañas a nadie.',
     mentorIntro:
       'Verás en qué etapa está cada vínculo y cuándo avanzan. No verás sus conversaciones: eso es solo de ellos.',

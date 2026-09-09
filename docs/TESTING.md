@@ -147,6 +147,40 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
    la hora; la sala es privada, de dos personas, y caduca 15 minutos después
    del fin. En móvil se abre en el navegador integrado.
 
+### Presentación por padrino (RF-ACO-05)
+
+1. Con una cuenta con perfil de padrino (nivel 3 + «Ofrecerme a acompañar» en
+   Perfil → Acompañar), rellena «Presentar a dos personas» con los correos de
+   `demo3@yugo.do` y `demo6@yugo.do` y una nota de al menos 20 letras. Un
+   correo inexistente y uno inactivo dan el mismo error.
+2. Entra como cada una de las dos: en Conexiones aparece la tarjeta con el
+   nombre del padrino, la nota y la iglesia de la otra persona, sin su nombre
+   ni foto. «Ahora no» la cierra y al padrino le llega «no se concretó» sin
+   decir quién. Dos «Sí, me gustaría» crean la conexión, abren el chat y el
+   padrino recibe «Se saludaron».
+3. En Acompañar, «Presentaciones que propusiste» muestra el estado de cada
+   una: esperando, se saludaron, no se concretó o venció (14 días).
+
+### Segunda mirada y plan de domingo (RF-DES-13, RF-NOT-04)
+
+1. **Segunda mirada.** Con `demo1@yugo.do`, pasa a alguien en Descubrir y
+   adelanta el vencimiento del paso desde la base (`UPDATE "Pass" SET
+   "expiresAt" = now() WHERE "fromUserId" = ...`). Sube y aprueba una foto de
+   esa persona (o guarda su perfil) y vuelve a pedir `GET /v1/discover` al día
+   siguiente o tras cambiar preferencias: la tarjeta trae `secondLook` con
+   `changes` (`photos`, `voice`, `profile`) y la web/móvil muestran la
+   etiqueta «Segunda mirada». En demo (`NEXT_PUBLIC_DEMO_MODE=true`) la
+   tarjeta de Daniela ya la trae.
+2. **Plan de domingo.** Se dispara solo los sábados a las 10:00. Para verlo
+   ahora, desde `apps/api` con el entorno cargado:
+   ```bash
+   node -e "require('reflect-metadata');const{NestFactory}=require('@nestjs/core');const{AppModule}=require('./dist/app.module');const{WeekendPlanService}=require('./dist/modules/notifications/weekend-plan.service');NestFactory.createApplicationContext(AppModule,{logger:false}).then(async a=>{console.log(await a.get(WeekendPlanService).run());await a.close()})"
+   ```
+   Cada miembro con algo que contar recibe la notificación «Tu plan de
+   domingo» (campana web y móvil) y el correo `WEEKEND_PLAN` en Mailpit. Quien
+   apagó «Resumen semanal y plan de domingo por correo» no recibe nada; sin
+   evento, devocional ni conexión callada tampoco.
+
 ### Descubrir y regla mutua de edad (RF-DES-01/05/11/12)
 1. Con `demo1@yugo.do`: `GET /v1/discover` → lista ≤ 30 ordenada por afinidad con desglose.
 2. Cambia tu rango a uno que excluya la edad de un perfil sugerido → desaparece de la lista

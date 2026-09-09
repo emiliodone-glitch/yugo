@@ -84,6 +84,10 @@ export function routeFromNotification(data: Record<string, unknown> | undefined)
       // La pareja acompañada se ve desde «Acompañar», nunca desde su chat.
       router.push('/perfil/acompanar');
       return;
+    case 'introductions':
+      // Una presentación por padrino se responde arriba de Conexiones.
+      router.push('/(tabs)/conexiones');
+      return;
     default:
       router.push('/perfil/notificaciones');
   }

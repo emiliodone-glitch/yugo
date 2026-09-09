@@ -17,6 +17,7 @@ import {
   useRespondToAccompaniment,
 } from '@/lib/hooks';
 import { PageHeader } from '@/components/page-header';
+import { ProposeIntroduction } from '@/components/propose-introduction';
 
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 
@@ -83,7 +84,9 @@ export default function AccompanyPage() {
           </div>
         ) : (
           <form className="card mb-3" onSubmit={enableMentor}>
-            <div className="mb-1.5 text-[12.5px] font-semibold">{es.accompaniment.mentorEnable}</div>
+            <div className="mb-1.5 text-[12.5px] font-semibold">
+              {es.accompaniment.mentorEnable}
+            </div>
             <p className="mb-2 text-[11px] text-muted">{es.accompaniment.mentorNeedsEndorsement}</p>
 
             <label className="mb-1 block text-[11px] text-muted" htmlFor="spouse">
@@ -126,6 +129,9 @@ export default function AccompanyPage() {
             {error ? <p className="mt-1.5 text-[11px] text-wine">{error}</p> : null}
           </form>
         )}
+
+        {/* Presentación por padrino (RF-ACO-05): solo con perfil de padrino activo */}
+        <ProposeIntroduction enabled={!!profile} />
 
         {pending.length > 0 ? (
           <>

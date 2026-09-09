@@ -129,6 +129,11 @@ export interface ProfileCard {
   affinityReasons?: string[];
   /** What the two already did together in Yugo (groups, prayer, devotional, events). */
   community?: import('../affinity/reason').CommunitySignals;
+  /**
+   * Segunda mirada (RF-DES-13): the viewer passed on this person before and
+   * they are back after the hide window, with what changed since.
+   */
+  secondLook?: { passedAt: string; changes: string[] };
   badges: VerificationBadges;
   /** Oro badge shown only if the member opted in (showOroBadge). */
   oroBadge?: boolean;

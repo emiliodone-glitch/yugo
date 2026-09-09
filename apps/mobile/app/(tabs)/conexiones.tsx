@@ -6,6 +6,7 @@ import { useConnections, useSafetyTips, useWhoMarkedMe } from '@yugo/app-core';
 import { AvatarCircle, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
 import { ListSkeleton } from '../../components/skeleton';
+import { IntroductionsSection } from '../../components/introductions-section';
 
 const { colors, fonts } = theme;
 
@@ -32,9 +33,10 @@ export default function ConnectionsScreen() {
           />
         </View>
 
-        {isLoading ? (
-          <ListSkeleton rows={5} />
-        ) : null}
+        {isLoading ? <ListSkeleton rows={5} /> : null}
+
+        {/* Presentación por padrino (RF-ACO-05): se responde desde aquí */}
+        <IntroductionsSection />
 
         {fresh.length > 0 ? (
           <>

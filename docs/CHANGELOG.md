@@ -65,6 +65,41 @@ por separado; esta entrada crece con cada una.
 - Migración `0016_cierre_digno_videollamada`. Pruebas de la ventana de
   entrada y del proveedor; E2E `cierre-y-videollamada`.
 
+### Presentación por padrino con doble consentimiento (RF-ACO-05)
+- Un matrimonio que acompaña (perfil de padrino activo, respaldado por su
+  iglesia) presenta a dos personas que conoce: correo o teléfono de cada una
+  y una nota con el porqué (moderada). Modelo `Introduction`, catorce días
+  de vigencia.
+- **Nadie ve a la otra persona antes del sí.** Quien recibe la presentación
+  ve al padrino, su nota y la iglesia y ciudad de la otra persona; ni nombre
+  ni foto. Un «no» cierra y al padrino solo se le dice que «no se concretó».
+  Con dos «sí» nace la conexión igual que con un interés mutuo (mismo
+  vínculo, misma conversación) y los tres reciben aviso.
+- La misma respuesta para «no existe» y «no está activa»: un padrino no puede
+  averiguar desde aquí quién tiene cuenta. No se presenta a personas
+  bloqueadas entre sí, ya conectadas, del mismo género ni a uno mismo.
+- Web: tarjeta de presentación arriba de Conexiones; formulario y lista «lo
+  que propusiste» en Acompañar. Móvil: sección equivalente en Conexiones y
+  en Acompañar; el toque en la notificación lleva a Conexiones.
+- Migración `0017_presentacion_por_padrino`. Pruebas del servicio (seis
+  reglas) y E2E `presentaciones`.
+
+### Segunda mirada y plan de domingo (RF-DES-13, RF-NOT-04)
+- **Segunda mirada.** Cuando un «paso» vence y la persona sigue activa,
+  Descubrir puede volver a mostrarla con la etiqueta «Segunda mirada» y lo
+  que cambió desde entonces: fotos nuevas aprobadas, audio de testimonio o
+  perfil más completo. Nunca se muestra a quien dio un «no» definitivo ni a
+  quien deshizo el paso; sin cambios, solo dice que sigue activa.
+- **Plan de domingo.** Los sábados a las 10:00 (Santo Domingo) cada persona
+  recibe, si hay algo que contar, un aviso y un correo con el evento de su
+  iglesia o ciudad este fin de semana, el devocional de mañana y la
+  conexión con la que más días lleva sin hablar (tres o más). Sin racha ni
+  «perdiste»: cuenta lo que hay alrededor, no lo que dejó de hacer. Si no
+  hay nada, no se manda. Respeta el mismo apagado que el resumen semanal
+  («Resumen semanal y plan de domingo por correo»).
+- Pruebas del plan (cuatro reglas: nada vacío, la conexión más callada,
+  mensajes recientes no cuentan, apagado respetado).
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

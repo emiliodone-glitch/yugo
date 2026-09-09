@@ -604,6 +604,30 @@ export interface MyProfile {
   voiceNote?: VoiceNoteState | null;
 }
 
+/** Presentación por padrino, tal como la ve una de las dos personas (RF-ACO-05). */
+export interface IntroductionForMember {
+  id: string;
+  proposer: { displayName: string; churchName?: string };
+  note: string;
+  /** Solo la iglesia y la ciudad de la otra persona: nada que la identifique. */
+  otherHint: { churchName?: string; city?: string };
+  myStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  /** La otra persona ya respondió (sin decir qué). */
+  theyAnswered: boolean;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Lo que ve el padrino: a quiénes presentó y en qué quedó. */
+export interface IntroductionForMentor {
+  id: string;
+  names: [string, string];
+  note: string;
+  status: 'PENDING' | 'MATCHED' | 'DECLINED' | 'EXPIRED';
+  createdAt: string;
+  expiresAt: string;
+}
+
 /** Una videollamada agendada entre dos personas conectadas (RF-CON-12). */
 export interface VideoCallItem {
   id: string;
@@ -1139,6 +1163,18 @@ export class YugoApiClient {
     enableMentor: (input: { spouseName?: string; marriedSince?: number; bio?: string }) =>
       this.http.put<MentorProfile>('/acompanamiento/perfil', input),
     disableMentor: () => this.http.delete<MentorProfile>('/acompanamiento/perfil'),
+    /** Presentación por padrino (RF-ACO-05). */
+    introductions: () => this.http.get<IntroductionForMember[]>('/acompanamiento/presentaciones'),
+    proposedIntroductions: () =>
+      this.http.get<IntroductionForMentor[]>('/acompanamiento/presentaciones/propuestas'),
+    proposeIntroduction: (input: { a: string; b: string; note: string }) =>
+      this.http.post<IntroductionForMentor>('/acompanamiento/presentaciones', input),
+    respondIntroduction: (id: string, accept: boolean) =>
+      this.http.post<{
+        status: 'PENDING' | 'MATCHED' | 'DECLINED';
+        matched: boolean;
+        conversationId?: string;
+      }>(`/acompanamiento/presentaciones/${id}/respond`, { accept }),
   };
 
   // ---- Community (RF-COM-01..09) ------------------------------------------

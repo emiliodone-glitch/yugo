@@ -114,6 +114,20 @@ export default function DiscoverScreen() {
             ) : null}
           </View>
           {/* RF-DES-02: por qué esta persona, en la tarjeta misma */}
+          {profile.secondLook ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <Chip label={es.discover.secondLook} tone="wheat" />
+              <Text
+                style={{ fontFamily: fonts.body, fontSize: 11, color: colors.wheatText, flex: 1 }}
+              >
+                {profile.secondLook.changes.length > 0
+                  ? profile.secondLook.changes
+                      .map((change) => es.discover.secondLookChanges[change] ?? change)
+                      .join(' · ')
+                  : es.discover.secondLookHint}
+              </Text>
+            </View>
+          ) : null}
           {profile.affinityReasons && profile.affinityReasons.length > 0 ? (
             <View style={styles.reason} accessibilityLabel={es.affinity.reasonsTitle}>
               {profile.affinityReasons.slice(0, 3).map((reason) => (

@@ -351,6 +351,34 @@ model MentorProfile {
   createdAt  DateTime @default(now())
 }
 
+/// Presentación por padrino (RF-ACO-05): un matrimonio que acompaña propone
+/// presentar a dos personas que conoce. Ninguna ve a la otra hasta que las
+/// dos aceptan; solo entonces nace la conexión. Es la casamentera de toda la
+/// vida con consentimiento explícito, y ninguna app secular puede copiarla.
+model Introduction {
+  id          String   @id @default(cuid())
+  proposerId  String
+  proposer    User     @relation("IntroProposer", fields: [proposerId], references: [id], onDelete: Cascade)
+  userAId     String
+  userA       User     @relation("IntroA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId     String
+  userB       User     @relation("IntroB", fields: [userBId], references: [id], onDelete: Cascade)
+  note        String
+  /// PENDING | ACCEPTED | DECLINED, por persona.
+  statusA     String   @default("PENDING")
+  statusB     String   @default("PENDING")
+  /// PENDING | MATCHED | DECLINED | EXPIRED
+  status      String   @default("PENDING")
+  matchId     String?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  resolvedAt  DateTime?
+
+  @@index([userAId, status])
+  @@index([userBId, status])
+  @@index([proposerId, createdAt])
+}
+
 /// Append-only record of every agreed stage change (RF-ADM-11 in spirit):
 /// the couple, their accompaniment and support can all see how a bond moved.
 model RelationshipStageChange {
@@ -589,6 +617,9 @@ model User {
   matchesB             Match[]              @relation("MatchB")
   mentorProfile        MentorProfile?
   accompanying         Accompaniment[]      @relation("Mentor")
+  introductionsProposed Introduction[]      @relation("IntroProposer")
+  introductionsAsA     Introduction[]       @relation("IntroA")
+  introductionsAsB     Introduction[]       @relation("IntroB")
   meetingPlans         MeetingPlan[]
   questionAnswers      StageQuestionAnswer[]
   devotionalReads      DevotionalRead[]

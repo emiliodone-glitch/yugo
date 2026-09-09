@@ -136,12 +136,12 @@ export default function NotificationsPage() {
               ))}
             </div>
 
-            {/* Resumen semanal por correo: lo que pasó alrededor de la persona,
+            {/* Resumen semanal y plan de domingo por correo: lo que pasó alrededor de la persona,
                 nunca rachas ni «te perdiste». Se apaga aquí con un toque. */}
             <div className="card">
               <div className="flex items-center justify-between text-[12.5px]">
                 <div>
-                  <span>Resumen semanal por correo</span>
+                  <span>Resumen semanal y plan de domingo por correo</span>
                   <div className="text-[11px] text-muted">
                     {digest.data?.hasEmail === false
                       ? 'Añade un correo a tu cuenta para recibirlo.'
@@ -152,7 +152,7 @@ export default function NotificationsPage() {
                   on={digest.data?.enabled ?? true}
                   disabled={digest.data?.hasEmail === false || setDigest.isPending}
                   onChange={(value) => setDigest.mutate(value)}
-                  label="Resumen semanal por correo"
+                  label="Resumen semanal y plan de domingo por correo"
                 />
               </div>
             </div>
