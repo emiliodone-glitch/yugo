@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { es } from '@yugo/shared';
-import { errorMessage } from '@/lib/api';
+import { DEMO_MODE, errorMessage, hasStoredSession } from '@/lib/api';
 import { useCheckIn, usePublicEvent, useSession } from '@/lib/hooks';
 import { YugoMark, PinIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
@@ -28,7 +28,7 @@ export default function PublicEventPage({ params }: { params: { id: string } }) 
   const event = usePublicEvent(params.id);
   const search = useSearchParams();
   const checkInToken = search.get('ci');
-  const session = useSession();
+  const session = useSession({ enabled: DEMO_MODE || hasStoredSession() });
   const checkIn = useCheckIn();
   const [checkInResult, setCheckInResult] = useState<'done' | 'error' | null>(null);
   const [checkInError, setCheckInError] = useState<string | null>(null);

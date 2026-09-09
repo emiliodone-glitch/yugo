@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, STAFF_ROLES } from '@yugo/shared';
 import { useSession } from '@/lib/hooks';
 import { DEMO_MODE, hasStoredSession } from '@/lib/api';
-
-const STAFF_ROLES = new Set(['MODERATOR', 'COMMUNITY_MANAGER', 'SUPPORT', 'FINANCE', 'SUPERADMIN']);
 
 /**
  * Puerta del panel admin.

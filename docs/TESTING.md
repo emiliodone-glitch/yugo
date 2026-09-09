@@ -48,6 +48,11 @@ La semilla (`pnpm --filter @yugo/api db:seed`) deja tres tipos de cuenta:
   de respaldo (5 ya usados), dos solicitudes de líder pendientes y un evento
   esperando revisión en `/admin/eventos`.
 
+Al entrar sin `?next=`, cada cuenta aterriza en su sitio: `admin@yugo.do` en
+`/admin`, `iglesia@yugo.do` en `/iglesias` (tiene perfil, pero administra una
+iglesia) y `prueba@yugo.do` en `/inicio`. Con `?next=/ruta` gana la ruta
+pedida; las puertas de sesión la conservan con su query (`?ci=`, `?token=`).
+
 Contra la API real, la web se prueba de punta a punta con
 `NEXT_PUBLIC_DEMO_MODE=false` (ver «Auditoría contra la API real» en el
 changelog 0.7.0): es la única forma de ver lo que las fixtures tapan.

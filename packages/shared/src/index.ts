@@ -2,6 +2,7 @@ export * from './constants/limits';
 export * from './constants/pricing';
 export * from './constants/catalog';
 export * from './constants/cities';
+export * from './constants/roles';
 export * from './types/domain';
 export * from './validators/auth';
 export * from './validators/profile';

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { es, isUnreachableError } from '@yugo/shared';
+import { es, homeRouteFor, isUnreachableError } from '@yugo/shared';
 import { apiBaseUrl, DEMO_MODE, errorMessage, getApiClient } from '@/lib/api';
 import { AuthLayout } from '@/components/auth-layout';
 import { YugoMark } from '@/components/icons';
@@ -22,9 +22,23 @@ export default function SignInPage() {
   // A dónde volver después de entrar: la puerta de la zona de miembros manda
   // aquí con ?next=/ruta. Solo rutas internas, para que un enlace externo no
   // pueda usar la pantalla de entrada como trampolín.
-  const destination = () => {
+  const requestedNext = () => {
     const next = new URLSearchParams(window.location.search).get('next');
-    return next && next.startsWith('/') && !next.startsWith('//') ? next : '/inicio';
+    return next && next.startsWith('/') && !next.startsWith('//') ? next : null;
+  };
+  const destination = () => requestedNext() ?? '/inicio';
+
+  // Sin ?next=, cada cuenta va a su casa: staff al panel, una cuenta que solo
+  // administra una iglesia al portal, y el resto a Inicio. Antes todo el mundo
+  // caía en la zona de miembros y una cuenta sin perfil veía errores.
+  const signedInDestination = async () => {
+    const next = requestedNext();
+    if (next) return next;
+    try {
+      return homeRouteFor(await getApiClient().auth.me());
+    } catch {
+      return '/inicio';
+    }
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -49,7 +63,7 @@ export default function SignInPage() {
       } else {
         await getApiClient().auth.loginSecondFactor(identifier, code);
       }
-      router.push(destination());
+      router.push(await signedInDestination());
     } catch (caught) {
       setError(errorMessage(caught));
       setUnreachable(isUnreachableError(caught));

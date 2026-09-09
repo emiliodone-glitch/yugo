@@ -67,9 +67,13 @@ import {
 // Session
 // ---------------------------------------------------------------------------
 
-export function useSession() {
+export function useSession(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['session'],
+    // Public pages (invitation link, public event) pass `enabled` from the
+    // stored-token check so a visitor without a session doesn't fire a call
+    // that can only come back as a 401.
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       if (isDemoMode()) {
         return {
@@ -132,7 +136,9 @@ export function useHomeSummary() {
       const [discover, events, banners] = await Promise.all([
         api().discover.daily(),
         api().events.featured(),
-        api().catalog.banners().catch(() => []),
+        api()
+          .catalog.banners()
+          .catch(() => []),
       ]);
       const whoMarked = await api().interests.whoMarkedMe();
       return {
@@ -382,7 +388,11 @@ export function useSavedProfiles() {
       if (isDemoMode()) return demoDiscover.filter((p) => saved[p.userId]);
       const rows = await api().interests.saved();
       const cards = await Promise.all(
-        rows.map((row) => api().discover.profile(row.toUserId).catch(() => null)),
+        rows.map((row) =>
+          api()
+            .discover.profile(row.toUserId)
+            .catch(() => null),
+        ),
       );
       return cards.filter((card): card is ProfileCard => card !== null);
     },
@@ -434,7 +444,9 @@ export function useConversation(conversationId: string) {
       }
       const [messages, icebreakers] = await Promise.all([
         api().connections.messages(conversationId),
-        api().connections.icebreakers(conversationId).catch(() => []),
+        api()
+          .connections.icebreakers(conversationId)
+          .catch(() => []),
       ]);
       return { messages, icebreakers };
     },
@@ -535,7 +547,8 @@ export function useReport() {
     mutationFn: async (input: {
       targetType: 'PROFILE' | 'MESSAGE' | 'POST' | 'EVENT' | 'GROUP';
       targetId: string;
-      category: 'INAPPROPRIATE' | 'SCAM' | 'FAKE_IDENTITY' | 'HARASSMENT' | 'MISLEADING' | 'UNDERAGE';
+      category:
+        'INAPPROPRIATE' | 'SCAM' | 'FAKE_IDENTITY' | 'HARASSMENT' | 'MISLEADING' | 'UNDERAGE';
       details?: string;
     }) => {
       if (isDemoMode()) return { id: 'demo-report' };
@@ -1004,7 +1017,9 @@ export function useCurrentMember() {
         api().auth.me(),
         // Sin perfil todavía (registro a medias) el preview responde 404:
         // se sigue con lo que haya en /auth/me.
-        api().profiles.preview().catch(() => null),
+        api()
+          .profiles.preview()
+          .catch(() => null),
       ]);
       const profile = preview?.profile ?? me.profile;
       if (!profile) return null;
@@ -1230,7 +1245,7 @@ export function useSubscriptionState() {
           downgradeToTier: null,
           invisibleMode,
           showOroBadge,
-          travelMode: travelModeOn ? demoCurrentUser.subscription.travelMode ?? null : null,
+          travelMode: travelModeOn ? (demoCurrentUser.subscription.travelMode ?? null) : null,
         };
       }
       return api().subscriptions.state();

@@ -43,6 +43,8 @@ export interface MeResponse {
   profile: MyProfile | null;
   verifications: Array<{ level: number; status: string; church?: { name: string } | null }>;
   subscriptions: Array<{ tier: SubscriptionTier; status: string; endsAt: string }>;
+  /** Church portal seats; a portal-only account has these and no profile. */
+  churchMemberships?: Array<{ churchId: string; role: 'ADMIN' | 'EVENT_EDITOR' }>;
 }
 
 /** Everything the couple's stage screen shows, from one request. */
@@ -138,11 +140,16 @@ export interface ChurchPortalEvent {
 
 /** Lo que el portal sabe de su propia iglesia. */
 export interface ChurchPortalMe {
-  church: { id: string; name: string; status: string; denominationId: string | null; city?: string | null };
+  church: {
+    id: string;
+    name: string;
+    status: string;
+    denominationId: string | null;
+    city?: string | null;
+  };
   role: string;
   stats: { endorsedMembers: number; activeCodes: number; pendingRequests: number };
 }
-
 
 // ---- Panel admin: filas limpias que el navegador puede pintar sin adivinar ----
 export interface AdminMemberRow {
@@ -269,7 +276,12 @@ export interface AdminModerationCase {
   targetType?: string | null;
   targetId?: string | null;
   createdAt: string;
-  report?: { category?: string; targetType?: string; targetId?: string; details?: string | null } | null;
+  report?: {
+    category?: string;
+    targetType?: string;
+    targetId?: string;
+    details?: string | null;
+  } | null;
   assignee?: { id: string; email: string | null } | null;
 }
 
@@ -363,7 +375,8 @@ export interface DevotionalReadResult {
  * modera. `kind` dice qué es; `context` lo dice en palabras para no tener que
  * traducir el enum en cada pantalla.
  */
-export type HeldContentKind = 'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
+export type HeldContentKind =
+  'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
 
 export interface HeldContentItem {
   caseId: string;
@@ -734,7 +747,10 @@ export class YugoApiClient {
       password: string;
       birthDate: string;
       gender: 'MALE' | 'FEMALE';
-    }) => this.http.post<{ userId: string; otpSentTo: string }>('/auth/register', input, { anonymous: true }),
+    }) =>
+      this.http.post<{ userId: string; otpSentTo: string }>('/auth/register', input, {
+        anonymous: true,
+      }),
 
     verifyOtp: async (identifier: string, code: string) => {
       const tokens = await this.http.post<TokenPair>(
@@ -779,7 +795,11 @@ export class YugoApiClient {
     },
 
     requestPasswordReset: (identifier: string) =>
-      this.http.post<{ sent: boolean }>('/auth/password/request-reset', { identifier }, { anonymous: true }),
+      this.http.post<{ sent: boolean }>(
+        '/auth/password/request-reset',
+        { identifier },
+        { anonymous: true },
+      ),
 
     resetPassword: (identifier: string, code: string, newPassword: string) =>
       this.http.post<{ reset: boolean }>(
@@ -815,18 +835,27 @@ export class YugoApiClient {
     updatePreferences: (input: SearchPreferencesInput) =>
       this.http.put<MyProfile>('/profiles/me/preferences', input),
     preview: () =>
-      this.http.get<{ profile: MyProfile; completeness: { completeness: number; nextSuggestion: { key: string; targetPct: number } | null } }>(
-        '/profiles/me/preview',
-      ),
+      this.http.get<{
+        profile: MyProfile;
+        completeness: {
+          completeness: number;
+          nextSuggestion: { key: string; targetPct: number } | null;
+        };
+      }>('/profiles/me/preview'),
     // RF-PER-09
     questions: () =>
-      this.http.get<Array<{ key: string; question: string; maxLength: number }>>('/profiles/questions', {
-        anonymous: true,
-      }),
-    answers: () => this.http.get<Array<{ question: string; answer: string }>>('/profiles/me/answers'),
+      this.http.get<Array<{ key: string; question: string; maxLength: number }>>(
+        '/profiles/questions',
+        {
+          anonymous: true,
+        },
+      ),
+    answers: () =>
+      this.http.get<Array<{ question: string; answer: string }>>('/profiles/me/answers'),
     saveAnswer: (key: string, answer: string) =>
       this.http.put<{ question: string; answer: string }>('/profiles/me/answers', { key, answer }),
-    removeAnswer: (key: string) => this.http.delete<{ removed: boolean }>(`/profiles/me/answers/${key}`),
+    removeAnswer: (key: string) =>
+      this.http.delete<{ removed: boolean }>(`/profiles/me/answers/${key}`),
   };
 
   // ---- Photos (RF-PER-02) --------------------------------------------------
@@ -834,7 +863,10 @@ export class YugoApiClient {
     signUpload: (contentType: string) =>
       this.http.post<{ key: string; uploadUrl: string }>('/photos/sign-upload', { contentType }),
     confirm: (key: string, position: number) =>
-      this.http.post<{ id: string; moderationStatus: string }>('/photos/confirm', { key, position }),
+      this.http.post<{ id: string; moderationStatus: string }>('/photos/confirm', {
+        key,
+        position,
+      }),
     mine: () =>
       this.http.get<Array<{ id: string; url: string; position: number; moderationStatus: string }>>(
         '/photos/mine',
@@ -854,9 +886,12 @@ export class YugoApiClient {
         anonymous: true,
       }),
     groupCategories: () =>
-      this.http.get<Array<{ id: string; slug: string; name: string }>>('/catalog/group-categories', {
-        anonymous: true,
-      }),
+      this.http.get<Array<{ id: string; slug: string; name: string }>>(
+        '/catalog/group-categories',
+        {
+          anonymous: true,
+        },
+      ),
     churches: (query?: string) =>
       this.http.get<Array<{ id: string; name: string; city: string | null }>>('/catalog/churches', {
         anonymous: true,
@@ -875,7 +910,8 @@ export class YugoApiClient {
         anonymous: true,
       }),
     banners: () => this.http.get<HomeBannerResponse[]>('/catalog/banners'),
-    safetyTips: () => this.http.get<SafetyTipsResponse>('/catalog/safety-tips', { anonymous: true }),
+    safetyTips: () =>
+      this.http.get<SafetyTipsResponse>('/catalog/safety-tips', { anonymous: true }),
   };
 
   // ---- Discover (RF-DES-01..15) -------------------------------------------
@@ -934,11 +970,14 @@ export class YugoApiClient {
 
   // ---- Connections & chat (RF-CON-01..10) ---------------------------------
   readonly connections = {
-    list: () => this.http.get<Array<ConnectionSummary & { conversationId?: string }>>('/connections'),
+    list: () =>
+      this.http.get<Array<ConnectionSummary & { conversationId?: string }>>('/connections'),
     messages: (conversationId: string) =>
       this.http.get<ChatMessage[]>(`/connections/conversations/${conversationId}/messages`),
     send: (conversationId: string, body: string) =>
-      this.http.post<ChatMessage>(`/connections/conversations/${conversationId}/messages`, { body }),
+      this.http.post<ChatMessage>(`/connections/conversations/${conversationId}/messages`, {
+        body,
+      }),
     icebreakers: (conversationId: string) =>
       this.http.get<string[]>(`/connections/conversations/${conversationId}/icebreakers`),
     inviteToEvent: (conversationId: string, eventId: string) =>
@@ -950,9 +989,11 @@ export class YugoApiClient {
       this.http.put<{ archived: boolean }>(`/connections/conversations/${conversationId}/archive`, {
         archived,
       }),
-    disconnect: (matchId: string) => this.http.delete<{ ended: boolean }>(`/connections/${matchId}`),
+    disconnect: (matchId: string) =>
+      this.http.delete<{ ended: boolean }>(`/connections/${matchId}`),
     report: (input: ReportInput) => this.http.post<{ id: string }>('/connections/report', input),
-    block: (userId: string) => this.http.post<{ blocked: boolean }>('/connections/block', { userId }),
+    block: (userId: string) =>
+      this.http.post<{ blocked: boolean }>('/connections/block', { userId }),
 
     // Etapas del vínculo: uno propone, el otro acepta, nadie avanza solo.
     stage: (matchId: string) => this.http.get<RelationshipState>(`/connections/${matchId}/stage`),
@@ -1009,7 +1050,8 @@ export class YugoApiClient {
   // ---- Historias de parejas que se casaron --------------------------------
   // ---- Modo explorar: sin sesión, sin datos de nadie ----------------------
   readonly explore = {
-    devotional: () => this.http.get<PublicDevotional | null>('/devocional/publico', { anonymous: true }),
+    devotional: () =>
+      this.http.get<PublicDevotional | null>('/devocional/publico', { anonymous: true }),
     events: () => this.http.get<PublicEvent[]>('/events/publicos', { anonymous: true }),
     groups: () => this.http.get<GroupSummary[]>('/community/groups/publicos', { anonymous: true }),
   };
@@ -1018,8 +1060,7 @@ export class YugoApiClient {
     /** Público a propósito: quien no tiene cuenta también debería poder verlas. */
     published: (limit?: number) =>
       this.http.get<PublishedStory[]>('/historias', { query: { limit }, anonymous: true }),
-    forCouple: (matchId: string) =>
-      this.http.get<CoupleStory>(`/historias/conexion/${matchId}`),
+    forCouple: (matchId: string) => this.http.get<CoupleStory>(`/historias/conexion/${matchId}`),
     submit: (matchId: string, input: StoryDraftInput) =>
       this.http.post<{ id: string; status: StoryStatus }>(`/historias/conexion/${matchId}`, input),
     consent: (matchId: string, agree: boolean) =>
@@ -1038,10 +1079,9 @@ export class YugoApiClient {
     mine: () => this.http.get<AccompaniedBond[]>('/acompanamiento'),
     detail: (id: string) => this.http.get<AccompaniedBondDetail>(`/acompanamiento/${id}`),
     respond: (id: string, accept: boolean) =>
-      this.http.post<{ id: string; status: AccompanimentStatus }>(
-        `/acompanamiento/${id}/respond`,
-        { accept },
-      ),
+      this.http.post<{ id: string; status: AccompanimentStatus }>(`/acompanamiento/${id}/respond`, {
+        accept,
+      }),
     end: (id: string) =>
       this.http.delete<{ id: string; status: AccompanimentStatus }>(`/acompanamiento/${id}`),
     myMentorProfile: () => this.http.get<MentorProfile | null>('/acompanamiento/perfil'),
@@ -1064,8 +1104,12 @@ export class YugoApiClient {
       this.http.get<JoinRequestRow[]>(`/community/groups/${groupId}/join-requests`),
     resolveJoinRequest: (requestId: string, accept: boolean) =>
       this.http.put<{ resolved: boolean }>(`/community/join-requests/${requestId}`, { accept }),
-    createPost: (input: { groupId: string; body: string; isPrayerRequest?: boolean; imageKey?: string }) =>
-      this.http.post<{ id: string; moderationStatus: string }>('/community/posts', input),
+    createPost: (input: {
+      groupId: string;
+      body: string;
+      isPrayerRequest?: boolean;
+      imageKey?: string;
+    }) => this.http.post<{ id: string; moderationStatus: string }>('/community/posts', input),
     react: (postId: string, type: 'AMEN' | 'PRAYING' | 'LIKE') =>
       this.http.post<{ reacted: boolean }>('/community/posts/react', { postId, type }),
     markAnswered: (postId: string) =>
@@ -1076,8 +1120,15 @@ export class YugoApiClient {
       this.http.post<{ id: string }>('/community/activities', input),
     attendActivity: (activityId: string) =>
       this.http.post<{ going: boolean }>(`/community/activities/${activityId}/attend`),
-    manageMember: (groupId: string, userId: string, action: 'EXPEL' | 'MUTE' | 'UNMUTE' | 'PROMOTE_MODERATOR') =>
-      this.http.post<{ done: boolean }>(`/community/groups/${groupId}/members/manage`, { userId, action }),
+    manageMember: (
+      groupId: string,
+      userId: string,
+      action: 'EXPEL' | 'MUTE' | 'UNMUTE' | 'PROMOTE_MODERATOR',
+    ) =>
+      this.http.post<{ done: boolean }>(`/community/groups/${groupId}/members/manage`, {
+        userId,
+        action,
+      }),
   };
 
   // ---- Devocional del día --------------------------------------------------
@@ -1161,7 +1212,11 @@ export class YugoApiClient {
       channel: 'STRIPE' | 'AZUL' | 'APP_STORE' | 'GOOGLE_PLAY';
       currency: 'DOP' | 'USD';
       token?: string;
-    }) => this.http.post<{ id: string; tier: SubscriptionTier; endsAt: string }>('/subscriptions/purchase', input),
+    }) =>
+      this.http.post<{ id: string; tier: SubscriptionTier; endsAt: string }>(
+        '/subscriptions/purchase',
+        input,
+      ),
     redeemPromo: (code: string) =>
       this.http.post<{ tier: SubscriptionTier; trialDays: number; endsAt: string }>(
         '/subscriptions/promo',
@@ -1169,8 +1224,11 @@ export class YugoApiClient {
       ),
     cancel: () => this.http.delete<{ accessUntil: string }>('/subscriptions/me'),
     /** Web: activa (stub) o redirige a Stripe Checkout. */
-    checkout: (input: { tier: SubscriptionTier; plan: SubscriptionPlan; currency: 'DOP' | 'USD' }) =>
-      this.http.post<CheckoutResult>('/subscriptions/checkout', input),
+    checkout: (input: {
+      tier: SubscriptionTier;
+      plan: SubscriptionPlan;
+      currency: 'DOP' | 'USD';
+    }) => this.http.post<CheckoutResult>('/subscriptions/checkout', input),
     payments: () => this.http.get<PaymentReceipt[]>('/subscriptions/payments'),
     setInvisibleMode: (enabled: boolean) =>
       this.http.put<{ invisibleMode: boolean }>('/subscriptions/invisible-mode', { enabled }),
@@ -1246,7 +1304,8 @@ export class YugoApiClient {
 
   // ---- Church portal (RF-IGL-01..06) --------------------------------------
   readonly church = {
-    register: (input: Record<string, unknown>) => this.http.post<{ id: string }>('/church-portal/register', input),
+    register: (input: Record<string, unknown>) =>
+      this.http.post<{ id: string }>('/church-portal/register', input),
     me: () => this.http.get<ChurchPortalMe>('/church-portal/me'),
     events: () => this.http.get<ChurchPortalEvent[]>('/church-portal/events'),
     createEvent: (input: CreateEventInput & { submit: boolean }) =>
@@ -1258,15 +1317,22 @@ export class YugoApiClient {
         '/church-portal/codes',
       ),
     generateCodes: (count: number) =>
-      this.http.post<Array<{ id: string; code: string }>>('/church-portal/codes/generate', { count }),
+      this.http.post<Array<{ id: string; code: string }>>('/church-portal/codes/generate', {
+        count,
+      }),
     endorsementRequests: () =>
-      this.http.get<Array<{ id: string; name: string; attendsSince: number | null; leaderName: string | null }>>(
-        '/church-portal/endorsement-requests',
-      ),
+      this.http.get<
+        Array<{ id: string; name: string; attendsSince: number | null; leaderName: string | null }>
+      >('/church-portal/endorsement-requests'),
     resolveEndorsement: (requestId: string, confirm: boolean) =>
-      this.http.put<{ resolved: boolean }>(`/church-portal/endorsement-requests/${requestId}`, { confirm }),
+      this.http.put<{ resolved: boolean }>(`/church-portal/endorsement-requests/${requestId}`, {
+        confirm,
+      }),
     revokeEndorsement: (memberUserId: string, reason: string) =>
-      this.http.post<{ revoked: boolean }>('/church-portal/endorsements/revoke', { memberUserId, reason }),
+      this.http.post<{ revoked: boolean }>('/church-portal/endorsements/revoke', {
+        memberUserId,
+        reason,
+      }),
     metrics: () => this.http.get<ChurchMetrics>('/church-portal/metrics'),
     officialGroup: () => this.http.get<ChurchOfficialGroup | null>('/church-portal/group'),
     users: () => this.http.get<ChurchPortalUser[]>('/church-portal/users'),
@@ -1307,10 +1373,16 @@ export class YugoApiClient {
     publishedEvents: () => this.http.get<AdminEventRow[]>('/admin/events'),
     allGroups: () => this.http.get<AdminGroupRow[]>('/admin/groups'),
     allChurches: () => this.http.get<AdminChurchRow[]>('/admin/churches'),
-    subscriptionSummary: () => this.http.get<AdminSubscriptionSummary>('/admin/subscriptions/summary'),
+    subscriptionSummary: () =>
+      this.http.get<AdminSubscriptionSummary>('/admin/subscriptions/summary'),
     staff: () => this.http.get<AdminStaffRow[]>('/admin/staff'),
     memberDetail: (id: string) => this.http.get<Record<string, unknown>>(`/admin/members/${id}`),
-    memberAction: (id: string, action: 'WARN' | 'SUSPEND' | 'BAN' | 'REINSTATE', reason: string, days?: number) =>
+    memberAction: (
+      id: string,
+      action: 'WARN' | 'SUSPEND' | 'BAN' | 'REINSTATE',
+      reason: string,
+      days?: number,
+    ) =>
       this.http.post<{ done: boolean }>(`/admin/members/${id}/actions`, { action, reason, days }),
     verificationQueue: () => this.http.get<AdminVerificationCase[]>('/admin/verifications'),
     decideVerification: (id: string, decision: 'APPROVE' | 'REJECT' | 'ESCALATE', note?: string) =>
@@ -1318,12 +1390,18 @@ export class YugoApiClient {
     revokeVerification: (id: string, reason: string) =>
       this.http.post<{ done: boolean }>(`/admin/verifications/${id}/revoke`, { reason }),
     moderationQueue: (kind?: 'REPORT' | 'AI_HELD' | 'APPEAL') =>
-      this.http.get<{ items: AdminModerationCase[]; counts: Record<string, number> }>('/admin/moderation/queue', {
-        query: { kind },
-      }),
+      this.http.get<{ items: AdminModerationCase[]; counts: Record<string, number> }>(
+        '/admin/moderation/queue',
+        {
+          query: { kind },
+        },
+      ),
     takeNextCase: () => this.http.post<{ id: string } | null>('/admin/moderation/take-next'),
     decideCase: (id: string, decision: string, reason: string) =>
-      this.http.post<{ done: boolean }>(`/admin/moderation/cases/${id}/decision`, { decision, reason }),
+      this.http.post<{ done: boolean }>(`/admin/moderation/cases/${id}/decision`, {
+        decision,
+        reason,
+      }),
     resolveHeldMessage: (id: string, approve: boolean) =>
       this.http.post<{ done: boolean }>(`/admin/moderation/messages/${id}/resolve`, { approve }),
     /** Lo retenido por la IA con el contenido delante, de cualquier tipo. */
@@ -1376,7 +1454,8 @@ export class YugoApiClient {
       this.http.put<{ saved: boolean }>('/admin/denomination-matrix', { aId, bId, value }),
     auditLog: (filters?: { actorId?: string; action?: string; page?: number }) =>
       this.http.get<AdminAuditRow[]>('/admin/audit', { query: filters }),
-    payments: (page = 1) => this.http.get<AdminPaymentRow[]>('/admin/payments', { query: { page } }),
+    payments: (page = 1) =>
+      this.http.get<AdminPaymentRow[]>('/admin/payments', { query: { page } }),
     approveRefund: (id: string) =>
       this.http.post<{ status: string }>(`/admin/payments/${id}/refund-approve`),
     // RF-ADM-10
@@ -1384,7 +1463,9 @@ export class YugoApiClient {
     saveBanners: (banners: HomeBannerResponse[]) =>
       this.http.put<{ saved: boolean }>('/admin/content/banners', { banners }),
     icebreakers: () =>
-      this.http.get<{ byPractice: Record<string, string>; generic: string[] }>('/admin/content/icebreakers'),
+      this.http.get<{ byPractice: Record<string, string>; generic: string[] }>(
+        '/admin/content/icebreakers',
+      ),
     saveIcebreakers: (input: { byPractice: Record<string, string>; generic: string[] }) =>
       this.http.put<{ saved: boolean }>('/admin/content/icebreakers', input),
     safetyTips: () => this.http.get<SafetyTipsResponse>('/admin/content/safety-tips'),
@@ -1412,9 +1493,12 @@ export class YugoApiClient {
   // ---- Health (RNF-08) -----------------------------------------------------
   readonly health = {
     check: () =>
-      this.http.get<{ status: string; checks: Record<string, string>; uptimeSeconds: number }>('/health', {
-        anonymous: true,
-      }),
+      this.http.get<{ status: string; checks: Record<string, string>; uptimeSeconds: number }>(
+        '/health',
+        {
+          anonymous: true,
+        },
+      ),
     metrics: () =>
       this.http.get<{
         moderation: Record<string, number>;

@@ -240,6 +240,9 @@ export class AuthService {
           orderBy: { endsAt: 'desc' },
           take: 1,
         },
+        // Church portal access, so the web can send a portal-only account to
+        // /iglesias after signing in instead of the member home.
+        churchMemberships: { select: { churchId: true, role: true } },
       },
     });
     if (!user) throw new UnauthorizedException();

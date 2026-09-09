@@ -70,6 +70,9 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
           </Link>
         ))}
         <ChurchFooter />
+        <Link href="/" className="px-2.5 py-2 text-[11px] text-[#F7F5E4] hover:text-white">
+          ← Volver a Yugo
+        </Link>
       </aside>
 
       <div className="fixed inset-x-0 top-0 z-20 flex items-center gap-2 bg-olive px-4 py-2.5 text-white lg:hidden">

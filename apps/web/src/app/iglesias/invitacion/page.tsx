@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { es } from '@yugo/shared';
-import { errorMessage } from '@/lib/api';
+import { DEMO_MODE, errorMessage, hasStoredSession } from '@/lib/api';
 import { useAcceptInvitation, useSession } from '@/lib/hooks';
 import { YugoMark } from '@/components/icons';
 
@@ -16,7 +16,7 @@ import { YugoMark } from '@/components/icons';
 export default function InvitationPage() {
   const params = useSearchParams();
   const token = params.get('token') ?? '';
-  const session = useSession();
+  const session = useSession({ enabled: DEMO_MODE || hasStoredSession() });
   const accept = useAcceptInvitation();
   const [result, setResult] = useState<{ churchName: string; role: string } | null>(null);
   const [error, setError] = useState<string | null>(null);

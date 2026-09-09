@@ -102,6 +102,13 @@ tiene su entrega; ninguno quedó fuera.
   no había forma de verlo). Va fuera de la puerta y del menú.
 - Las puertas de sesión (miembro, portal, panel) conservan la query al mandar
   a entrar: `?ci=` del QR o `?token=` de la invitación sobreviven al login.
+- Al entrar sin `?next=`, cada cuenta va a su casa: staff al panel, quien
+  administra una iglesia (o solo edita sus eventos, sin perfil) al portal, y
+  el resto a Inicio. Antes una cuenta sin perfil caía en la zona de miembros
+  con errores. `GET /auth/me` incluye `churchMemberships`; `homeRouteFor()`
+  en shared con su prueba. El portal enlaza de vuelta a Yugo.
+- Las páginas públicas (invitación, evento público) ya no piden la sesión
+  cuando no hay una guardada: sin 401 de fondo para quien llega sin cuenta.
 
 ### Pruebas
 - E2E actualizadas al comportamiento nuevo: el paywall con el propio nivel
