@@ -41,9 +41,7 @@ export default function LegalScreen() {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <ScreenHeader title="Documento" />
-        <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>
-          Ese documento no existe.
-        </Sub>
+        <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>Ese documento no existe.</Sub>
       </SafeAreaView>
     );
   }
@@ -52,9 +50,7 @@ export default function LegalScreen() {
     <SafeAreaView style={{ flex: 1 }}>
       <ScreenHeader title={document.title} />
       <ScrollView contentContainerStyle={styles.container}>
-        <Sub style={{ marginBottom: 14 }}>
-          Versión {document.version} · República Dominicana
-        </Sub>
+        <Sub style={{ marginBottom: 14 }}>Versión {document.version} · República Dominicana</Sub>
 
         {document.sections.map((section) => (
           <View key={section.title} style={{ marginBottom: 16 }}>

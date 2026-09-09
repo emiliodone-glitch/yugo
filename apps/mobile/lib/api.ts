@@ -60,8 +60,7 @@ export const API_BASE_URL = `${
  * be reviewed on a device without infrastructure. `EXPO_PUBLIC_DEMO_MODE=false`
  * points the same screens at the live API.
  */
-export const DEMO_MODE =
-  process.env.EXPO_PUBLIC_DEMO_MODE !== 'false' && extra.demoMode !== false;
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false' && extra.demoMode !== false;
 
 let client: YugoApiClient | null = null;
 const signOutListeners = new Set<() => void>();
@@ -81,6 +80,14 @@ export function getApiClient(): YugoApiClient {
 export function onSignOut(listener: () => void): () => void {
   signOutListeners.add(listener);
   return () => signOutListeners.delete(listener);
+}
+
+/**
+ * Cerrar sesión a propósito pasa por el mismo camino que perder la sesión:
+ * se vacía la caché, se corta el tiempo real y se vuelve a «Entrar».
+ */
+export function notifySignedOut(): void {
+  signOutListeners.forEach((listener) => listener());
 }
 
 export { ApiError };

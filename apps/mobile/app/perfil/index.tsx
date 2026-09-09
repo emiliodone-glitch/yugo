@@ -1,13 +1,16 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, LOCALE_NAMES, SUPPORTED_LOCALES, intlLocale } from '@yugo/shared';
 import {
   useCurrentMember,
   useDemoStore,
+  useLogout,
   useMyPhotos,
   usePauseProfile,
   useSession,
+  useSubscriptionState,
   useUnreadNotifications,
   useVerificationStatus,
   useSaveLocalePreference,
@@ -25,6 +28,8 @@ import {
   Sub,
   Toggle,
 } from '../../components/ui';
+import { ConfirmSheet } from '../../components/confirm-sheet';
+import { notifySignedOut } from '../../lib/api';
 import { theme } from '../../lib/theme';
 import { chooseLocale, useLocale } from '../../lib/locale';
 import { CompleteProfileCard } from '../../components/complete-profile-card';
@@ -65,6 +70,24 @@ export default function ProfileScreen() {
   const pausedDemo = useDemoStore((s) => s.pausedProfile);
   const pauseProfile = usePauseProfile();
   const { data: unread = 0 } = useUnreadNotifications();
+  const { data: subscription } = useSubscriptionState();
+  const logout = useLogout();
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+
+  const tier = subscription?.tier ?? null;
+  const tierName = tier === 'ORO' ? es.paywall.oro : tier === 'PLUS' ? es.paywall.plus : null;
+
+  // Cerrar sesión: se borra el token y después se hace lo mismo que cuando la
+  // sesión se pierde sola (vaciar caché, cortar tiempo real, ir a «Entrar»).
+  const signOut = async () => {
+    try {
+      await logout.mutateAsync();
+    } finally {
+      setConfirmingSignOut(false);
+      notifySignedOut();
+      router.replace('/entrar');
+    }
+  };
 
   const myPhotoUrl = myPhotos.find((photo) => photo.moderationStatus === 'APPROVED')?.url;
   const user = member.data;
@@ -194,18 +217,31 @@ export default function ProfileScreen() {
           />
         </Card>
 
-        <Pressable onPress={() => router.push('/plus')}>
+        {/* La tarjeta refleja el plan real: con uno activo lleva a gestionarlo. */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(tierName ? '/perfil/suscripcion' : '/plus')}
+        >
           <Card style={{ backgroundColor: colors.ink, borderWidth: 0 }}>
             <View style={styles.rowBetween}>
-              <View>
+              <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={{ fontFamily: fonts.display, fontSize: 15, color: colors.wheat }}>
-                  {es.profile.plusOroCard}
+                  {tierName ?? es.profile.plusOroCard}
                 </Text>
                 <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.inkMuted }}>
-                  {es.profile.plusOroSub}
+                  {tierName
+                    ? subscription?.downgradeToTier
+                      ? es.paywall.downgradeScheduled(
+                          subscription.downgradeToTier === 'PLUS'
+                            ? es.paywall.plus
+                            : es.common.free,
+                          shortDate(subscription.renewsAt),
+                        )
+                      : es.paywall.manageSubscription
+                    : es.profile.plusOroSub}
                 </Text>
               </View>
-              <Chip label={es.common.see} tone="wheat" />
+              <Chip label={tierName ? es.paywall.manageSubscription : es.common.see} tone="wheat" />
             </View>
           </Card>
         </Pressable>
@@ -291,7 +327,23 @@ export default function ProfileScreen() {
           }
         />
         {pauseProfile.isError ? <Notice tone="wine" text={es.errors.generic} /> : null}
+
+        <ListRow
+          label={es.profile.signOut}
+          hint={es.profile.signOutConfirmBody}
+          onPress={() => setConfirmingSignOut(true)}
+        />
       </ScrollView>
+
+      <ConfirmSheet
+        visible={confirmingSignOut}
+        title={es.profile.signOut}
+        body={es.profile.signOutConfirmBody}
+        confirmLabel={es.profile.signOut}
+        busy={logout.isPending}
+        onConfirm={() => void signOut()}
+        onCancel={() => setConfirmingSignOut(false)}
+      />
     </SafeAreaView>
   );
 }

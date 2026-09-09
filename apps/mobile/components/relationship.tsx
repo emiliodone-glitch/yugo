@@ -4,8 +4,8 @@
  * Same rules as the web card and the same hooks underneath: a stage is
  * proposed by one person and only takes effect when the other agrees.
  */
-import { useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { es, isExclusive, type RelationshipStage, intlLocale } from '@yugo/shared';
 import {
   useAccompaniment,
@@ -27,6 +27,9 @@ import {
   useAnswerStageQuestion,
 } from '@yugo/app-core';
 import { Button, Chip, Field, Sub } from './ui';
+import { ConfirmSheet } from './confirm-sheet';
+import { HourPicker } from './hour-picker';
+import { upcomingDays, validateMeetingPlan } from '../lib/meeting-plan';
 import { theme } from '../lib/theme';
 
 const { colors, fonts } = theme;
@@ -252,6 +255,22 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
+  dayChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  dayChipActive: { backgroundColor: colors.ink, borderColor: colors.ink },
+  dayChipText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.text,
+    textTransform: 'capitalize',
+  },
+  formError: { fontFamily: fonts.body, fontSize: 11.5, color: colors.wine, marginTop: 8 },
 });
 
 /**
@@ -267,6 +286,7 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
   const end = useEndAccompaniment(matchId);
   const [code, setCode] = useState('');
   const [opening, setOpening] = useState(false);
+  const [ending, setEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!data) return null;
@@ -319,16 +339,17 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
             label={es.accompaniment.end}
             tone="ghost"
             style={{ marginTop: 10 }}
-            onPress={() =>
-              Alert.alert(es.accompaniment.title, es.accompaniment.endConfirm, [
-                { text: es.common.cancel, style: 'cancel' },
-                {
-                  text: es.accompaniment.end,
-                  style: 'destructive',
-                  onPress: () => end.mutate(current.id),
-                },
-              ])
-            }
+            onPress={() => setEnding(true)}
+          />
+          <ConfirmSheet
+            visible={ending}
+            title={es.accompaniment.title}
+            body={es.accompaniment.endConfirm}
+            confirmLabel={es.accompaniment.end}
+            destructive
+            busy={end.isPending}
+            onConfirm={() => end.mutate(current.id, { onSettled: () => setEnding(false) })}
+            onCancel={() => setEnding(false)}
           />
         </>
       ) : waitingOnMe ? (
@@ -527,8 +548,36 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
   const plan = data?.plan ?? null;
   const [editing, setEditing] = useState(false);
   const [place, setPlace] = useState('');
-  const [meetsAt, setMeetsAt] = useState('');
+  const [day, setDay] = useState<string | null>(null);
+  const [hour, setHour] = useState<number | null>(null);
   const [contact, setContact] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  // Los próximos catorce días, calculados una vez por apertura del formulario.
+  const days = useMemo(() => upcomingDays(14), [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dayLabel = (key: string) =>
+    new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' })
+      .format(new Date(`${key}T12:00:00`))
+      .replace(/\./g, '');
+
+  const savePlan = () => {
+    setFormError(null);
+    const result = validateMeetingPlan({ place, day, hour });
+    if ('issue' in result) {
+      setFormError(result.issue === 'place' ? es.meetingPlan.placeHint : es.meetingPlan.incomplete);
+      return;
+    }
+    save.mutate(
+      { place: place.trim(), meetsAt: result.meetsAt, trustedContactLabel: contact || undefined },
+      {
+        onSuccess: () => {
+          setEditing(false);
+          setFormError(null);
+        },
+        onError: () => setFormError(es.errors.generic),
+      },
+    );
+  };
 
   return (
     <View style={styles.planCard} accessibilityLabel={es.meetingPlan.title}>
@@ -605,7 +654,33 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
             {es.meetingPlan.whenLabel}
           </Sub>
-          <Field value={meetsAt} onChangeText={setMeetsAt} placeholder="2026-09-06 19:00" />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 6 }}
+          >
+            {days.map((key) => (
+              <Pressable
+                key={key}
+                accessibilityRole="button"
+                accessibilityState={{ selected: key === day }}
+                onPress={() => setDay(key)}
+                style={[styles.dayChip, key === day ? styles.dayChipActive : null]}
+              >
+                <Text style={[styles.dayChipText, key === day ? { color: '#fff' } : null]}>
+                  {dayLabel(key)}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <View style={{ marginTop: 8 }}>
+            <HourPicker
+              label={es.meetingPlan.whenLabel}
+              value={hour}
+              onChange={setHour}
+              hours={Array.from({ length: 16 }, (_, index) => index + 7)}
+            />
+          </View>
 
           <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
             {es.meetingPlan.contactLabel}
@@ -617,23 +692,17 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           />
           <Sub style={{ fontSize: 11, marginTop: 4 }}>{es.meetingPlan.contactHint}</Sub>
 
+          {formError ? (
+            <Text style={styles.formError} accessibilityRole="alert">
+              {formError}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
             <Button
               label={es.meetingPlan.save}
               style={{ flex: 1 }}
               disabled={save.isPending}
-              onPress={() => {
-                const when = new Date(meetsAt.replace(' ', 'T'));
-                if (Number.isNaN(when.getTime())) return;
-                save.mutate(
-                  {
-                    place,
-                    meetsAt: when.toISOString(),
-                    trustedContactLabel: contact || undefined,
-                  },
-                  { onSuccess: () => setEditing(false) },
-                );
-              }}
+              onPress={savePlan}
             />
             <Button
               label={es.common.cancel}

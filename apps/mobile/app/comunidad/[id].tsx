@@ -10,6 +10,7 @@ import {
   useGroupDetail,
   useJoinRequests,
   useReactToPost,
+  useResolveJoinRequest,
 } from '@yugo/app-core';
 import {
   AvatarCircle,
@@ -22,8 +23,10 @@ import {
   Segment,
   Sub,
 } from '../../components/ui';
+import { DEMO_MODE, errorMessage } from '../../lib/api';
 import { theme } from '../../lib/theme';
 import { PageSkeleton } from '../../components/skeleton';
+import { QueryErrorCard } from '../../components/query-error-card';
 
 const { colors, fonts } = theme;
 
@@ -44,9 +47,10 @@ const dateTime = (iso: string) =>
 export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const { data: group, isLoading } = useGroupDetail(groupId);
+  const { data: group, isLoading, isError, error, refetch } = useGroupDetail(groupId);
   const createPost = useCreatePost(groupId);
   const react = useReactToPost();
+  const resolveRequest = useResolveJoinRequest(groupId);
   const { data: me } = useCurrentMember();
   const myName = me?.displayName ?? 'Tú';
 
@@ -58,6 +62,13 @@ export default function GroupDetailScreen() {
     [],
   );
   const { praying, amen, activityJoined, toggleActivity } = useDemoStore();
+  // En vivo el contador sube por la actualización optimista del hook y el
+  // servidor confirma; aquí solo se recuerda qué reaccioné para pintar el
+  // botón. En demo la ficha es fija, así que el delta sale del almacén.
+  const [reacted, setReacted] = useState<Record<string, boolean>>({});
+  const mineReacted = (key: string, demoValue: boolean | undefined) =>
+    DEMO_MODE ? !!demoValue : !!reacted[key];
+  const demoDelta = (demoValue: boolean | undefined) => (DEMO_MODE && demoValue ? 1 : 0);
 
   const isAdmin = group?.myRole === 'ADMIN' || group?.myRole === 'MODERATOR';
   const { data: joinRequests = [] } = useJoinRequests(groupId, !!isAdmin);
@@ -67,6 +78,17 @@ export default function GroupDetailScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScreenHeader title={es.community.title} />
         <PageSkeleton cards={3} />
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScreenHeader title={es.community.title} />
+        <View style={{ paddingHorizontal: 18 }}>
+          <QueryErrorCard error={error} onRetry={() => void refetch()} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -81,6 +103,26 @@ export default function GroupDetailScreen() {
       </SafeAreaView>
     );
   }
+
+  const reactTo = (postId: string, type: 'PRAYING' | 'AMEN') => {
+    const key = `${postId}:${type}`;
+    react.mutate(
+      { postId, type },
+      {
+        onSuccess: () => setReacted((current) => ({ ...current, [key]: true })),
+        onError: (caught) => setNotice(errorMessage(caught)),
+      },
+    );
+  };
+
+  const resolve = async (requestId: string, accept: boolean) => {
+    try {
+      await resolveRequest.mutateAsync({ requestId, accept });
+      setNotice(accept ? es.community.requestAccepted : es.community.requestRejected);
+    } catch (caught) {
+      setNotice(errorMessage(caught));
+    }
+  };
 
   const publish = async () => {
     const body = draft.trim();
@@ -205,19 +247,27 @@ export default function GroupDetailScreen() {
                   <View style={[styles.row, { marginTop: 10 }]}>
                     {post.isPrayerRequest ? (
                       <Button
-                        label={`🙏 ${es.community.praying} · ${
-                          post.prayingCount + (praying[post.id] ? 1 : 0)
+                        label={`🙏 ${es.community.praying}${
+                          post.prayingCount + demoDelta(praying[post.id]) > 0
+                            ? ` · ${post.prayingCount + demoDelta(praying[post.id])}`
+                            : ''
                         }`}
-                        tone={praying[post.id] ? 'olive' : 'ghost'}
+                        tone={
+                          mineReacted(`${post.id}:PRAYING`, praying[post.id]) ? 'olive' : 'ghost'
+                        }
                         small
-                        onPress={() => react.mutate({ postId: post.id, type: 'PRAYING' })}
+                        onPress={() => reactTo(post.id, 'PRAYING')}
                       />
                     ) : null}
                     <Button
-                      label={`${es.community.amen} · ${post.amenCount + (amen[post.id] ? 1 : 0)}`}
-                      tone={amen[post.id] ? 'olive' : 'ghost'}
+                      label={`${es.community.amen}${
+                        post.amenCount + demoDelta(amen[post.id]) > 0
+                          ? ` · ${post.amenCount + demoDelta(amen[post.id])}`
+                          : ''
+                      }`}
+                      tone={mineReacted(`${post.id}:AMEN`, amen[post.id]) ? 'olive' : 'ghost'}
                       small
-                      onPress={() => react.mutate({ postId: post.id, type: 'AMEN' })}
+                      onPress={() => reactTo(post.id, 'AMEN')}
                     />
                   </View>
                 </Card>
@@ -261,6 +311,7 @@ export default function GroupDetailScreen() {
 
           {tab === 'members' ? (
             <>
+              {notice ? <Notice tone="olive" text={notice} /> : null}
               {/* RF-COM-02: pending requests for approval groups */}
               {isAdmin && joinRequests.length > 0 ? (
                 <Card>
@@ -278,7 +329,22 @@ export default function GroupDetailScreen() {
                           <Sub style={{ fontSize: 11 }}>{request.message}</Sub>
                         ) : null}
                       </View>
-                      <Button label="Aceptar" tone="olive" small />
+                      <View style={{ gap: 6 }}>
+                        <Button
+                          label={es.community.acceptRequest}
+                          tone="olive"
+                          small
+                          disabled={resolveRequest.isPending}
+                          onPress={() => void resolve(request.id, true)}
+                        />
+                        <Button
+                          label={es.community.rejectRequest}
+                          tone="ghost"
+                          small
+                          disabled={resolveRequest.isPending}
+                          onPress={() => void resolve(request.id, false)}
+                        />
+                      </View>
                     </View>
                   ))}
                 </Card>

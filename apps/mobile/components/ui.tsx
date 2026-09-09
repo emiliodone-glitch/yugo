@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
@@ -159,13 +160,16 @@ export function Button({
   small,
   disabled,
   style,
+  textColor: textColorOverride,
 }: {
   label: string;
   onPress?: () => void;
   tone?: 'ink' | 'olive' | 'wheat' | 'ghost' | 'ghost-light';
   small?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  /** Color del texto cuando el tono no basta (p. ej. una acción en vino). */
+  textColor?: string;
 }) {
   const background =
     tone === 'olive'
@@ -176,15 +180,18 @@ export function Button({
           ? colors.ink
           : 'transparent';
   const textColor =
-    tone === 'wheat'
+    textColorOverride ??
+    (tone === 'wheat'
       ? colors.inkDeep
       : tone === 'ghost'
         ? colors.ink
         : tone === 'ghost-light'
           ? '#fff'
-          : '#fff';
+          : '#fff');
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [

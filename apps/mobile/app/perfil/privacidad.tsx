@@ -1,39 +1,115 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es, LIMITS } from '@yugo/shared';
-import { useExportData, useSafetyTips } from '@yugo/app-core';
+import { es, intlLocale, LIMITS } from '@yugo/shared';
+import {
+  useAccountStatus,
+  useDeleteAccount,
+  useExportData,
+  usePrivacyPreferences,
+  useRestoreAccount,
+  useSafetyTips,
+  useSetPrivacyPreferences,
+} from '@yugo/app-core';
 import { Button, Card, ListRow, Notice, ScreenHeader, Sub, Toggle } from '../../components/ui';
+import { ConfirmSheet } from '../../components/confirm-sheet';
+import { errorMessage } from '../../lib/api';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
+const longDate = (iso: string) =>
+  new Intl.DateTimeFormat(intlLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Santo_Domingo',
+  }).format(new Date(iso));
+
 /**
  * Privacidad y seguridad: privacy controls (RF-SEG-07), safety tips
  * (RF-SEG-06) and the Ley 172-13 rights — export and delete (RF-SEG-08).
+ *
+ * Los interruptores leen y guardan de verdad; antes cambiaban de color y no
+ * llegaban a ningún lado.
  */
 export default function PrivacySecurityScreen() {
   const { data: tips } = useSafetyTips();
+  const { data: prefs } = usePrivacyPreferences();
+  const setPrefs = useSetPrivacyPreferences();
+  const account = useAccountStatus();
+  const deleteAccount = useDeleteAccount();
+  const restoreAccount = useRestoreAccount();
   const exportData = useExportData();
-  const [hideDistance, setHideDistance] = useState(false);
-  const [hideEventPresence, setHideEventPresence] = useState(false);
-  const [deleteRequested, setDeleteRequested] = useState(false);
 
-  const confirmDelete = () =>
-    Alert.alert(es.profile.deleteAccount, es.profile.deleteGrace, [
-      { text: es.common.cancel, style: 'cancel' },
-      {
-        text: es.common.confirm,
-        style: 'destructive',
-        onPress: () => setDeleteRequested(true),
-      },
-    ]);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // «Guardado» un instante después de cada cambio, y desaparece solo.
+  useEffect(() => {
+    if (!savedFlash) return;
+    const timer = setTimeout(() => setSavedFlash(false), 1600);
+    return () => clearTimeout(timer);
+  }, [savedFlash]);
+
+  const change = (patch: { hideExactDistance?: boolean; allowEventPresenceVisible?: boolean }) => {
+    setError(null);
+    setPrefs.mutate(patch, {
+      onSuccess: () => setSavedFlash(true),
+      onError: (caught) => setError(errorMessage(caught)),
+    });
+  };
+
+  const requestDeletion = async () => {
+    setError(null);
+    try {
+      await deleteAccount.mutateAsync();
+      setConfirmingDelete(false);
+    } catch (caught) {
+      setConfirmingDelete(false);
+      setError(errorMessage(caught));
+    }
+  };
+
+  const restore = async () => {
+    setError(null);
+    try {
+      await restoreAccount.mutateAsync();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
+
+  // La copia se comparte como JSON con la hoja del sistema: la persona la
+  // guarda en Archivos, se la manda por correo o la abre donde quiera.
+  const exportCopy = async () => {
+    setError(null);
+    try {
+      const result = await exportData.mutateAsync();
+      await Share.share({
+        title: es.profile.exportDownload,
+        message: JSON.stringify(result, null, 2),
+      });
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
+
+  const deletionPending = !!account.data?.deletionRequestedAt;
+  const hideDistance = prefs?.hideExactDistance ?? false;
+  const hideEventPresence = prefs ? !prefs.allowEventPresenceVisible : false;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ScreenHeader title={es.profile.privacySecurity} />
+      <ScreenHeader
+        title={es.profile.privacySecurity}
+        right={savedFlash ? <Sub style={{ color: colors.oliveText }}>{es.common.saved}</Sub> : null}
+      />
       <ScrollView contentContainerStyle={styles.container}>
+        {error ? <Notice tone="wine" text={error} /> : null}
+
         <Text style={styles.sectionTitle}>Visibilidad</Text>
         <Card>
           <View style={styles.toggleRow}>
@@ -45,7 +121,8 @@ export default function PrivacySecurityScreen() {
             </View>
             <Toggle
               on={hideDistance}
-              onChange={setHideDistance}
+              disabled={!prefs}
+              onChange={(value) => change({ hideExactDistance: value })}
               label="Ocultar distancia exacta"
             />
           </View>
@@ -60,7 +137,8 @@ export default function PrivacySecurityScreen() {
             </View>
             <Toggle
               on={hideEventPresence}
-              onChange={setHideEventPresence}
+              disabled={!prefs}
+              onChange={(value) => change({ allowEventPresenceVisible: !value })}
               label="Ocultar asistencia a eventos"
             />
           </View>
@@ -100,15 +178,22 @@ export default function PrivacySecurityScreen() {
             datos personales.
           </Sub>
           <Button
-            label={exportData.isSuccess ? 'Preparando tu descarga…' : 'Descargar mis datos'}
+            label={
+              exportData.isPending
+                ? es.profile.exportPreparing
+                : exportData.isSuccess
+                  ? es.profile.exportReady
+                  : es.profile.exportDownload
+            }
             tone="ghost"
             style={{ marginTop: 12 }}
             disabled={exportData.isPending}
-            onPress={() => exportData.mutate()}
+            onPress={() => void exportCopy()}
           />
           {exportData.isSuccess ? (
             <Sub style={{ fontSize: 11, marginTop: 8 }}>
-              Te avisaremos por correo cuando la copia esté lista. El enlace vence en 24 horas.
+              Se abrió la hoja para guardar o enviar tu copia. Puedes volver a pedirla cuando
+              quieras.
             </Sub>
           ) : null}
         </Card>
@@ -116,17 +201,35 @@ export default function PrivacySecurityScreen() {
         <Card style={{ borderColor: colors.wine, borderWidth: 1.5 }}>
           <Text style={[styles.rowText, { color: colors.wine }]}>{es.profile.deleteAccount}</Text>
           <Sub style={{ fontSize: 11, marginTop: 4 }}>
-            Tu perfil deja de ser visible de inmediato. Tienes {LIMITS.DELETION_GRACE_DAYS} días para
-            arrepentirte: si vuelves a entrar antes, se cancela la eliminación.
+            Tu perfil deja de ser visible de inmediato. Tienes{' '}
+            {account.data?.graceDays ?? LIMITS.DELETION_GRACE_DAYS} días para arrepentirte: si
+            vuelves a entrar antes, se cancela la eliminación.
           </Sub>
-          {deleteRequested ? (
-            <Notice tone="wine" text={es.profile.deleteGrace} />
+          {deletionPending ? (
+            <>
+              <Notice
+                tone="wine"
+                text={
+                  account.data?.deletesAt
+                    ? es.profile.deleteScheduled(longDate(account.data.deletesAt))
+                    : es.profile.deleteGrace
+                }
+              />
+              <Button
+                label={restoreAccount.isPending ? es.common.loading : es.profile.deleteCancel}
+                tone="olive"
+                disabled={restoreAccount.isPending}
+                onPress={() => void restore()}
+              />
+            </>
           ) : (
             <Button
               label={es.profile.deleteAccount}
               tone="ghost"
+              textColor={colors.wine}
               style={{ marginTop: 12, borderColor: colors.wine }}
-              onPress={confirmDelete}
+              disabled={account.isLoading}
+              onPress={() => setConfirmingDelete(true)}
             />
           )}
         </Card>
@@ -148,6 +251,17 @@ export default function PrivacySecurityScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <ConfirmSheet
+        visible={confirmingDelete}
+        title={es.profile.deleteConfirmTitle}
+        body={`${es.profile.deleteConfirmBody} ${es.profile.deleteGrace}`}
+        confirmLabel={es.profile.deleteAccount}
+        destructive
+        busy={deleteAccount.isPending}
+        onConfirm={() => void requestDeletion()}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </SafeAreaView>
   );
 }

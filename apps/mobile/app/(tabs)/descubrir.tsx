@@ -13,10 +13,11 @@ import {
   useSaveProfile,
 } from '@yugo/app-core';
 import { AffinityRing, Button, Card, CheckMark, Chip, H, Notice, Sub } from '../../components/ui';
-import { errorMessage } from '../../lib/api';
+import { DEMO_MODE, errorMessage } from '../../lib/api';
 import { scaled, useFontScale } from '../../lib/a11y';
 import { theme } from '../../lib/theme';
 import { ProfileCardSkeleton } from '../../components/skeleton';
+import { QueryErrorCard } from '../../components/query-error-card';
 import { VoicePlayer } from '../../components/voice-player';
 
 const { colors, fonts } = theme;
@@ -27,14 +28,28 @@ const { colors, fonts } = theme;
  */
 export default function DiscoverScreen() {
   const [endorsedOnly, setEndorsedOnly] = useState(false);
-  const { data, isLoading } = useDiscover({ endorsedOnly: endorsedOnly || undefined });
+  const {
+    data,
+    isLoading,
+    isError,
+    error: queryError,
+    refetch,
+  } = useDiscover({
+    endorsedOnly: endorsedOnly || undefined,
+  });
   const waitlist = useCityWaitlist();
   const joinWaitlist = useJoinCityWaitlist();
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
-  const sentInterests = useDemoStore((s) => s.sentInterests);
-  const savedProfiles = useDemoStore((s) => s.savedProfiles);
+  // «Interés enviado» y «Guardado» salen del resultado de la mutación; el
+  // almacén de la demo solo cuenta en modo demo, donde la ficha es fija.
+  const demoSent = useDemoStore((s) => s.sentInterests);
+  const demoSaved = useDemoStore((s) => s.savedProfiles);
+  const [sentIds, setSentIds] = useState<Record<string, boolean>>({});
+  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
+  const isSent = (userId: string) => !!sentIds[userId] || (DEMO_MODE && !!demoSent[userId]);
+  const isSaved = (userId: string) => !!savedIds[userId] || (DEMO_MODE && !!demoSaved[userId]);
   const [error, setError] = useState<string | null>(null);
   // RNF-05: la foto crece con el tamaño de letra del sistema; una altura fija
   // recortaría el nombre y la distancia en vez de acomodarlos.
@@ -48,6 +63,7 @@ export default function DiscoverScreen() {
     setError(null);
     try {
       await markInterest.mutateAsync({ userId });
+      setSentIds((current) => ({ ...current, [userId]: true }));
     } catch (caught) {
       // The daily allowance is spent: the paywall is the answer, not an error.
       if (caught instanceof Error && caught.message === 'daily_interests_used') {
@@ -58,8 +74,15 @@ export default function DiscoverScreen() {
     }
   };
 
+  const save = (userId: string) =>
+    saveProfile.mutate(userId, {
+      onSuccess: () => setSavedIds((current) => ({ ...current, [userId]: true })),
+      onError: (caught) => setError(errorMessage(caught)),
+    });
+
   const renderCard = ({ item: profile }: { item: ProfileCard }) => {
-    const sent = sentInterests[profile.userId];
+    const sent = isSent(profile.userId);
+    const saved = isSaved(profile.userId);
     return (
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <View style={[styles.photo, { height: scaled(250, fontScale) }]}>
@@ -191,11 +214,12 @@ export default function DiscoverScreen() {
           </View>
           <View style={styles.secondaryActions}>
             <Button
-              label={savedProfiles[profile.userId] ? 'Guardado ✓' : es.discover.saveForLater}
+              label={saved ? `${es.common.saved} ✓` : es.discover.saveForLater}
               tone="ghost"
               small
+              disabled={saved}
               style={{ borderWidth: 0 }}
-              onPress={() => saveProfile.mutate(profile.userId)}
+              onPress={() => save(profile.userId)}
             />
             <Button
               label={es.affinity.title}
@@ -244,7 +268,9 @@ export default function DiscoverScreen() {
         renderItem={renderCard}
         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
         ListEmptyComponent={
-          isLoading ? (
+          isError ? (
+            <QueryErrorCard error={queryError} onRetry={() => void refetch()} />
+          ) : isLoading ? (
             <ProfileCardSkeleton />
           ) : (
             /* La lista vacía no es un callejón: siempre ofrece a dónde ir. */

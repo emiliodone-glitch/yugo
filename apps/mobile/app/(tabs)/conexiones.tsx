@@ -3,15 +3,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es } from '@yugo/shared';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@yugo/app-core';
-import { AvatarCircle, Card, Chip, H, Sub } from '../../components/ui';
+import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
 import { ListSkeleton } from '../../components/skeleton';
+import { QueryErrorCard } from '../../components/query-error-card';
 import { IntroductionsSection } from '../../components/introductions-section';
 
 const { colors, fonts } = theme;
 
 export default function ConnectionsScreen() {
-  const { data: connections = [], isLoading } = useConnections();
+  const { data: connections = [], isLoading, isError, error, refetch } = useConnections();
   const { data: whoMarkedMe } = useWhoMarkedMe();
   const { data: tips } = useSafetyTips();
 
@@ -33,6 +34,7 @@ export default function ConnectionsScreen() {
           />
         </View>
 
+        {isError ? <QueryErrorCard error={error} onRetry={() => void refetch()} /> : null}
         {isLoading ? <ListSkeleton rows={5} /> : null}
 
         {/* Presentación por padrino (RF-ACO-05): se responde desde aquí */}
@@ -100,12 +102,17 @@ export default function ConnectionsScreen() {
           </Pressable>
         ))}
 
-        {!isLoading && connections.length === 0 ? (
-          <Card>
-            <Sub style={{ textAlign: 'center', paddingVertical: 16 }}>
-              Todavía no tienes conexiones. Cuando dos personas marcan interés, se abre la
-              conversación.
-            </Sub>
+        {!isLoading && !isError && connections.length === 0 ? (
+          <Card style={{ alignItems: 'center', paddingVertical: 22 }}>
+            <Text style={styles.emptyTitle}>{es.connections.emptyTitle}</Text>
+            <Sub style={{ textAlign: 'center', marginTop: 6 }}>{es.connections.emptyBody}</Sub>
+            <Button
+              label={es.tabs.discover}
+              tone="olive"
+              small
+              style={{ marginTop: 14 }}
+              onPress={() => router.push('/(tabs)/descubrir')}
+            />
           </Card>
         ) : null}
 
@@ -151,6 +158,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   name: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text },
+  emptyTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: 'center' },
   unread: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.wine },
   safetyTitle: {
     fontFamily: fonts.bodySemiBold,

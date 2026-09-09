@@ -3,26 +3,22 @@ import { useEffect, useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, intlLocale } from '@yugo/shared';
-import {
-  calendarUrl,
-  useCheckIn,
-  useDemoStore,
-  useEventDetail,
-  useSetAttendance,
-} from '@yugo/app-core';
+import { calendarUrl, useCheckIn, useEventDetail, useSetAttendance } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, Notice, ScreenHeader, Sub } from '../../components/ui';
+import { EventCover } from '../../components/event-cover';
+import { QueryErrorCard } from '../../components/query-error-card';
+import { directionsUrl } from '../../lib/maps';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
-/** Event detail with attendance, connections attending and QR check-in. */
+/** Event detail with attendance, connections attending, ticket and check-in. */
 export default function EventDetailScreen() {
   const { id, ci } = useLocalSearchParams<{ id: string; ci?: string }>();
   const eventId = id ?? '';
-  const { data: event, isLoading } = useEventDetail(eventId);
+  const { data: event, isLoading, isError, error, refetch } = useEventDetail(eventId);
   const setAttendance = useSetAttendance();
   const checkIn = useCheckIn();
-  const eventStatus = useDemoStore((s) => s.eventStatus);
   const [checkInNotice, setCheckInNotice] = useState<string | null>(null);
 
   // Llegó por el enlace del QR de la entrada: se registra sin más toques.
@@ -34,18 +30,30 @@ export default function EventDetailScreen() {
       .catch(() => setCheckInNotice('No pudimos registrar tu asistencia con ese enlace.'));
   }, [ci, checkIn]);
 
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScreenHeader title={es.tabs.events} />
+        <View style={{ paddingHorizontal: 18 }}>
+          <QueryErrorCard error={error} onRetry={() => void refetch()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (isLoading || !event) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <ScreenHeader title={es.tabs.events} />
         <Sub style={{ textAlign: 'center', paddingVertical: 30 }}>
-          {isLoading ? es.common.loading : 'Este evento ya no está disponible.'}
+          {isLoading ? es.common.loading : es.events.notFound}
         </Sub>
       </SafeAreaView>
     );
   }
 
-  const mine = eventStatus[event.id];
+  // Lo que se pinta es lo que dijo el servidor (o la demo, a través del hook).
+  const mine = event.myStatus;
   const dateLabel = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
@@ -59,16 +67,24 @@ export default function EventDetailScreen() {
   // Lleno es lleno: ningún plan agranda el salón.
   const full = event.capacity !== undefined && (event.openSeats ?? 0) === 0;
 
-  const setStatus = (status: 'GOING' | 'INTERESTED') =>
+  const setStatus = (status: 'GOING' | 'INTERESTED' | null) =>
     setAttendance.mutate({
       eventId: event.id,
-      status: mine === status || (status === 'GOING' && mine === 'WAITLIST') ? null : status,
+      status:
+        status !== null && (mine === status || (status === 'GOING' && mine === 'WAITLIST'))
+          ? null
+          : status,
     });
 
   /** RF-EVE-08: the device opens the .ics the API serves. */
   const addToCalendar = () => {
     const url = calendarUrl(event.id);
-    if (url !== '#') Linking.openURL(url);
+    if (url !== '#') void Linking.openURL(url);
+  };
+
+  const directions = directionsUrl(event);
+  const openDirections = () => {
+    if (directions) void Linking.openURL(directions);
   };
 
   const share = () =>
@@ -81,7 +97,7 @@ export default function EventDetailScreen() {
       <ScreenHeader title={es.tabs.events} />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <View style={styles.banner} />
+          <EventCover type={event.type} imageUrl={event.imageUrl} height={120} />
           <View style={{ padding: 14 }}>
             <View style={styles.rowBetween}>
               <Chip label={event.typeName} tone="wine" />
@@ -113,6 +129,7 @@ export default function EventDetailScreen() {
                 label={es.events.interested}
                 tone={mine === 'INTERESTED' ? 'olive' : 'ghost'}
                 style={{ flex: 1 }}
+                disabled={setAttendance.isPending}
                 onPress={() => setStatus('INTERESTED')}
               />
               <Button
@@ -125,9 +142,20 @@ export default function EventDetailScreen() {
                 }
                 tone="olive"
                 style={{ flex: 1 }}
+                disabled={setAttendance.isPending}
                 onPress={() => setStatus('GOING')}
               />
             </View>
+            {mine === 'GOING' || mine === 'WAITLIST' ? (
+              <Button
+                label={es.events.notGoing}
+                tone="ghost"
+                small
+                style={{ alignSelf: 'center', marginTop: 8, borderWidth: 0 }}
+                disabled={setAttendance.isPending}
+                onPress={() => setStatus(null)}
+              />
+            ) : null}
             {mine === 'WAITLIST' ? (
               <Sub style={{ textAlign: 'center', fontSize: 11, marginTop: 8 }}>
                 {es.events.waitlistExplained}
@@ -139,6 +167,23 @@ export default function EventDetailScreen() {
             ) : null}
           </View>
         </Card>
+
+        {/* La entrada personal (RF-EVE-06): solo existe cuando va a asistir. */}
+        {mine === 'GOING' ? (
+          <Card>
+            <Text style={styles.sectionTitle}>{es.events.ticketTitle}</Text>
+            <Sub style={{ fontSize: 11, marginTop: 4, marginBottom: 10 }}>
+              {es.events.ticketHint}
+            </Sub>
+            <Button
+              label={es.events.ticketOpen}
+              tone="ink"
+              onPress={() =>
+                router.push({ pathname: '/eventos/[id]/entrada', params: { id: event.id } })
+              }
+            />
+          </Card>
+        ) : null}
 
         {/* Connections attending, honouring their privacy setting (RF-EVE-05) */}
         {event.connectionsGoing.length > 0 ? (
@@ -166,6 +211,26 @@ export default function EventDetailScreen() {
             <Text style={styles.rowText}>{es.events.interested}</Text>
             <Text style={styles.rowValue}>{event.interestedCount}</Text>
           </View>
+        </Card>
+
+        {/* Dónde (RF-EVE-03): la app de mapas del teléfono lleva hasta allá. */}
+        <Card>
+          <Text style={styles.sectionTitle}>{es.events.mapTitle}</Text>
+          <Sub style={{ fontSize: 11.5, marginTop: 4 }}>
+            {event.address ?? event.city}
+            {event.address && event.city ? ` · ${event.city}` : ''}
+          </Sub>
+          {directions ? (
+            <Button
+              label={es.common.openInMaps}
+              tone="ghost"
+              small
+              style={{ alignSelf: 'flex-start', marginTop: 10 }}
+              onPress={openDirections}
+            />
+          ) : (
+            <Sub style={{ fontSize: 11, marginTop: 8 }}>{es.events.mapUnavailable}</Sub>
+          )}
         </Card>
 
         {/* Check-in (RF-EVE-06): el QR está en la entrada; la app lo lee. */}
@@ -205,7 +270,6 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 18, paddingBottom: 24 },
-  banner: { height: 104, backgroundColor: colors.wine },
   row: { flexDirection: 'row', gap: 8 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 19, color: colors.ink, marginTop: 8 },

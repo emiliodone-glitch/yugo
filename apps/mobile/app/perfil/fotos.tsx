@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, LIMITS } from '@yugo/shared';
 import { useDeletePhoto, useMyPhotos, useUploadPhoto } from '@yugo/app-core';
 import { Button, Card, Chip, Notice, ScreenHeader, Sub } from '../../components/ui';
+import { ConfirmSheet } from '../../components/confirm-sheet';
 import { DEMO_MODE, errorMessage } from '../../lib/api';
 import { pickPhoto } from '../../lib/photos';
 import { theme } from '../../lib/theme';
@@ -23,6 +24,7 @@ export default function PhotosScreen() {
   const upload = useUploadPhoto();
   const remove = useDeletePhoto();
   const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const add = async (source: 'camera' | 'library') => {
     setError(null);
@@ -45,11 +47,14 @@ export default function PhotosScreen() {
     }
   };
 
-  const confirmRemove = (photoId: string) =>
-    Alert.alert('Quitar foto', '¿Seguro que quieres quitarla de tu perfil?', [
-      { text: es.common.cancel, style: 'cancel' },
-      { text: 'Quitar', style: 'destructive', onPress: () => remove.mutate(photoId) },
-    ]);
+  const confirmRemove = (photoId: string) => setRemoving(photoId);
+  const removeNow = () => {
+    if (!removing) return;
+    remove.mutate(removing, {
+      onSettled: () => setRemoving(null),
+      onError: (caught) => setError(errorMessage(caught)),
+    });
+  };
 
   const canAddMore = photos.length < LIMITS.PHOTOS_MAX;
   const missing = Math.max(0, LIMITS.PHOTOS_MIN - photos.length);
@@ -150,6 +155,17 @@ export default function PhotosScreen() {
         </Sub>
         <Sub style={{ fontSize: 11, marginTop: 6 }}>{es.onboarding.photoModerationEta}</Sub>
       </ScrollView>
+
+      <ConfirmSheet
+        visible={removing !== null}
+        title="Quitar foto"
+        body="¿Seguro que quieres quitarla de tu perfil?"
+        confirmLabel="Quitar"
+        destructive
+        busy={remove.isPending}
+        onConfirm={removeNow}
+        onCancel={() => setRemoving(null)}
+      />
     </SafeAreaView>
   );
 }

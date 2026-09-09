@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APP_TIMEZONE, es, intlLocale } from '@yugo/shared';
-import { useDemoStore, useEvents, useSetAttendance } from '@yugo/app-core';
+import { APP_TIMEZONE, es, intlLocale, type EventSummary } from '@yugo/shared';
+import { useEvents, useSetAttendance } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
+import { EventCover } from '../../components/event-cover';
+import { QueryErrorCard } from '../../components/query-error-card';
 import { theme } from '../../lib/theme';
 import { CardSkeleton } from '../../components/skeleton';
 
@@ -38,9 +40,21 @@ const TYPE_TONE: Record<string, 'wine' | 'olive' | 'wheat' | 'default'> = {
 };
 
 export default function EventsScreen() {
-  const { data: events = [], isLoading } = useEvents();
+  const { data: events = [], isLoading, isError, error, refetch } = useEvents();
   const setAttendance = useSetAttendance();
-  const eventStatus = useDemoStore((s) => s.eventStatus);
+
+  // «Asistiré» va y vuelve: tocarlo con la asistencia marcada la quita. Lo que
+  // se pinta es `myStatus`, que viene del servidor (o de la demo por el hook).
+  const toggleGoing = (event: EventSummary) =>
+    setAttendance.mutate({
+      eventId: event.id,
+      status: event.myStatus === 'GOING' || event.myStatus === 'WAITLIST' ? null : 'GOING',
+    });
+  const toggleInterested = (event: EventSummary) =>
+    setAttendance.mutate({
+      eventId: event.id,
+      status: event.myStatus === 'INTERESTED' ? null : 'INTERESTED',
+    });
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -50,41 +64,21 @@ export default function EventsScreen() {
           <Chip label={es.events.thisWeek} />
         </View>
 
-        {/* Map placeholder — react-native-maps renders the real map (RF-EVE-03) */}
-        <View style={styles.map}>
-          {[
-            { left: '22%', top: '40%', olive: false },
-            { left: '56%', top: '26%', olive: true },
-            { left: '72%', top: '60%', olive: false },
-            { left: '38%', top: '68%', olive: true },
-          ].map((pin, index) => (
-            <View
-              key={index}
-              style={[
-                styles.pin,
-                {
-                  left: pin.left as never,
-                  top: pin.top as never,
-                  backgroundColor: pin.olive ? colors.olive : colors.wine,
-                },
-              ]}
-            />
-          ))}
-          <Chip label={es.events.list} style={styles.mapChip} />
-        </View>
-
+        {isError ? <QueryErrorCard error={error} onRetry={() => void refetch()} /> : null}
         {isLoading ? <CardSkeleton lines={2} /> : null}
 
         {events.map((event) => {
           const parts = dayParts(event.startsAt);
-          const mine = eventStatus[event.id];
+          const mine = event.myStatus;
           return (
             <Pressable
               key={event.id}
+              accessibilityRole="button"
               onPress={() => router.push({ pathname: '/eventos/[id]', params: { id: event.id } })}
             >
-              <Card style={{ padding: 12 }}>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Card style={{ padding: 0, overflow: 'hidden' }}>
+                <EventCover type={event.type} imageUrl={event.imageUrl} height={64} />
+                <View style={{ flexDirection: 'row', gap: 10, padding: 12 }}>
                   <View style={{ minWidth: 40, alignItems: 'center' }}>
                     <Sub style={{ fontSize: 11 }}>{parts.weekday}</Sub>
                     <Text style={styles.dayNumber}>{parts.day}</Text>
@@ -101,7 +95,7 @@ export default function EventsScreen() {
                       {event.churchName}
                       {event.distanceKm !== undefined ? ` · ${event.distanceKm} km` : ''}
                     </Sub>
-                    <View style={[styles.rowBetween, { marginTop: 6 }]}>
+                    <View style={[styles.rowBetween, { marginTop: 8 }]}>
                       {event.connectionsGoing.length > 0 ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           {event.connectionsGoing.slice(0, 2).map((connection, index) => (
@@ -121,18 +115,38 @@ export default function EventsScreen() {
                           {es.events.interestedCount(event.interestedCount)}
                         </Sub>
                       )}
-                      {mine === 'GOING' ? (
-                        <Chip label={es.events.goingMarked} tone="olive" />
-                      ) : (
-                        <Button
-                          label={es.events.going}
-                          tone="olive"
-                          small
-                          onPress={() =>
-                            setAttendance.mutate({ eventId: event.id, status: 'GOING' })
-                          }
-                        />
-                      )}
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {mine === 'GOING' || mine === 'WAITLIST' ? (
+                          <Button
+                            label={es.events.notGoing}
+                            tone="ghost"
+                            small
+                            disabled={setAttendance.isPending}
+                            onPress={() => toggleGoing(event)}
+                          />
+                        ) : (
+                          <Button
+                            label={es.events.interested}
+                            tone={mine === 'INTERESTED' ? 'olive' : 'ghost'}
+                            small
+                            disabled={setAttendance.isPending}
+                            onPress={() => toggleInterested(event)}
+                          />
+                        )}
+                        {mine === 'GOING' ? (
+                          <Chip label={es.events.goingMarked} tone="olive" />
+                        ) : mine === 'WAITLIST' ? (
+                          <Chip label={es.events.waitlistCount(1)} tone="wheat" />
+                        ) : (
+                          <Button
+                            label={es.events.going}
+                            tone="olive"
+                            small
+                            disabled={setAttendance.isPending}
+                            onPress={() => toggleGoing(event)}
+                          />
+                        )}
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -141,7 +155,7 @@ export default function EventsScreen() {
           );
         })}
 
-        {!isLoading && events.length === 0 ? (
+        {!isLoading && !isError && events.length === 0 ? (
           <Card>
             <Sub style={{ textAlign: 'center', paddingVertical: 16 }}>
               No hay eventos publicados cerca de ti esta semana.
@@ -166,24 +180,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  map: {
-    height: 150,
-    borderRadius: 14,
-    backgroundColor: '#EFECE3',
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  pin: {
-    position: 'absolute',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderBottomLeftRadius: 0,
-    borderWidth: 3,
-    borderColor: '#fff',
-    transform: [{ rotate: '-45deg' }],
-  },
-  mapChip: { position: 'absolute', right: 8, bottom: 8, backgroundColor: '#fff' },
   dayNumber: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   title: { fontFamily: fonts.bodySemiBold, fontSize: 12.5, color: colors.text, marginTop: 4 },
 });

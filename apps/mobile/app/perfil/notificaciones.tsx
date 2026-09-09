@@ -12,6 +12,7 @@ import {
   useSetQuietHours,
 } from '@yugo/app-core';
 import { Card, Chip, ScreenHeader, Segment, Sub, Toggle } from '../../components/ui';
+import { HourPicker, hourLabel } from '../../components/hour-picker';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
@@ -31,14 +32,6 @@ const CATEGORY_TONE: Record<string, 'default' | 'olive' | 'wheat' | 'wine'> = {
   SUBSCRIPTION: 'wheat',
 };
 
-/** Formats a whole hour the way es-DO reads it: "10:00 pm". */
-const hourLabel = (hour: number) =>
-  new Intl.DateTimeFormat(intlLocale(), {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  }).format(new Date(2026, 0, 1, hour, 0));
-
 /** Notification centre and per-category preferences (RF-NOT-01/02). */
 export default function NotificationsScreen() {
   const { data: notifications = [], isLoading } = useNotifications();
@@ -55,8 +48,8 @@ export default function NotificationsScreen() {
   const pushFor = (category: NotificationCategory) =>
     settings?.preferences.find((preference) => preference.category === category)?.push ?? true;
 
-  const shiftHour = (field: 'startHour' | 'endHour') =>
-    setQuietHours.mutate({ ...quiet, [field]: (quiet[field] + 1) % 24 });
+  const setHour = (field: 'startHour' | 'endHour', hour: number) =>
+    setQuietHours.mutate({ ...quiet, [field]: hour });
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -180,13 +173,19 @@ export default function NotificationsScreen() {
 
               {quiet.enabled ? (
                 <View style={styles.hourRow}>
-                  <Chip
+                  <Text style={styles.hourLabel}>Desde {hourLabel(quiet.startHour)}</Text>
+                  <HourPicker
                     label={`Desde ${hourLabel(quiet.startHour)}`}
-                    onPress={() => shiftHour('startHour')}
+                    value={quiet.startHour}
+                    onChange={(hour) => setHour('startHour', hour)}
                   />
-                  <Chip
+                  <Text style={[styles.hourLabel, { marginTop: 10 }]}>
+                    Hasta {hourLabel(quiet.endHour)}
+                  </Text>
+                  <HourPicker
                     label={`Hasta ${hourLabel(quiet.endHour)}`}
-                    onPress={() => shiftHour('endHour')}
+                    value={quiet.endHour}
+                    onChange={(hour) => setHour('endHour', hour)}
                   />
                 </View>
               ) : null}
@@ -216,5 +215,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   prefLabel: { fontFamily: fonts.body, fontSize: 12.5, color: colors.text },
-  hourRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  hourRow: { marginTop: 12 },
+  hourLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.muted, marginBottom: 6 },
 });

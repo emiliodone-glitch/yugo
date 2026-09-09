@@ -350,6 +350,7 @@ export const es = {
     checkedIn: 'Nos dijiste que todo estuvo bien.',
     cancel: 'Cancelar el plan',
     privateNotice: 'Este plan es solo tuyo. La otra persona no lo ve.',
+    incomplete: 'Falta el lugar, el día o la hora del encuentro.',
   },
 
   stageQuestions: {
@@ -668,6 +669,8 @@ export const es = {
     groupName: 'Nombre del grupo',
     groupDescription: 'De qué va y para quién es',
     groupProposed: 'Tu grupo quedó en revisión. Te avisamos cuando el equipo lo apruebe.',
+    acceptRequest: 'Aceptar',
+    rejectRequest: 'Rechazar',
     categoryLabel: 'Categoría',
     inReview: 'En revisión',
   },
@@ -724,6 +727,14 @@ export const es = {
     filterWeekend: 'Este fin de semana',
     mapTitle: 'Dónde',
     mapUnavailable: 'Este evento no tiene ubicación en el mapa',
+    /** Lista vacía y validación de entradas en la puerta. */
+    emptyTitle: 'Todavía no hay eventos publicados cerca de ti.',
+    emptyFiltered: 'Ningún evento coincide con estos filtros.',
+    clearFilters: 'Quitar filtros',
+    checkedInCount: (n: number) =>
+      n === 1 ? '1 entrada registrada en esta sesión' : `${n} entradas registradas en esta sesión`,
+    scanWithCamera: 'Escanear con la cámara',
+    stopScanning: 'Dejar de escanear',
   },
 
   singlesMinistry: {
@@ -787,6 +798,7 @@ export const es = {
     completeCardVisible: 'Ya apareces en Descubrir. Un perfil más completo recibe más respuestas.',
     completeCardCta: 'Completar perfil',
     signOut: 'Cerrar sesión',
+    signOutConfirmBody: 'Tus conexiones y tu perfil siguen aquí cuando vuelvas a entrar.',
     /** Eliminación con plazo de gracia y copia de datos (RF-AUT-08, Ley 172-13). */
     deleteScheduled: (date: string) =>
       `Tu cuenta se eliminará el ${date}. Si entras antes, puedes cancelarlo.`,
@@ -805,6 +817,10 @@ export const es = {
     useThisSelfie: 'Usar esta selfie',
     cameraDenied: 'No pudimos usar la cámara. Revisa el permiso del navegador o del teléfono.',
     cameraStarting: 'Encendiendo la cámara…',
+    leaderName: 'Nombre de tu líder (opcional)',
+    /** Fotos: cámara o galería, dicho explícitamente (RF-PER-02). */
+    takePhoto: 'Tomar foto',
+    pickFromGallery: 'Elegir de la galería',
     /** Qué pide la sugerencia de completitud, en palabras de la persona. */
     fields: {
       displayName: 'tu nombre',
@@ -877,6 +893,9 @@ export const es = {
     continueOro: 'Continuar con Oro',
     continuePlus: 'Continuar con Plus',
     cancelAnytime: 'Cancela cuando quieras · Sube de nivel con prorrateo',
+    currentTier: (name: string) => `Tu plan actual: ${name}`,
+    manageSubscription: 'Gestionar mi suscripción',
+    downgradeScheduled: (tier: string, date: string) => `Pasas a ${tier} el ${date}.`,
     plusFeatures: [
       'Intereses ilimitados',
       'Ver quién te marcó interés',

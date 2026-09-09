@@ -6,18 +6,21 @@ import { useHomeSummary, usePrayerWall, useSession, useSetAttendance } from '@yu
 import { AffinityRing, AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { DevotionalCard } from '../../components/devotional';
 import { CompleteProfileCard } from '../../components/complete-profile-card';
+import { EventCover } from '../../components/event-cover';
+import { QueryErrorCard } from '../../components/query-error-card';
 import { theme } from '../../lib/theme';
 
 const { colors, fonts } = theme;
 
 export default function HomeScreen() {
   const { data: session } = useSession();
-  const { data, isLoading } = useHomeSummary();
+  const { data, isLoading, isError, error, refetch } = useHomeSummary();
   const setAttendance = useSetAttendance();
 
   const displayName = session?.displayName ?? '';
   const summary = data?.summary;
   const featured = data?.featuredEvent;
+  const featuredStatus = featured?.myStatus;
   const todayText = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
@@ -35,7 +38,7 @@ export default function HomeScreen() {
             <Sub>{today}</Sub>
             <H>{es.home.greeting(displayName)}</H>
           </View>
-          <Pressable onPress={() => router.push('/perfil')}>
+          <Pressable onPress={() => router.push('/perfil')} accessibilityRole="button">
             <AvatarCircle name={displayName || 'Y'} size={34} />
           </Pressable>
         </View>
@@ -52,6 +55,8 @@ export default function HomeScreen() {
           <DevotionalCard compact />
         </Pressable>
         <PrayerPeek />
+
+        {isError ? <QueryErrorCard error={error} onRetry={() => void refetch()} /> : null}
 
         {/* Administrable banners (RF-ADM-10) */}
         {data?.banners?.map((banner) => (
@@ -93,7 +98,7 @@ export default function HomeScreen() {
             onPress={() => router.push({ pathname: '/eventos/[id]', params: { id: featured.id } })}
           >
             <Card style={{ padding: 0, overflow: 'hidden' }}>
-              <View style={styles.eventBanner} />
+              <EventCover type={featured.type} imageUrl={featured.imageUrl} height={92} />
               <View style={{ padding: 14 }}>
                 <View style={styles.rowBetween}>
                   <Chip label={featured.typeName} tone="wine" />
@@ -118,13 +123,47 @@ export default function HomeScreen() {
                 </Sub>
                 <View style={[styles.rowBetween, { marginTop: 8 }]}>
                   <Sub>{es.home.connectionsGoing(featured.connectionsGoing.length)}</Sub>
-                  <Button
-                    label={es.home.willAttend}
-                    tone="olive"
-                    small
-                    onPress={() => setAttendance.mutate({ eventId: featured.id, status: 'GOING' })}
-                  />
+                  {/* Lo que se pinta es `myStatus`; «Asistiré» va y vuelve. */}
+                  {featuredStatus === 'GOING' ? (
+                    <Chip label={es.events.goingMarked} tone="olive" />
+                  ) : featuredStatus === 'WAITLIST' ? (
+                    <Chip label={es.events.joinWaitlist} tone="wheat" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <Button
+                        label={es.events.interested}
+                        tone={featuredStatus === 'INTERESTED' ? 'olive' : 'ghost'}
+                        small
+                        disabled={setAttendance.isPending}
+                        onPress={() =>
+                          setAttendance.mutate({
+                            eventId: featured.id,
+                            status: featuredStatus === 'INTERESTED' ? null : 'INTERESTED',
+                          })
+                        }
+                      />
+                      <Button
+                        label={es.home.willAttend}
+                        tone="olive"
+                        small
+                        disabled={setAttendance.isPending}
+                        onPress={() =>
+                          setAttendance.mutate({ eventId: featured.id, status: 'GOING' })
+                        }
+                      />
+                    </View>
+                  )}
                 </View>
+                {featuredStatus === 'GOING' || featuredStatus === 'WAITLIST' ? (
+                  <Button
+                    label={es.events.notGoing}
+                    tone="ghost"
+                    small
+                    style={{ alignSelf: 'flex-end', marginTop: 6, borderWidth: 0 }}
+                    disabled={setAttendance.isPending}
+                    onPress={() => setAttendance.mutate({ eventId: featured.id, status: null })}
+                  />
+                ) : null}
               </View>
             </Card>
           </Pressable>
@@ -235,7 +274,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  eventBanner: { height: 92, backgroundColor: colors.wine },
   suggestionCard: { minWidth: 130, marginBottom: 0, padding: 10 },
   prayerBody: {
     fontFamily: fonts.body,

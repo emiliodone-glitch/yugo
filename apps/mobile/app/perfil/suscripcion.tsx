@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { es, intlLocale } from '@yugo/shared';
 import { useCancelSubscription, useMyPayments, useSubscriptionState } from '@yugo/app-core';
 import { Button, Card, Chip, Notice, ScreenHeader, Sub } from '../../components/ui';
+import { ConfirmSheet } from '../../components/confirm-sheet';
 import { errorMessage } from '../../lib/api';
 import { theme } from '../../lib/theme';
 
@@ -37,6 +38,7 @@ export default function SubscriptionScreen() {
   const payments = useMyPayments();
   const cancel = useCancelSubscription();
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const tier = subscription?.tier ?? null;
   const paid = tier === 'PLUS' || tier === 'ORO';
@@ -44,29 +46,17 @@ export default function SubscriptionScreen() {
   const storeManaged =
     subscription?.channel === 'APP_STORE' || subscription?.channel === 'GOOGLE_PLAY';
 
-  const confirmCancel = () =>
-    Alert.alert(
-      `¿Cancelar ${tier === 'ORO' ? 'Oro' : 'Plus'}?`,
-      `Conservas todo hasta el ${date(subscription?.renewsAt)}. Después vuelves al nivel gratuito: tus conexiones, grupos y eventos se quedan contigo.`,
-      [
-        { text: 'Seguir suscrito', style: 'cancel' },
-        {
-          text: 'Sí, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await cancel.mutateAsync();
-              setNotice(
-                `Suscripción cancelada. Conservas el acceso hasta el ${date(result.accessUntil)}.`,
-              );
-              void refetch();
-            } catch (caught) {
-              setNotice(errorMessage(caught));
-            }
-          },
-        },
-      ],
-    );
+  const cancelNow = async () => {
+    try {
+      const result = await cancel.mutateAsync();
+      setNotice(`Suscripción cancelada. Conservas el acceso hasta el ${date(result.accessUntil)}.`);
+      void refetch();
+    } catch (caught) {
+      setNotice(errorMessage(caught));
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -105,7 +95,7 @@ export default function SubscriptionScreen() {
               small
               style={{ marginTop: 8 }}
               disabled={cancel.isPending}
-              onPress={confirmCancel}
+              onPress={() => setConfirming(true)}
             />
           ) : null}
           {storeManaged ? (
@@ -151,6 +141,18 @@ export default function SubscriptionScreen() {
           personas del equipo.
         </Sub>
       </ScrollView>
+
+      <ConfirmSheet
+        visible={confirming}
+        title={`¿Cancelar ${tier === 'ORO' ? 'Oro' : 'Plus'}?`}
+        body={`Conservas todo hasta el ${date(subscription?.renewsAt)}. Después vuelves al nivel gratuito: tus conexiones, grupos y eventos se quedan contigo.`}
+        confirmLabel="Sí, cancelar"
+        cancelLabel="Seguir suscrito"
+        destructive
+        busy={cancel.isPending}
+        onConfirm={() => void cancelNow()}
+        onCancel={() => setConfirming(false)}
+      />
     </SafeAreaView>
   );
 }

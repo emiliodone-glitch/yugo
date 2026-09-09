@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DEFAULT_PRICES, es, LIMITS, intlLocale } from '@yugo/shared';
-import { usePrices, usePurchaseSubscription } from '@yugo/app-core';
+import { usePrices, usePurchaseSubscription, useSubscriptionState } from '@yugo/app-core';
 import { Button, CheckMark, Chip, Notice } from '../components/ui';
 import { errorMessage } from '../lib/api';
 import { theme } from '../lib/theme';
@@ -13,10 +13,18 @@ const { colors, fonts } = theme;
 
 export default function PaywallScreen() {
   const { data: prices = DEFAULT_PRICES } = usePrices();
+  const { data: subscription } = useSubscriptionState();
   const purchase = usePurchaseSubscription();
   const [cycle, setCycle] = useState<'MONTHLY' | 'ANNUAL'>('ANNUAL');
   const [selected, setSelected] = useState<'PLUS' | 'ORO'>('ORO');
   const [error, setError] = useState<string | null>(null);
+
+  const currentTier = subscription?.tier ?? null;
+  const tierLabel = (tier: 'PLUS' | 'ORO' | 'FREE' | null | undefined) =>
+    tier === 'ORO' ? es.paywall.oro : tier === 'PLUS' ? es.paywall.plus : es.common.free;
+  const renewsAt = subscription?.renewsAt
+    ? new Date(subscription.renewsAt).toLocaleDateString(intlLocale())
+    : '';
 
   const price = (tier: 'PLUS' | 'ORO') => {
     const value = prices[tier][cycle].DOP;
@@ -51,14 +59,34 @@ export default function PaywallScreen() {
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={{ padding: 18 }}>
         <View style={styles.rowBetween}>
-          <Chip label={es.paywall.limitReached} tone="inverse" />
-          <Pressable onPress={() => router.back()}>
+          <Chip
+            label={
+              currentTier ? es.paywall.currentTier(tierLabel(currentTier)) : es.paywall.limitReached
+            }
+            tone="inverse"
+          />
+          <Pressable onPress={() => router.back()} accessibilityRole="button">
             <Text style={{ color: colors.inkMuted2, fontSize: 16 }}>✕</Text>
           </Pressable>
         </View>
 
         <Text style={styles.title}>{es.paywall.chooseLevel}</Text>
-        <Text style={styles.sub}>{es.paywall.usedInterests(LIMITS.DAILY_INTERESTS_FREE)}</Text>
+        <Text style={styles.sub}>
+          {currentTier
+            ? subscription?.downgradeToTier !== undefined && subscription?.downgradeToTier !== null
+              ? es.paywall.downgradeScheduled(tierLabel(subscription.downgradeToTier), renewsAt)
+              : es.paywall.currentTier(tierLabel(currentTier))
+            : es.paywall.usedInterests(LIMITS.DAILY_INTERESTS_FREE)}
+        </Text>
+        {currentTier ? (
+          <Button
+            label={es.paywall.manageSubscription}
+            tone="ghost-light"
+            small
+            style={{ alignSelf: 'flex-start', marginBottom: 12 }}
+            onPress={() => router.push('/perfil/suscripcion')}
+          />
+        ) : null}
 
         <View style={styles.segment}>
           {(

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -84,6 +84,18 @@ export default function ChatScreen() {
   const cancelCall = useCancelCall();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [notice, setNotice] = useState<string | null>(null);
+
+  // La conversación abre en el último mensaje y vuelve a bajar al enviar o al
+  // llegar uno nuevo; sin esto se abría arriba, en las tarjetas del vínculo.
+  const scroll = useRef<ScrollView>(null);
+  const messageCount = conversation?.messages.length ?? 0;
+  const pendingCount = pending.length;
+  const [contentReady, setContentReady] = useState(false);
+  useEffect(() => {
+    if (!contentReady) return;
+    const timer = setTimeout(() => scroll.current?.scrollToEnd({ animated: messageCount > 0 }), 60);
+    return () => clearTimeout(timer);
+  }, [contentReady, messageCount, pendingCount]);
 
   const connection = connections.find(
     (item) => item.conversationId === conversationId || item.matchId === conversationId,
@@ -270,7 +282,13 @@ export default function ChatScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 10 }}>
+        <ScrollView
+          ref={scroll}
+          contentContainerStyle={{ paddingHorizontal: 18, paddingVertical: 10 }}
+          onContentSizeChange={() => {
+            if (!contentReady) setContentReady(true);
+          }}
+        >
           {notice ? <Notice text={notice} /> : null}
 
           {connection.isNew ? (
@@ -506,14 +524,24 @@ export default function ChatScreen() {
               ) : (
                 (calls.data?.calls ?? []).map((call) => (
                   <View key={call.id} style={[styles.sheetRow, { gap: 8 }]}>
-                    <View style={{ flex: 1 }}>
+                    <Pressable
+                      style={{ flex: 1 }}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        setSheet('none');
+                        router.push({
+                          pathname: '/chat/[id]/llamada/[callId]',
+                          params: { id: conversationId, callId: call.id },
+                        });
+                      }}
+                    >
                       <Text style={styles.name}>{whenLabel(call.scheduledAt)}</Text>
                       <Sub style={{ fontSize: 11 }}>
                         {call.joinable
                           ? es.connections.videoOpen
                           : es.connections.videoWaiting(whenLabel(call.scheduledAt))}
                       </Sub>
-                    </View>
+                    </Pressable>
                     <Button
                       label={es.connections.videoJoin}
                       tone="olive"

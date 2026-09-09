@@ -11,12 +11,7 @@
 import { act, render } from '@testing-library/react-native';
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  demoConnections,
-  demoDiscover,
-  demoEvents,
-  demoGroups,
-} from '@yugo/shared';
+import { demoConnections, demoDiscover, demoEvents, demoGroups } from '@yugo/shared';
 import { Providers } from '../lib/providers';
 
 const setParams = (globalThis as Record<string, unknown>).__setRouteParams as (
@@ -26,9 +21,11 @@ const setParams = (globalThis as Record<string, unknown>).__setRouteParams as (
 /** Parámetros de ruta que cada pantalla dinámica necesita para tener datos. */
 const PARAMS: Record<string, Record<string, string>> = {
   'chat/[id]': { id: demoConnections[0].matchId },
+  'chat/[id]/llamada/[callId]': { id: demoConnections[0].matchId, callId: 'demo-call-1' },
   'afinidad/[id]': { id: demoDiscover[0].userId },
   'comunidad/[id]': { id: demoGroups[0].id },
   'eventos/[id]': { id: demoEvents[0].id },
+  'eventos/[id]/entrada': { id: demoEvents[0].id },
   'legal/[kind]': { kind: 'pacto' },
 };
 
@@ -56,49 +53,53 @@ describe('cada pantalla se monta sin lanzar (modo demo)', () => {
     expect(routes.length).toBeGreaterThanOrEqual(30);
   });
 
-  it.each(routes)('%s', async (route) => {
-    setParams(PARAMS[route] ?? {});
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require(path.join('..', 'app', route));
-    const Screen = mod.default;
-    expect(typeof Screen).toBe('function');
+  it.each(routes)(
+    '%s',
+    async (route) => {
+      setParams(PARAMS[route] ?? {});
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const mod = require(path.join('..', 'app', route));
+      const Screen = mod.default;
+      expect(typeof Screen).toBe('function');
 
-    const errors: string[] = [];
-    const original = console.error;
-    console.error = (...args: unknown[]) => {
-      errors.push(args.map(String).join(' '));
-    };
+      const errors: string[] = [];
+      const original = console.error;
+      console.error = (...args: unknown[]) => {
+        errors.push(args.map(String).join(' '));
+      };
 
-    let tree: ReturnType<typeof render> | undefined;
-    try {
-      // `render` ya envuelve en act; anidarlo en otro act rompe la detección
-      // de componentes de la librería.
-      tree = render(
-        <Providers>
-          <Screen />
-        </Providers>,
+      let tree: ReturnType<typeof render> | undefined;
+      try {
+        // `render` ya envuelve en act; anidarlo en otro act rompe la detección
+        // de componentes de la librería.
+        tree = render(
+          <Providers>
+            <Screen />
+          </Providers>,
+        );
+        // Deja correr los efectos y las consultas de la demo.
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+        // Un layout con el navegador simulado no pinta nada por sí mismo; lo
+        // que se le exige es no lanzar. Una pantalla sí tiene que pintar algo.
+        if (!route.endsWith('_layout')) expect(tree.toJSON()).not.toBeNull();
+      } finally {
+        console.error = original;
+        tree?.unmount();
+      }
+
+      // Un error de React al montar (propiedad indefinida, clave duplicada que
+      // rompe la lista, hook fuera de lugar) no siempre lanza: a veces solo lo
+      // escribe en la consola. Aquí cuenta como fallo.
+      const real = errors.filter(
+        (e) => !/act\(\.\.\.\)|not wrapped in act|deprecated|Warning: An update to/.test(e),
       );
-      // Deja correr los efectos y las consultas de la demo.
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      });
-      // Un layout con el navegador simulado no pinta nada por sí mismo; lo
-      // que se le exige es no lanzar. Una pantalla sí tiene que pintar algo.
-      if (!route.endsWith('_layout')) expect(tree.toJSON()).not.toBeNull();
-    } finally {
-      console.error = original;
-      tree?.unmount();
-    }
-
-    // Un error de React al montar (propiedad indefinida, clave duplicada que
-    // rompe la lista, hook fuera de lugar) no siempre lanza: a veces solo lo
-    // escribe en la consola. Aquí cuenta como fallo.
-    const real = errors.filter(
-      (e) => !/act\(\.\.\.\)|not wrapped in act|deprecated|Warning: An update to/.test(e),
-    );
-    expect(real).toEqual([]);
-    // La primera pantalla de la lista carga en frío medio árbol de módulos
-    // (navegación, consultas, iconos); en un runner de CI eso pasa de los 5 s
-    // por defecto y el fallo arrastra a la siguiente con «overlapping act()».
-  }, 30_000);
+      expect(real).toEqual([]);
+      // La primera pantalla de la lista carga en frío medio árbol de módulos
+      // (navegación, consultas, iconos); en un runner de CI eso pasa de los 5 s
+      // por defecto y el fallo arrastra a la siguiente con «overlapping act()».
+    },
+    30_000,
+  );
 });

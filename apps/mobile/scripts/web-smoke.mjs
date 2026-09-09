@@ -75,6 +75,8 @@ const ROUTES = [
   `/chat/${fx.demoConnections[0].matchId}`,
   `/comunidad/${fx.demoGroups[0].id}`,
   `/eventos/${fx.demoEvents[0].id}`,
+  `/eventos/${fx.demoEvents[0].id}/entrada`,
+  `/chat/${fx.demoConnections[0].matchId}/llamada/demo-call-1`,
   '/descubrir/guardados', '/descubrir/te-interesa',
   '/devocional', '/oracion', '/historias', '/legal/pacto', '/plus',
   '/perfil', '/perfil/acompanar', '/perfil/destacar', '/perfil/fotos', '/perfil/notificaciones',

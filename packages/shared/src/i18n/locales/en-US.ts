@@ -353,6 +353,7 @@ export const en: Dictionary = {
     checkedIn: 'You told us everything went well.',
     cancel: 'Cancel the plan',
     privateNotice: "This plan is only yours. The other person doesn't see it.",
+    incomplete: 'The place, the day or the time of the meeting is missing.',
   },
 
   stageQuestions: {
@@ -645,6 +646,8 @@ export const en: Dictionary = {
     groupName: 'Group name',
     groupDescription: 'What it is about and who it is for',
     groupProposed: 'Your group is under review. We will let you know when the team approves it.',
+    acceptRequest: 'Accept',
+    rejectRequest: 'Decline',
     categoryLabel: 'Category',
     inReview: 'Under review',
   },
@@ -697,6 +700,13 @@ export const en: Dictionary = {
     filterWeekend: 'This weekend',
     mapTitle: 'Where',
     mapUnavailable: "This event doesn't have a location on the map",
+    emptyTitle: 'No events published near you yet.',
+    emptyFiltered: 'No event matches these filters.',
+    clearFilters: 'Clear filters',
+    checkedInCount: (n) =>
+      n === 1 ? '1 ticket checked in this session' : `${n} tickets checked in this session`,
+    scanWithCamera: 'Scan with the camera',
+    stopScanning: 'Stop scanning',
   },
 
   singlesMinistry: {
@@ -760,6 +770,7 @@ export const en: Dictionary = {
       'You already appear in Discover. A more complete profile gets more replies.',
     completeCardCta: 'Complete profile',
     signOut: 'Sign out',
+    signOutConfirmBody: 'Your connections and your profile will be here when you sign back in.',
     deleteScheduled: (date) =>
       `Your account will be deleted on ${date}. If you sign in before then, you can cancel it.`,
     deleteCancel: 'Cancel the deletion',
@@ -776,6 +787,9 @@ export const en: Dictionary = {
     useThisSelfie: 'Use this selfie',
     cameraDenied: "We couldn't use the camera. Check the permission in your browser or phone.",
     cameraStarting: 'Starting the camera…',
+    leaderName: "Your leader's name (optional)",
+    takePhoto: 'Take a photo',
+    pickFromGallery: 'Choose from gallery',
     fields: {
       displayName: 'your name',
       city: 'your city',
@@ -845,6 +859,9 @@ export const en: Dictionary = {
     continueOro: 'Continue with Oro',
     continuePlus: 'Continue with Plus',
     cancelAnytime: 'Cancel anytime · Upgrade with proration',
+    currentTier: (name) => `Your current plan: ${name}`,
+    manageSubscription: 'Manage my subscription',
+    downgradeScheduled: (tier, date) => `You move to ${tier} on ${date}.`,
     plusFeatures: [
       'Unlimited interests',
       'See who showed interest in you',

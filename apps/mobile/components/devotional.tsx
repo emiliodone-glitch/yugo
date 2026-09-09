@@ -7,12 +7,7 @@
  */
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  constancyLabel,
-  es,
-  prayerAuthorLabel,
-  type PrayerRequestItem,
-} from '@yugo/shared';
+import { constancyLabel, es, prayerAuthorLabel, type PrayerRequestItem } from '@yugo/shared';
 import {
   useCreatePrayer,
   useCurrentUserId,
@@ -161,9 +156,7 @@ export function PrayerWall() {
           {scope === 'church' ? es.prayer.emptyChurch : es.prayer.empty}
         </Sub>
       ) : (
-        items.map((item) => (
-          <PrayerCard key={item.id} item={item} viewerId={viewerId ?? null} />
-        ))
+        items.map((item) => <PrayerCard key={item.id} item={item} viewerId={viewerId ?? null} />)
       )}
     </View>
   );

@@ -21,7 +21,7 @@ export default function InterestedInYouScreen() {
       <ScreenHeader title={es.discover.interestedInYou} />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={{ backgroundColor: colors.ink, borderWidth: 0 }}>
-          <Text style={styles.countLabel}>Personas que marcaron interés en ti</Text>
+          <Text style={styles.countLabel}>{es.discover.interestedSub}</Text>
           <Text style={styles.count}>{data?.count ?? 0}</Text>
         </Card>
 
@@ -32,12 +32,20 @@ export default function InterestedInYouScreen() {
         {!isLoading && profiles === null ? (
           <Pressable onPress={() => router.push('/plus')}>
             <Card style={{ backgroundColor: colors.wheatSoft, borderColor: colors.wheat }}>
-              <Text style={styles.upsellTitle}>Descubre quiénes son con Yugo Plus</Text>
+              <Text style={styles.upsellTitle}>{es.discover.interestedUnlockTitle}</Text>
               <Sub style={{ fontSize: 11, color: colors.wheatText, marginTop: 4 }}>
-                La cuenta gratuita ve la cantidad; Plus y Oro ven los perfiles completos.
+                {es.discover.interestedUnlockBody}
               </Sub>
             </Card>
           </Pressable>
+        ) : null}
+
+        {!isLoading && (data?.count ?? 0) === 0 ? (
+          <Card>
+            <Sub style={{ textAlign: 'center', paddingVertical: 12 }}>
+              {es.discover.interestedNone}
+            </Sub>
+          </Card>
         ) : null}
 
         {profiles?.map((profile) => (
