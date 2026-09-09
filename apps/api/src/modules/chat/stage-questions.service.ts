@@ -1,10 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  canReveal,
-  questionsFor,
-  STAGE_QUESTIONS,
-  type RelationshipStage,
-} from '@yugo/shared';
+import { canReveal, questionsFor, STAGE_QUESTIONS, type RelationshipStage } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 

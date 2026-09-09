@@ -604,6 +604,25 @@ export interface MyProfile {
   voiceNote?: VoiceNoteState | null;
 }
 
+/** Una videollamada agendada entre dos personas conectadas (RF-CON-12). */
+export interface VideoCallItem {
+  id: string;
+  matchId: string;
+  scheduledAt: string;
+  durationMin: number;
+  status: 'SCHEDULED' | 'CANCELLED' | 'DONE';
+  /** True cuando la propuso quien consulta. */
+  mine: boolean;
+  /** Se puede entrar: desde 10 minutos antes hasta que termina. */
+  joinable: boolean;
+}
+
+export interface VideoCallsResponse {
+  /** False cuando el proveedor de video no está configurado en este entorno. */
+  available: boolean;
+  calls: VideoCallItem[];
+}
+
 export interface VoiceNoteState {
   id: string;
   status: 'PENDING' | 'APPROVED' | 'HELD' | 'REJECTED';
@@ -1012,6 +1031,17 @@ export class YugoApiClient {
       }),
     disconnect: (matchId: string) =>
       this.http.delete<{ ended: boolean }>(`/connections/${matchId}`),
+    /** Cierre digno (RF-CON-11): terminar con una palabra, no con silencio. */
+    close: (matchId: string, closing: { template?: string; message?: string }) =>
+      this.http.post<{ ended: boolean }>(`/connections/${matchId}/close`, closing),
+    /** Videollamada dentro de la app (RF-CON-12). */
+    calls: (matchId: string) => this.http.get<VideoCallsResponse>(`/connections/${matchId}/calls`),
+    scheduleCall: (matchId: string, scheduledAt: string) =>
+      this.http.post<VideoCallItem>(`/connections/${matchId}/calls`, { scheduledAt }),
+    joinCall: (callId: string) =>
+      this.http.post<{ url: string; expiresAt: string }>(`/connections/calls/${callId}/join`, {}),
+    cancelCall: (callId: string) =>
+      this.http.delete<{ cancelled: boolean }>(`/connections/calls/${callId}`),
     report: (input: ReportInput) => this.http.post<{ id: string }>('/connections/report', input),
     block: (userId: string) =>
       this.http.post<{ blocked: boolean }>('/connections/block', { userId }),

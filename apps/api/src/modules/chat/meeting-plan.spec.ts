@@ -17,12 +17,14 @@ function buildService(plans: Array<Record<string, unknown>> = []) {
   const prisma = {
     match: { findUnique: jest.fn(async () => match) },
     meetingPlan: {
-      findFirst: jest.fn(async ({ where }: { where: Record<string, unknown> }) =>
-        plans.find((p) => p.userId === where.userId) ?? null,
+      findFirst: jest.fn(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          plans.find((p) => p.userId === where.userId) ?? null,
       ),
       findMany: jest.fn(async () => plans),
-      findUnique: jest.fn(async ({ where }: { where: { id: string } }) =>
-        plans.find((p) => p.id === where.id) ?? null,
+      findUnique: jest.fn(
+        async ({ where }: { where: { id: string } }) =>
+          plans.find((p) => p.id === where.id) ?? null,
       ),
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const row = {
@@ -38,11 +40,13 @@ function buildService(plans: Array<Record<string, unknown>> = []) {
         plans.push(row);
         return row;
       }),
-      update: jest.fn(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
-        const row = plans.find((p) => p.id === where.id)!;
-        Object.assign(row, data);
-        return row;
-      }),
+      update: jest.fn(
+        async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+          const row = plans.find((p) => p.id === where.id)!;
+          Object.assign(row, data);
+          return row;
+        },
+      ),
     },
   };
 

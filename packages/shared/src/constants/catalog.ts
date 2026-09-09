@@ -164,6 +164,26 @@ export const CONVERSATION_QUESTIONS: ProfileQuestion[] = [
 /** Respuestas que hacen que el perfil pase del 90 % (RF-PER-09/10). */
 export const PROFILE_ANSWERS_TARGET = 3;
 
+/**
+ * Cierre digno (RF-CON-11): cerrar una conexión con una palabra amable en vez
+ * de con silencio. Tres plantillas y la opción de escribir la propia; la otra
+ * persona recibe el cierre, no la nada.
+ */
+export const CLOSING_TEMPLATES: Array<{ key: string; text: string }> = [
+  {
+    key: 'not_this_way',
+    text: 'Gracias por estas conversaciones. Siento que no es por aquí, pero te deseo lo mejor y oro para que encuentres a la persona correcta.',
+  },
+  {
+    key: 'season',
+    text: 'He disfrutado conocerte. En este tiempo necesito enfocarme en otras cosas y prefiero decírtelo con claridad. Que Dios te bendiga.',
+  },
+  {
+    key: 'friendship',
+    text: 'Creo que lo nuestro es una amistad, y una buena. No quiero que esperes algo que no va a llegar por mi parte. Gracias por tu honestidad.',
+  },
+];
+
 /** Audio de testimonio (RF-PER-12): corto a propósito, para que se escuche entero. */
 export const VOICE_NOTE_MAX_SECONDS = 20;
 export const VOICE_NOTE_CONTENT_TYPES = [

@@ -11,20 +11,34 @@ const THEM = 'u-them';
 
 function buildService(options: { stage?: string; answers?: Array<Record<string, unknown>> } = {}) {
   const answers = options.answers ?? [];
-  const match = { id: 'm1', userAId: ME, userBId: THEM, status: 'ACTIVE', stage: options.stage ?? 'COURTSHIP' };
+  const match = {
+    id: 'm1',
+    userAId: ME,
+    userBId: THEM,
+    status: 'ACTIVE',
+    stage: options.stage ?? 'COURTSHIP',
+  };
 
   const prisma = {
     match: { findUnique: jest.fn(async () => match) },
     stageQuestionAnswer: {
       findMany: jest.fn(async () => answers),
-      findUnique: jest.fn(async ({ where }: { where: { matchId_userId_questionId: { userId: string; questionId: string } } }) => {
-        const { userId, questionId } = where.matchId_userId_questionId;
-        return answers.find((a) => a.userId === userId && a.questionId === questionId) ?? null;
-      }),
+      findUnique: jest.fn(
+        async ({
+          where,
+        }: {
+          where: { matchId_userId_questionId: { userId: string; questionId: string } };
+        }) => {
+          const { userId, questionId } = where.matchId_userId_questionId;
+          return answers.find((a) => a.userId === userId && a.questionId === questionId) ?? null;
+        },
+      ),
       upsert: jest.fn(async ({ where, create, update }: never) => {
         const w = (where as { matchId_userId_questionId: { userId: string; questionId: string } })
           .matchId_userId_questionId;
-        const existing = answers.find((a) => a.userId === w.userId && a.questionId === w.questionId);
+        const existing = answers.find(
+          (a) => a.userId === w.userId && a.questionId === w.questionId,
+        );
         if (existing) {
           Object.assign(existing, update);
           return existing;
@@ -104,10 +118,7 @@ describe('StageQuestionsService', () => {
     it('no se puede cambiar la propia una vez reveladas', async () => {
       // Corregir a la vista de la ajena es justo lo que el diseño evita.
       const { service } = buildService({
-        answers: [
-          answerOf(ME, 'hijos-quiero', 'Tres'),
-          answerOf(THEM, 'hijos-quiero', 'Ninguno'),
-        ],
+        answers: [answerOf(ME, 'hijos-quiero', 'Tres'), answerOf(THEM, 'hijos-quiero', 'Ninguno')],
       });
       await expect(service.answer('m1', ME, 'hijos-quiero', 'Ninguno también')).rejects.toThrow(
         BadRequestException,

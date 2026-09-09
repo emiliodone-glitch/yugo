@@ -8,7 +8,6 @@ import {
   useBlockUser,
   useConnections,
   useConversation,
-  useDisconnect,
   useEvents,
   useInviteToEvent,
   useReport,
@@ -18,6 +17,7 @@ import {
 } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { ChatSkeleton } from '@/components/skeleton';
+import { ClosePanel, VideoCallPanel } from '@/components/connection-actions';
 import {
   AccompanimentCard,
   MeetingPlanCard,
@@ -35,11 +35,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const inviteToEvent = useInviteToEvent(params.id);
   const report = useReport();
   const blockUser = useBlockUser();
-  const disconnect = useDisconnect();
 
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -159,19 +160,41 @@ export default function ChatPage({ params }: { params: { id: string } }) {
                 }}
               />
               <MenuItem
-                label={es.connections.disconnect}
+                label={es.connections.videoTitle}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setCloseOpen(false);
+                  setVideoOpen(true);
+                }}
+              />
+              <MenuItem
+                label={es.connections.closeTitle}
                 wine
                 onClick={() => {
                   setMenuOpen(false);
-                  if (window.confirm(es.connections.disconnectConfirm)) {
-                    disconnect.mutate(connection.matchId);
-                  }
+                  setVideoOpen(false);
+                  setCloseOpen(true);
                 }}
               />
             </div>
           ) : null}
         </div>
       </div>
+
+      {closeOpen ? (
+        <ClosePanel
+          matchId={connection.matchId}
+          otherName={connection.otherUser.displayName}
+          onClose={() => setCloseOpen(false)}
+        />
+      ) : null}
+      {videoOpen ? (
+        <VideoCallPanel
+          matchId={connection.matchId}
+          conversationId={params.id}
+          onClose={() => setVideoOpen(false)}
+        />
+      ) : null}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 pb-2">

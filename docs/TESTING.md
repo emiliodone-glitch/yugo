@@ -132,6 +132,21 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
 4. La distancia exacta solo aparece como razón si la otra persona no activó
    «ocultar distancia exacta» en Visibilidad.
 
+### Cierre digno y videollamada (RF-CON-11/12)
+
+1. Con `prueba@yugo.do`, abre un chat → Opciones → «Cerrar esta conexión».
+   Elige una plantilla o escribe la tuya (mínimo 10 caracteres; una con
+   teléfono vuelve rechazada). Al confirmar, la conexión desaparece de la
+   lista y `demo3@yugo.do` recibe la notificación con el texto y lo ve como
+   último mensaje.
+2. Con `admin@yugo.do`, Reportes → «Cierres: con mensaje o en silencio»: la
+   semana actual suma uno «Con mensaje».
+3. Opciones → «Videollamada». Sin `DAILY_API_KEY` la hoja dice que todavía no
+   está activa. Con la clave, «Proponer hora» crea la propuesta, la otra
+   persona recibe la notificación y «Entrar» se habilita 10 minutos antes de
+   la hora; la sala es privada, de dos personas, y caduca 15 minutos después
+   del fin. En móvil se abre en el navegador integrado.
+
 ### Descubrir y regla mutua de edad (RF-DES-01/05/11/12)
 1. Con `demo1@yugo.do`: `GET /v1/discover` → lista ≤ 30 ordenada por afinidad con desglose.
 2. Cambia tu rango a uno que excluya la edad de un perfil sugerido → desaparece de la lista

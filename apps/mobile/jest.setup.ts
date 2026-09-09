@@ -63,6 +63,9 @@ jest.mock('expo-av', () => ({
     RecordingOptionsPresets: { HIGH_QUALITY: {} },
   },
 }));
+jest.mock('expo-web-browser', () => ({
+  openBrowserAsync: jest.fn(async () => ({ type: 'dismiss' })),
+}));
 jest.mock('expo-camera', () => ({
   CameraView: () => null,
   useCameraPermissions: () => [{ granted: false, canAskAgain: true }, jest.fn()],

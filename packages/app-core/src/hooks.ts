@@ -25,6 +25,8 @@ import {
   LIMITS,
   type ProfileQuestion,
   type VoiceNoteState,
+  type VideoCallItem,
+  type VideoCallsResponse,
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
   isExclusive,
@@ -579,6 +581,105 @@ export function useDisconnect() {
       return api().connections.disconnect(matchId);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['connections'] }),
+  });
+}
+
+/** Cierre digno (RF-CON-11): cerrar con una palabra, no con silencio. */
+export function useCloseConnection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      matchId,
+      template,
+      message,
+    }: {
+      matchId: string;
+      template?: string;
+      message?: string;
+    }) => {
+      if (isDemoMode()) return { ended: true };
+      return api().connections.close(matchId, { template, message });
+    },
+    onSuccess: () => {
+      track('connection_closed_with_message');
+      queryClient.invalidateQueries({ queryKey: ['connections'] });
+    },
+  });
+}
+
+// ---- Videollamada dentro de la app (RF-CON-12) ----
+
+const demoCalls = new Map<string, VideoCallItem[]>();
+
+export function useVideoCalls(matchId: string | undefined) {
+  return useQuery({
+    queryKey: ['video-calls', matchId],
+    enabled: !!matchId,
+    queryFn: async (): Promise<VideoCallsResponse> => {
+      if (!matchId) return { available: false, calls: [] };
+      if (isDemoMode()) return { available: true, calls: demoCalls.get(matchId) ?? [] };
+      return api().connections.calls(matchId);
+    },
+    refetchInterval: 60_000,
+  });
+}
+
+export function useScheduleCall() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ matchId, scheduledAt }: { matchId: string; scheduledAt: string }) => {
+      if (isDemoMode()) {
+        const item: VideoCallItem = {
+          id: `demo-call-${Date.now()}`,
+          matchId,
+          scheduledAt,
+          durationMin: 15,
+          status: 'SCHEDULED',
+          mine: true,
+          joinable: Math.abs(Date.parse(scheduledAt) - Date.now()) < 10 * 60_000,
+        };
+        demoCalls.set(matchId, [...(demoCalls.get(matchId) ?? []), item]);
+        return item;
+      }
+      return api().connections.scheduleCall(matchId, scheduledAt);
+    },
+    onSuccess: (_, variables) => {
+      track('video_call_scheduled');
+      queryClient.invalidateQueries({ queryKey: ['video-calls', variables.matchId] });
+    },
+  });
+}
+
+export function useJoinCall() {
+  return useMutation({
+    mutationFn: async (callId: string) => {
+      if (isDemoMode()) {
+        return {
+          url: 'about:blank#demo',
+          expiresAt: new Date(Date.now() + 1800_000).toISOString(),
+        };
+      }
+      return api().connections.joinCall(callId);
+    },
+    onSuccess: () => track('video_call_joined'),
+  });
+}
+
+export function useCancelCall() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ callId, matchId }: { callId: string; matchId: string }) => {
+      if (isDemoMode()) {
+        demoCalls.set(
+          matchId,
+          (demoCalls.get(matchId) ?? []).filter((call) => call.id !== callId),
+        );
+        return { cancelled: true };
+      }
+      return api().connections.cancelCall(callId);
+    },
+    onSuccess: (_, variables) =>
+      queryClient.invalidateQueries({ queryKey: ['video-calls', variables.matchId] }),
   });
 }
 

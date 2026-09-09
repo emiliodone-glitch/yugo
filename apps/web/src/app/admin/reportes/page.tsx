@@ -20,6 +20,7 @@ const REPORTS = [
   { kind: 'subscriptions', label: 'Suscripciones' },
   { kind: 'activation', label: 'Activación (eventos anónimos)' },
   { kind: 'events', label: 'Eventos de producto' },
+  { kind: 'closures', label: 'Cierres: con mensaje o en silencio' },
 ] as const;
 
 export default function ReportsPage() {

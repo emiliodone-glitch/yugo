@@ -10,7 +10,8 @@ export type ReportKind =
   | 'province'
   | 'denomination'
   | 'events'
-  | 'activation';
+  | 'activation'
+  | 'closures';
 
 interface ReportRow {
   [column: string]: string | number;
@@ -36,6 +37,11 @@ export class ReportsService {
         return {
           title: 'Activación: del primer vistazo a la primera conexión',
           rows: await this.activation(),
+        };
+      case 'closures':
+        return {
+          title: 'Cierres de conexión: con una palabra o en silencio',
+          rows: await this.closures(weeks),
         };
       case 'retention':
         return { title: 'Retención por cohorte', rows: await this.retention() };
@@ -76,6 +82,37 @@ export class ReportsService {
    * llegaron a cada paso. Complementa al embudo de negocio, que solo ve
    * cuentas creadas y no puede decir cuántas se perdieron antes.
    */
+  /**
+   * Cierre digno (RF-CON-11): de las conexiones que terminaron cada semana,
+   * cuántas lo hicieron con una palabra y cuántas en silencio. Es la métrica
+   * de cultura de la app: el ghosting no se prohíbe, se mide y se reduce.
+   */
+  private async closures(weeks: number): Promise<ReportRow[]> {
+    const since = new Date(Date.now() - weeks * 7 * 86_400_000);
+    const rows = await this.prisma.$queryRaw<
+      Array<{ week: Date; total: bigint; with_message: bigint }>
+    >`
+      SELECT date_trunc('week', "endedAt") AS week,
+             count(*) AS total,
+             count(*) FILTER (WHERE "closingMessage" IS NOT NULL) AS with_message
+      FROM "Match"
+      WHERE status = 'ENDED' AND "endedAt" >= ${since}
+      GROUP BY 1
+      ORDER BY 1 DESC
+    `;
+    return rows.map((row) => {
+      const total = Number(row.total);
+      const withMessage = Number(row.with_message);
+      return {
+        Semana: row.week.toISOString().slice(0, 10),
+        'Conexiones cerradas': total,
+        'Con mensaje': withMessage,
+        'En silencio': total - withMessage,
+        'Con mensaje (%)': total === 0 ? 0 : Math.round((withMessage / total) * 1000) / 10,
+      };
+    });
+  }
+
   private async activation(): Promise<ReportRow[]> {
     const since = new Date(Date.now() - 28 * 86_400_000);
     const steps: Array<[string, string]> = [

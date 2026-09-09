@@ -25,12 +25,14 @@ interface FakeAccompaniment {
   endedById: string | null;
 }
 
-function buildService(options: {
-  stage?: string;
-  accompaniment?: Partial<FakeAccompaniment>;
-  mentorEndorsed?: boolean;
-  mentorActive?: boolean;
-} = {}) {
+function buildService(
+  options: {
+    stage?: string;
+    accompaniment?: Partial<FakeAccompaniment>;
+    mentorEndorsed?: boolean;
+    mentorActive?: boolean;
+  } = {},
+) {
   const match = {
     id: 'm1',
     userAId: A,
@@ -129,22 +131,20 @@ function buildService(options: {
         rows.push(row);
         return row;
       }),
-      update: jest.fn(async ({ where, data }: { where: { id: string }; data: Partial<FakeAccompaniment> }) => {
-        const row = rows.find((r) => r.id === where.id)!;
-        Object.assign(row, data);
-        return row;
-      }),
+      update: jest.fn(
+        async ({ where, data }: { where: { id: string }; data: Partial<FakeAccompaniment> }) => {
+          const row = rows.find((r) => r.id === where.id)!;
+          Object.assign(row, data);
+          return row;
+        },
+      ),
     },
   };
 
   const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
   const audit = { log: jest.fn(async (..._args: unknown[]) => undefined) };
 
-  const service = new AccompanimentService(
-    prisma as never,
-    notifications as never,
-    audit as never,
-  );
+  const service = new AccompanimentService(prisma as never, notifications as never, audit as never);
   return { service, prisma, rows, notifications, audit, match };
 }
 
@@ -162,9 +162,16 @@ describe('AccompanimentService', () => {
       expect(bond).not.toHaveProperty('messages');
       expect(bond).not.toHaveProperty('lastMessage');
       expect(bond).not.toHaveProperty('unreadCount');
-      expect(Object.keys(bond).sort()).toEqual(
-        ['bothConsented', 'churches', 'id', 'names', 'since', 'stage', 'stageChangedAt', 'status'],
-      );
+      expect(Object.keys(bond).sort()).toEqual([
+        'bothConsented',
+        'churches',
+        'id',
+        'names',
+        'since',
+        'stage',
+        'stageChangedAt',
+        'status',
+      ]);
     });
 
     it('el detalle tampoco: solo la etapa y cómo llegaron a ella', async () => {
@@ -173,9 +180,15 @@ describe('AccompanimentService', () => {
       });
       const detail = await service.detailForMentor('acc1', MENTOR);
 
-      expect(Object.keys(detail).sort()).toEqual(
-        ['churches', 'history', 'id', 'names', 'since', 'stage', 'stageChangedAt'],
-      );
+      expect(Object.keys(detail).sort()).toEqual([
+        'churches',
+        'history',
+        'id',
+        'names',
+        'since',
+        'stage',
+        'stageChangedAt',
+      ]);
       expect(JSON.stringify(detail)).not.toContain('conversation');
     });
 
@@ -183,7 +196,9 @@ describe('AccompanimentService', () => {
       const { service } = buildService({
         accompaniment: { status: 'ACTIVE', consentBId: true, mentorAcceptedAt: new Date() },
       });
-      await expect(service.detailForMentor('acc1', 'u-stranger')).rejects.toThrow(NotFoundException);
+      await expect(service.detailForMentor('acc1', 'u-stranger')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('un padrino invitado pero todavía no aceptado no ve nada', async () => {

@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CLOSING_TEMPLATES, containsContactData } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { TextModerationService } from '../moderation/text-moderation.service';
 import { SanctionsService } from '../moderation/sanctions.service';
@@ -98,7 +99,11 @@ export class ChatService {
           },
           isNew: !lastMessage,
           lastMessage: lastMessage
-            ? { body: lastMessage.body, sentAt: lastMessage.sentAt, mine: lastMessage.senderId === userId }
+            ? {
+                body: lastMessage.body,
+                sentAt: lastMessage.sentAt,
+                mine: lastMessage.senderId === userId,
+              }
             : undefined,
           unreadCount,
           stage: match.stage,
@@ -138,7 +143,10 @@ export class ChatService {
     const messages = await this.prisma.message.findMany({
       where: {
         conversationId,
-        OR: [{ moderationStatus: 'APPROVED' }, { senderId: userId, moderationStatus: { in: ['PENDING', 'HELD'] } }],
+        OR: [
+          { moderationStatus: 'APPROVED' },
+          { senderId: userId, moderationStatus: { in: ['PENDING', 'HELD'] } },
+        ],
       },
       orderBy: { sentAt: 'asc' },
       take: 200,
@@ -146,7 +154,12 @@ export class ChatService {
 
     // Mark incoming as read (RF-CON-03).
     await this.prisma.message.updateMany({
-      where: { conversationId, senderId: { not: userId }, readAt: null, moderationStatus: 'APPROVED' },
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        readAt: null,
+        moderationStatus: 'APPROVED',
+      },
       data: { readAt: new Date() },
     });
     this.gateway.emitToConversation(conversationId, 'messages:read', { readerId: userId });
@@ -166,7 +179,11 @@ export class ChatService {
 
     const verdict = await this.moderation.moderate(body, 'private chat message');
     const status =
-      verdict.decision === 'APPROVE' ? 'APPROVED' : verdict.decision === 'HOLD' ? 'HELD' : 'REJECTED';
+      verdict.decision === 'APPROVE'
+        ? 'APPROVED'
+        : verdict.decision === 'HOLD'
+          ? 'HELD'
+          : 'REJECTED';
 
     const message = await this.prisma.message.create({
       data: {
@@ -249,6 +266,77 @@ export class ChatService {
       where: { id: matchId },
       data: { status: 'ENDED', endedAt: new Date(), endedById: userId },
     });
+    return { ended: true };
+  }
+
+  /**
+   * Cierre digno (RF-CON-11): terminar con una palabra en vez de con silencio.
+   *
+   * El mensaje (plantilla o propio, moderado como cualquier texto) queda como
+   * último mensaje de la conversación y llega como notificación a la otra
+   * persona; después la conexión se cierra para ambos igual que en
+   * `disconnect`. Se guarda en el vínculo para poder medir cuántas conexiones
+   * terminan con una palabra y cuántas en la nada.
+   */
+  async close(matchId: string, userId: string, closing: { template?: string; message?: string }) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        conversation: { select: { id: true } },
+        userA: { include: { profile: { select: { displayName: true } } } },
+        userB: { include: { profile: { select: { displayName: true } } } },
+      },
+    });
+    if (!match) throw new NotFoundException();
+    if (match.userAId !== userId && match.userBId !== userId) throw new ForbiddenException();
+    if (match.status !== 'ACTIVE') throw new BadRequestException('connection_ended');
+
+    const template = CLOSING_TEMPLATES.find((item) => item.key === closing.template);
+    const own = (closing.message ?? '').trim();
+    if (!template && own.length < 10) throw new BadRequestException('closing_message_required');
+    const text = template ? template.text : own.slice(0, 400);
+
+    if (!template) {
+      // Un cierre existe para despedirse, no para mover la conversación fuera
+      // de Yugo: teléfonos, correos o redes se rechazan antes del clasificador.
+      if (containsContactData(text)) throw new BadRequestException('closing_message_rejected');
+      const verdict = await this.moderation.moderate(text, 'connection closing message');
+      if (verdict.decision !== 'APPROVE') throw new BadRequestException('closing_message_rejected');
+    }
+
+    const other = match.userAId === userId ? match.userB : match.userA;
+    const me = match.userAId === userId ? match.userA : match.userB;
+
+    if (match.conversation) {
+      const message = await this.prisma.message.create({
+        data: {
+          conversationId: match.conversation.id,
+          senderId: userId,
+          body: text,
+          moderationStatus: 'APPROVED',
+          deliveredAt: new Date(),
+        },
+      });
+      this.gateway.emitToConversation(match.conversation.id, 'message:new', message);
+    }
+
+    await this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        status: 'ENDED',
+        endedAt: new Date(),
+        endedById: userId,
+        closingTemplate: template?.key ?? 'own',
+        closingMessage: text,
+      },
+    });
+    await this.notifications.notify(
+      other.id,
+      'CONNECTION',
+      `${me.profile?.displayName ?? 'Tu conexión'} cerró la conexión`,
+      text.slice(0, 140),
+      { matchId },
+    );
     return { ended: true };
   }
 

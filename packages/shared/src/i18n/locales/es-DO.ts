@@ -422,6 +422,28 @@ export const es = {
     disconnect: 'Deshacer conexión',
     disconnectConfirm:
       'La conversación dejará de ser visible para ambos y no podrán reconectar por 90 días. ¿Seguro?',
+    /** Cierre digno (RF-CON-11): con una palabra, no con silencio. */
+    closeTitle: 'Cerrar esta conexión',
+    closeIntro:
+      'Cerrar con una palabra amable vale más que desaparecer. La otra persona recibirá tu mensaje y la conversación se cerrará para ambos; no podrán reconectar por 90 días.',
+    closeOwn: 'Escribir el mío',
+    closeOwnPlaceholder: 'Con tus palabras, breve y con respeto…',
+    closeConfirm: 'Cerrar con este mensaje',
+    closeDone: 'Conexión cerrada. Gracias por decirlo con respeto.',
+    closeReceivedTitle: (name: string) => `${name} cerró la conexión`,
+    /** Videollamada dentro de la app (RF-CON-12). */
+    videoTitle: 'Videollamada',
+    videoIntro:
+      'Quince minutos de video dentro de Yugo, sin compartir tu número. Propón una hora; la otra persona la ve en el chat y entra desde aquí.',
+    videoPropose: 'Proponer hora',
+    videoUnavailable: 'La videollamada todavía no está activa en este entorno.',
+    videoScheduled: 'Videollamada propuesta. Le avisamos a la otra persona.',
+    videoJoin: 'Entrar',
+    videoCancel: 'Cancelar',
+    videoWaiting: (when: string) => `Se abre ${when}. Puedes entrar desde 10 minutos antes.`,
+    videoOpen: 'Abierta ahora',
+    videoNone: 'No hay videollamadas propuestas.',
+    videoNotifyTitle: (name: string) => `${name} propuso una videollamada`,
     inviteToEvent: 'Invitar a un evento',
     typing: 'escribiendo…',
     delivered: 'Entregado',

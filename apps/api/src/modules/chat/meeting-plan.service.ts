@@ -123,11 +123,7 @@ export class MeetingPlanService {
    * Written here so it is one consistent, complete text rather than whatever
    * someone types while nervous — and so both apps say exactly the same thing.
    */
-  private shareText(plan: {
-    place: string;
-    meetsAt: Date;
-    notes: string | null;
-  }): string {
+  private shareText(plan: { place: string; meetsAt: Date; notes: string | null }): string {
     const when = new Intl.DateTimeFormat('es-DO', {
       weekday: 'long',
       day: 'numeric',

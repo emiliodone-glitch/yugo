@@ -1,5 +1,10 @@
 import { randomBytes } from 'node:crypto';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { hasAdvanced, type RelationshipStage } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
@@ -54,7 +59,12 @@ export class AccompanimentService {
     const profile = await this.prisma.mentorProfile.create({
       data: { userId, code: await this.freshCode(), ...input },
     });
-    await this.audit.log({ actorId: userId, action: 'MENTOR_ENABLED', targetType: 'USER', targetId: userId });
+    await this.audit.log({
+      actorId: userId,
+      action: 'MENTOR_ENABLED',
+      targetType: 'USER',
+      targetId: userId,
+    });
     return profile;
   }
 
@@ -144,7 +154,8 @@ export class AccompanimentService {
       where: { code: code.trim().toUpperCase() },
       include: { user: { include: { profile: { select: { displayName: true } } } } },
     });
-    if (!mentorProfile || !mentorProfile.active) throw new NotFoundException('mentor_code_not_found');
+    if (!mentorProfile || !mentorProfile.active)
+      throw new NotFoundException('mentor_code_not_found');
     if (mentorProfile.userId === match.userAId || mentorProfile.userId === match.userBId) {
       throw new BadRequestException('cannot_accompany_own_bond');
     }
@@ -215,8 +226,16 @@ export class AccompanimentService {
       include: {
         match: {
           include: {
-            userA: { include: { profile: { select: { displayName: true, church: { select: { name: true } } } } } },
-            userB: { include: { profile: { select: { displayName: true, church: { select: { name: true } } } } } },
+            userA: {
+              include: {
+                profile: { select: { displayName: true, church: { select: { name: true } } } },
+              },
+            },
+            userB: {
+              include: {
+                profile: { select: { displayName: true, church: { select: { name: true } } } },
+              },
+            },
           },
         },
       },
@@ -253,8 +272,16 @@ export class AccompanimentService {
       include: {
         match: {
           include: {
-            userA: { include: { profile: { select: { displayName: true, church: { select: { name: true } } } } } },
-            userB: { include: { profile: { select: { displayName: true, church: { select: { name: true } } } } } },
+            userA: {
+              include: {
+                profile: { select: { displayName: true, church: { select: { name: true } } } },
+              },
+            },
+            userB: {
+              include: {
+                profile: { select: { displayName: true, church: { select: { name: true } } } },
+              },
+            },
             stageHistory: { orderBy: { createdAt: 'asc' } },
           },
         },
@@ -323,7 +350,11 @@ export class AccompanimentService {
       after: { mentorId: row.mentorId },
     });
     await Promise.all([
-      this.notifyCouple(row.matchId, 'Ya los acompañan', 'El matrimonio aceptó. Verá en qué etapa están, nunca lo que se escriben.'),
+      this.notifyCouple(
+        row.matchId,
+        'Ya los acompañan',
+        'El matrimonio aceptó. Verá en qué etapa están, nunca lo que se escriben.',
+      ),
       this.notifications.notify(
         row.mentorId,
         'ACCOMPANIMENT',
@@ -347,9 +378,7 @@ export class AccompanimentService {
     if (!row) throw new NotFoundException('accompaniment_not_found');
 
     const involved =
-      row.mentorId === userId ||
-      row.match.userAId === userId ||
-      row.match.userBId === userId;
+      row.mentorId === userId || row.match.userAId === userId || row.match.userBId === userId;
     if (!involved) throw new NotFoundException('accompaniment_not_found');
     if (row.status === 'ENDED' || row.status === 'DECLINED') {
       return { id: row.id, status: row.status };

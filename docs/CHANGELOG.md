@@ -46,6 +46,25 @@ por separado; esta entrada crece con cada una.
 - Web: lista de razones en la tarjeta y sección «Por qué esta persona» en la
   ficha; móvil: lista en la tarjeta. Fixtures y E2E `razones-afinidad`.
 
+### Cierre digno y videollamada dentro de la app (RF-CON-11/12)
+- **Cerrar con una palabra, no con silencio.** «Cerrar esta conexión» ya no
+  es un «¿seguro?»: se elige una de tres plantillas amables o se escribe la
+  propia (moderada como cualquier texto). El mensaje queda como último de la
+  conversación, llega como notificación y la conexión se cierra para ambos.
+  `POST /connections/:matchId/close`; el vínculo guarda `closingMessage`.
+  Reporte nuevo en el panel: «Cierres: con mensaje o en silencio», por
+  semana. El ghosting no se prohíbe; se mide y se hace más fácil no hacerlo.
+- **Videollamada de quince minutos sin compartir número.** Modelo
+  `VideoCall`; proponer hora desde el chat, lista con estado, entrar desde 10
+  minutos antes hasta 15 después del fin, cancelar con aviso. Proveedor
+  detrás de una abstracción (`VideoProvider`): Daily crea salas privadas de
+  dos personas que caducan solas y tokens nominales; sin `DAILY_API_KEY` la
+  función se muestra como «todavía no activa». Web: panel en el chat y
+  página de la sala embebida; móvil: hoja con tres horas propuestas y sala en
+  el navegador integrado (`expo-web-browser`).
+- Migración `0016_cierre_digno_videollamada`. Pruebas de la ventana de
+  entrada y del proveedor; E2E `cierre-y-videollamada`.
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

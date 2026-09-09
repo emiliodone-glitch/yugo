@@ -23,3 +23,4 @@ export * from './notifications/routing';
 export * from './i18n';
 export * from './i18n/api-errors';
 export * from './demo/fixtures';
+export * from './validators/contact';

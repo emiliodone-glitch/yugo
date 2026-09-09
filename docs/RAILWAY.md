@@ -104,6 +104,7 @@ Variables:
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | del bucket (R2 o S3) | Fotos y selfies |
 | `PAYMENT_PROVIDER` | `stub` en local; vacío en producción | Con `stub` la web activa Plus/Oro sin cobrar (nunca en producción) |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | del panel de Stripe | La web manda a Stripe Checkout; el webhook `POST /v1/subscriptions/webhooks/stripe` (evento `checkout.session.completed`) activa el período |
+| `DAILY_API_KEY` | del panel de Daily (daily.co) | Videollamada dentro de la app (RF-CON-12): salas privadas de dos personas que caducan solas. Sin la clave, la función se muestra como «todavía no activa» en vez de fallar |
 | `ANALYTICS_SALT` | 32+ caracteres al azar | Hash irreversible del usuario en los eventos de producto |
 | `WEB_URL` | la URL pública de la web | Enlaces de recibos, QR de entrada e invitaciones al portal |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | del proveedor de correo | |

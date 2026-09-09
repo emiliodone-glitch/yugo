@@ -14,10 +14,16 @@ import { RelationshipService } from './relationship.service';
 import { AccompanimentService } from './accompaniment.service';
 import { MeetingPlanService } from './meeting-plan.service';
 import { StageQuestionsService } from './stage-questions.service';
+import { VideoCallsService } from './video-calls.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
 const blockSchema = z.object({ userId: z.string().min(1) });
+const closeSchema = z.object({
+  template: z.string().min(1).max(40).optional(),
+  message: z.string().trim().max(400).optional(),
+});
+const scheduleCallSchema = z.object({ scheduledAt: z.coerce.date() });
 const archiveSchema = z.object({ archived: z.boolean() });
 const inviteSchema = z.object({ eventId: z.string().min(1) });
 const stageProposalSchema = z.object({ stage: z.enum(RELATIONSHIP_STAGES) });
@@ -43,6 +49,7 @@ export class ChatController {
     private readonly accompaniment: AccompanimentService,
     private readonly meetingPlan: MeetingPlanService,
     private readonly questions: StageQuestionsService,
+    private readonly videoCalls: VideoCallsService,
   ) {}
 
   @Get()
@@ -91,6 +98,41 @@ export class ChatController {
   @Delete(':matchId')
   disconnect(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
     return this.chat.disconnect(matchId, user.id);
+  }
+
+  /** RF-CON-11: cierre digno, con una palabra en vez de con silencio. */
+  @Post(':matchId/close')
+  close(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(closeSchema)) body: { template?: string; message?: string },
+  ) {
+    return this.chat.close(matchId, user.id, body);
+  }
+
+  // Videollamada dentro de la app (RF-CON-12)
+  @Get(':matchId/calls')
+  calls(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.videoCalls.list(matchId, user.id);
+  }
+
+  @Post(':matchId/calls')
+  scheduleCall(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(scheduleCallSchema)) body: { scheduledAt: Date },
+  ) {
+    return this.videoCalls.schedule(matchId, user.id, body.scheduledAt);
+  }
+
+  @Post('calls/:callId/join')
+  joinCall(@CurrentUser() user: AuthUser, @Param('callId') callId: string) {
+    return this.videoCalls.join(callId, user.id);
+  }
+
+  @Delete('calls/:callId')
+  cancelCall(@CurrentUser() user: AuthUser, @Param('callId') callId: string) {
+    return this.videoCalls.cancel(callId, user.id);
   }
 
   @Post('report')

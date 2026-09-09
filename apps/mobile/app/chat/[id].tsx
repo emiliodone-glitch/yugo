@@ -12,20 +12,26 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import * as WebBrowser from 'expo-web-browser';
+import { CLOSING_TEMPLATES, es } from '@yugo/shared';
 import {
   useBlockUser,
+  useCancelCall,
+  useCloseConnection,
   useConnections,
   useConversation,
   useConversationRealtime,
   useCurrentUserId,
-  useDisconnect,
   useEvents,
   useInviteToEvent,
+  useJoinCall,
   useReport,
+  useScheduleCall,
   useSendMessage,
+  useVideoCalls,
 } from '@yugo/app-core';
-import { AvatarCircle, Button, CheckMark, Chip, Notice, Sub } from '../../components/ui';
+import { errorMessage } from '../../lib/api';
+import { AvatarCircle, Button, CheckMark, Chip, Field, Notice, Sub } from '../../components/ui';
 import {
   AccompanimentCard,
   MeetingPlanCard,
@@ -38,7 +44,7 @@ import { ChatSkeleton } from '../../components/skeleton';
 
 const { colors, fonts } = theme;
 
-type Sheet = 'none' | 'options' | 'events';
+type Sheet = 'none' | 'options' | 'events' | 'close' | 'video';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,7 +58,11 @@ export default function ChatScreen() {
   const { data: events = [] } = useEvents();
   const report = useReport();
   const blockUser = useBlockUser();
-  const disconnect = useDisconnect();
+  const calls = useVideoCalls(
+    connections.find(
+      (item) => item.conversationId === conversationId || item.matchId === conversationId,
+    )?.matchId,
+  );
 
   // RF-CON-03: el mensaje llega solo, sin recargar.
   const { otherIsTyping, theyReadAt, notifyTyping } = useConversationRealtime(
@@ -60,6 +70,13 @@ export default function ChatScreen() {
     currentUserId,
   );
   const [draft, setDraft] = useState('');
+  // Cierre digno (RF-CON-11) y videollamada (RF-CON-12)
+  const closeConnection = useCloseConnection();
+  const [closingChoice, setClosingChoice] = useState<string>(CLOSING_TEMPLATES[0].key);
+  const [closingOwn, setClosingOwn] = useState('');
+  const scheduleCall = useScheduleCall();
+  const joinCall = useJoinCall();
+  const cancelCall = useCancelCall();
   const [sheet, setSheet] = useState<Sheet>('none');
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -117,11 +134,85 @@ export default function ChatScreen() {
     setNotice('Bloqueaste a esta persona. No volverán a verse en Yugo.');
   };
 
-  const end = () => {
-    disconnect.mutate(connection.matchId);
-    setSheet('none');
-    router.back();
+  // Cierre digno: con una palabra, no con silencio (RF-CON-11).
+  const closeWithMessage = async () => {
+    const isOwn = closingChoice === 'own';
+    try {
+      await closeConnection.mutateAsync(
+        isOwn
+          ? { matchId: connection.matchId, message: closingOwn.trim() }
+          : { matchId: connection.matchId, template: closingChoice },
+      );
+      setSheet('none');
+      router.back();
+    } catch (caught) {
+      const message = errorMessage(caught);
+      setNotice(
+        /closing_message_rejected/.test(message)
+          ? 'Ese mensaje no pasó la moderación. Dilo con respeto y sin datos de contacto.'
+          : message,
+      );
+      setSheet('none');
+    }
   };
+
+  // Videollamada (RF-CON-12): tres horas propuestas, sin selector de fecha.
+  const slots = (() => {
+    const list: Array<{ label: string; iso: string }> = [];
+    const now = new Date();
+    const today20 = new Date(now);
+    today20.setHours(20, 0, 0, 0);
+    if (today20.getTime() > now.getTime() + 30 * 60_000) {
+      list.push({ label: 'Hoy 8:00 p. m.', iso: today20.toISOString() });
+    }
+    const tomorrow20 = new Date(today20);
+    tomorrow20.setDate(tomorrow20.getDate() + 1);
+    list.push({ label: 'Mañana 8:00 p. m.', iso: tomorrow20.toISOString() });
+    const saturday = new Date(now);
+    saturday.setDate(now.getDate() + ((6 - now.getDay() + 7) % 7 || 7));
+    saturday.setHours(10, 0, 0, 0);
+    list.push({ label: 'Sábado 10:00 a. m.', iso: saturday.toISOString() });
+    return list;
+  })();
+
+  const proposeCall = async (iso: string) => {
+    try {
+      await scheduleCall.mutateAsync({ matchId: connection.matchId, scheduledAt: iso });
+      setNotice(es.connections.videoScheduled);
+    } catch (caught) {
+      const message = errorMessage(caught);
+      setNotice(/video_unavailable/.test(message) ? es.connections.videoUnavailable : message);
+    }
+    setSheet('none');
+  };
+
+  const enterCall = async (callId: string) => {
+    try {
+      const { url } = await joinCall.mutateAsync(callId);
+      setSheet('none');
+      if (url.startsWith('about:blank')) {
+        setNotice('Entorno de demostración: aquí se abre la sala de video.');
+        return;
+      }
+      await WebBrowser.openBrowserAsync(url);
+    } catch (caught) {
+      const message = errorMessage(caught);
+      setNotice(
+        /call_not_open/.test(message)
+          ? 'Todavía no se abre: puedes entrar desde 10 minutos antes.'
+          : message,
+      );
+    }
+  };
+
+  const whenLabel = (iso: string) =>
+    new Intl.DateTimeFormat('es-DO', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.linen }}>
@@ -293,13 +384,133 @@ export default function ChatScreen() {
                 onPress={block}
               />
               <Button
-                label={es.connections.disconnect}
+                label={es.connections.videoTitle}
+                tone="ghost"
+                style={{ marginTop: 8 }}
+                onPress={() => setSheet('video')}
+              />
+              <Button
+                label={es.connections.closeTitle}
                 tone="ghost"
                 style={{ marginTop: 8, borderColor: colors.wine }}
-                onPress={end}
+                onPress={() => setSheet('close')}
               />
               <Button
                 label={es.common.cancel}
+                tone="ink"
+                style={{ marginTop: 12 }}
+                onPress={() => setSheet('none')}
+              />
+            </>
+          ) : sheet === 'close' ? (
+            <>
+              <Text style={styles.sheetTitle}>{es.connections.closeTitle}</Text>
+              <Sub style={{ fontSize: 12, marginBottom: 8 }}>{es.connections.closeIntro}</Sub>
+              <ScrollView style={{ maxHeight: 320 }}>
+                {[...CLOSING_TEMPLATES, { key: 'own', text: es.connections.closeOwn }].map(
+                  (template) => (
+                    <Pressable
+                      key={template.key}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: closingChoice === template.key }}
+                      onPress={() => setClosingChoice(template.key)}
+                      style={[
+                        styles.sheetRow,
+                        closingChoice === template.key
+                          ? { backgroundColor: colors.oliveSoft, borderRadius: 10 }
+                          : null,
+                      ]}
+                    >
+                      <Text style={{ fontFamily: fonts.body, fontSize: 12.5, color: colors.text }}>
+                        {closingChoice === template.key ? '● ' : '○ '}
+                        {template.text}
+                      </Text>
+                    </Pressable>
+                  ),
+                )}
+                {closingChoice === 'own' ? (
+                  <Field
+                    value={closingOwn}
+                    onChangeText={setClosingOwn}
+                    placeholder={es.connections.closeOwnPlaceholder}
+                    maxLength={400}
+                    multiline
+                    autoCapitalize="sentences"
+                    style={{ marginTop: 8 }}
+                  />
+                ) : null}
+              </ScrollView>
+              <Button
+                label={es.connections.closeConfirm}
+                tone="ink"
+                style={{ marginTop: 12 }}
+                disabled={
+                  closeConnection.isPending ||
+                  (closingChoice === 'own' && closingOwn.trim().length < 10)
+                }
+                onPress={() => void closeWithMessage()}
+              />
+              <Button
+                label={es.common.cancel}
+                tone="ghost"
+                style={{ marginTop: 8 }}
+                onPress={() => setSheet('none')}
+              />
+            </>
+          ) : sheet === 'video' ? (
+            <>
+              <Text style={styles.sheetTitle}>{es.connections.videoTitle}</Text>
+              <Sub style={{ fontSize: 12, marginBottom: 8 }}>{es.connections.videoIntro}</Sub>
+              {calls.data && !calls.data.available ? (
+                <Notice tone="wheat" text={es.connections.videoUnavailable} />
+              ) : null}
+              {(calls.data?.calls ?? []).length === 0 ? (
+                <Sub style={{ fontSize: 12 }}>{es.connections.videoNone}</Sub>
+              ) : (
+                (calls.data?.calls ?? []).map((call) => (
+                  <View key={call.id} style={[styles.sheetRow, { gap: 8 }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.name}>{whenLabel(call.scheduledAt)}</Text>
+                      <Sub style={{ fontSize: 11 }}>
+                        {call.joinable
+                          ? es.connections.videoOpen
+                          : es.connections.videoWaiting(whenLabel(call.scheduledAt))}
+                      </Sub>
+                    </View>
+                    <Button
+                      label={es.connections.videoJoin}
+                      tone="olive"
+                      small
+                      disabled={!call.joinable || joinCall.isPending}
+                      onPress={() => void enterCall(call.id)}
+                    />
+                    <Button
+                      label={es.connections.videoCancel}
+                      tone="ghost"
+                      small
+                      disabled={cancelCall.isPending}
+                      onPress={() =>
+                        cancelCall.mutate({ callId: call.id, matchId: connection.matchId })
+                      }
+                    />
+                  </View>
+                ))
+              )}
+              <Text style={[styles.sheetTitle, { marginTop: 12 }]}>
+                {es.connections.videoPropose}
+              </Text>
+              {slots.map((slot) => (
+                <Button
+                  key={slot.iso}
+                  label={slot.label}
+                  tone="ghost"
+                  style={{ marginTop: 8 }}
+                  disabled={scheduleCall.isPending || calls.data?.available === false}
+                  onPress={() => void proposeCall(slot.iso)}
+                />
+              ))}
+              <Button
+                label={es.common.close}
                 tone="ink"
                 style={{ marginTop: 12 }}
                 onPress={() => setSheet('none')}
