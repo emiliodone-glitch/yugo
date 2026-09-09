@@ -19,7 +19,10 @@ const SURFACES = [
   { name: 'comunidad', path: '/comunidad' },
   { name: 'eventos', path: '/eventos' },
   { name: 'detalle de evento', path: '/eventos/ev-vigilia' },
+  { name: 'entrada del evento', path: '/eventos/ev-vigilia/entrada' },
+  { name: 'guardados', path: '/descubrir/guardados' },
   { name: 'perfil', path: '/perfil' },
+  { name: 'fotos', path: '/perfil/fotos' },
   { name: 'preferencias', path: '/perfil/preferencias' },
   { name: 'tu voz', path: '/perfil/voz' },
   { name: 'acompañar', path: '/perfil/acompanar' },
@@ -37,6 +40,7 @@ const SURFACES = [
   { name: 'muro de oración', path: '/oracion' },
   { name: 'portal de iglesias', path: '/iglesias' },
   { name: 'ministerio de solteros', path: '/iglesias/solteros' },
+  { name: 'registrar entradas', path: '/iglesias/eventos/ev-vigilia/entrada' },
 ];
 
 for (const surface of SURFACES) {

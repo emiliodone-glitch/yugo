@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { es, type GroupSummary } from '@yugo/shared';
-import { useGroups, useJoinGroup } from '@/lib/hooks';
+import { useEffect, useRef, useState } from 'react';
+import { es, GROUP_CATEGORIES, type GroupSummary } from '@yugo/shared';
+import { errorMessage } from '@/lib/api';
+import { useCreateGroup, useCurrentMember, useGroups, useJoinGroup } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
 import { ListSkeleton } from '@/components/skeleton';
 import { PrayerWall } from '@/components/devotional';
@@ -14,13 +15,19 @@ type TabValue = 'mine' | 'suggested' | 'prayer';
 /**
  * Comunidad: mis grupos, los sugeridos y el muro de oración. Todo viene de
  * la API (antes «Mis grupos» pintaba dos tarjetas fijas de demostración con
- * una petición inventada, y «Oración» otra lista fija).
+ * una petición inventada, y «Oración» otra lista fija). Desde aquí también
+ * se propone un grupo nuevo (RF-COM-02), que nace «en revisión».
  */
 export default function CommunityPage() {
   const [tab, setTab] = useState<TabValue>('mine');
   const groups = useGroups();
   const joinGroup = useJoinGroup();
+  const createGroup = useCreateGroup();
+  const { data: member } = useCurrentMember();
   const [joined, setJoined] = useState<Record<string, 'joined' | 'pending'>>({});
+  const [proposing, setProposing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const myGroups = groups.data?.mine ?? [];
   const suggested = groups.data?.suggested ?? [];
@@ -31,14 +38,58 @@ export default function CommunityPage() {
     setJoined((current) => ({ ...current, [group.id]: pending ? 'pending' : 'joined' }));
   };
 
+  const propose = async (input: { name: string; description: string; categorySlug: string }) => {
+    setError(null);
+    try {
+      await createGroup.mutateAsync({
+        ...input,
+        city: member?.city ?? undefined,
+        type: 'APPROVAL',
+      });
+      setProposing(false);
+      setNotice(es.community.groupProposed);
+      setTab('mine');
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  };
+
   return (
     <div className="px-4 pt-3">
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex items-center justify-between gap-2 pb-2">
         <h1 className="h-display text-[19px] lg:text-[24px]">{es.community.title}</h1>
-        <Link href="/oracion" className="btn btn-ghost btn-sm w-auto">
-          {es.prayer.title}
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-olive btn-sm w-auto"
+            aria-expanded={proposing}
+            onClick={() => {
+              setNotice(null);
+              setProposing((value) => !value);
+            }}
+          >
+            {es.community.proposeGroup}
+          </button>
+          <Link href="/oracion" className="btn btn-ghost btn-sm w-auto">
+            {es.prayer.title}
+          </Link>
+        </div>
       </div>
+
+      {proposing ? (
+        <ProposeGroupForm
+          busy={createGroup.isPending}
+          error={error}
+          onSubmit={propose}
+          onCancel={() => setProposing(false)}
+        />
+      ) : null}
+
+      {notice ? (
+        <div role="status" className="card mb-3 border-0 bg-olive-soft text-[12px] text-olive-text">
+          {notice}
+        </div>
+      ) : null}
 
       <div className="mb-3 lg:max-w-xl">
         <Segment
@@ -55,9 +106,7 @@ export default function CommunityPage() {
       {groups.isError && tab !== 'prayer' ? (
         <QueryError error={groups.error} onRetry={() => void groups.refetch()} />
       ) : null}
-      {groups.isLoading && tab !== 'prayer' ? (
-        <ListSkeleton rows={4} />
-      ) : null}
+      {groups.isLoading && tab !== 'prayer' ? <ListSkeleton rows={4} /> : null}
 
       {tab === 'mine' && !groups.isLoading ? (
         myGroups.length === 0 ? (
@@ -90,7 +139,9 @@ export default function CommunityPage() {
                       </div>
                     </div>
                   </div>
-                  {group.isOfficial ? (
+                  {group.status === 'PENDING' ? (
+                    <span className="chip chip-wheat flex-none">{es.community.inReview}</span>
+                  ) : group.isOfficial ? (
                     <span className="inline-flex flex-none items-center rounded-full bg-ink px-2 py-[3px] text-[10.5px] font-semibold text-white">
                       {es.common.official}
                     </span>
@@ -165,5 +216,102 @@ export default function CommunityPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Proponer un grupo (RF-COM-02): nombre, de qué va y una categoría del
+ * catálogo. El equipo lo revisa antes de que aparezca a los demás.
+ */
+function ProposeGroupForm({
+  busy,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  busy: boolean;
+  error: string | null;
+  onSubmit: (input: { name: string; description: string; categorySlug: string }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [categorySlug, setCategorySlug] = useState(GROUP_CATEGORIES[0]?.slug ?? '');
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, []);
+
+  const valid = name.trim().length >= 3 && description.trim().length >= 10 && !!categorySlug;
+
+  return (
+    <form
+      className="card mb-3 border-[1.5px] border-olive"
+      aria-labelledby="propose-group-title"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (valid) {
+          onSubmit({ name: name.trim(), description: description.trim(), categorySlug });
+        }
+      }}
+    >
+      <b id="propose-group-title" className="text-[13px]">
+        {es.community.proposeGroup}
+      </b>
+      <label htmlFor="group-name" className="mt-2 block text-[11px] font-medium text-muted">
+        {es.community.groupName}
+      </label>
+      <input
+        id="group-name"
+        ref={nameRef}
+        className="field mt-1"
+        value={name}
+        maxLength={60}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <label htmlFor="group-description" className="mt-2 block text-[11px] font-medium text-muted">
+        {es.community.groupDescription}
+      </label>
+      <textarea
+        id="group-description"
+        className="field mt-1 h-20 resize-none"
+        value={description}
+        maxLength={600}
+        onChange={(event) => setDescription(event.target.value)}
+      />
+      <label htmlFor="group-category" className="mt-2 block text-[11px] font-medium text-muted">
+        {es.community.categoryLabel}
+      </label>
+      <select
+        id="group-category"
+        className="field mt-1"
+        value={categorySlug}
+        onChange={(event) => setCategorySlug(event.target.value)}
+      >
+        {GROUP_CATEGORIES.map((category) => (
+          <option key={category.slug} value={category.slug}>
+            {category.name}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <p role="alert" className="mt-2 text-[12px] text-wine">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-3 flex gap-2">
+        <button
+          type="submit"
+          className="btn btn-olive btn-sm w-auto px-4"
+          disabled={!valid || busy}
+        >
+          {busy ? es.common.loading : es.common.send}
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm w-auto px-3" onClick={onCancel}>
+          {es.common.cancel}
+        </button>
+      </div>
+    </form>
   );
 }

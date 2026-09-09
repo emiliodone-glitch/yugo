@@ -36,7 +36,11 @@ export default function PhotosPage() {
   const { data: photos = [], isLoading } = useMyPhotos();
   const upload = useUploadPhoto();
   const remove = useDeletePhoto();
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Dos entradas: con `capture` el teléfono abre la cámara directamente; sin
+  // él, la galería. Antes solo existía la primera y elegir una foto ya
+  // tomada era un rodeo.
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +75,8 @@ export default function PhotosPage() {
           : errorMessage(caught),
       );
     } finally {
-      if (inputRef.current) inputRef.current.value = '';
+      if (cameraRef.current) cameraRef.current.value = '';
+      if (galleryRef.current) galleryRef.current.value = '';
     }
   };
 
@@ -150,7 +155,7 @@ export default function PhotosPage() {
                   {photo.moderationStatus === 'REJECTED' && canAddMore ? (
                     <button
                       type="button"
-                      onClick={() => inputRef.current?.click()}
+                      onClick={() => galleryRef.current?.click()}
                       className="mt-1 w-full text-[10.5px] font-semibold text-olive-text underline"
                     >
                       {es.onboarding.photoUploadAnother}
@@ -170,7 +175,7 @@ export default function PhotosPage() {
             {canAddMore ? (
               <button
                 type="button"
-                onClick={() => inputRef.current?.click()}
+                onClick={() => galleryRef.current?.click()}
                 disabled={upload.isPending}
                 className="flex aspect-square items-center justify-center rounded-card border border-dashed border-line bg-white text-2xl text-line disabled:opacity-60"
                 aria-label="Agregar una foto"
@@ -181,11 +186,41 @@ export default function PhotosPage() {
           </div>
         )}
 
+        {canAddMore ? (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              className="btn btn-olive flex-1"
+              disabled={upload.isPending}
+              onClick={() => cameraRef.current?.click()}
+            >
+              {es.profile.takePhoto}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost flex-1"
+              disabled={upload.isPending}
+              onClick={() => galleryRef.current?.click()}
+            >
+              {es.profile.pickFromGallery}
+            </button>
+          </div>
+        ) : null}
+
         <input
-          ref={inputRef}
+          ref={cameraRef}
           type="file"
           accept={ACCEPTED_IMAGE_TYPES.join(',')}
           capture="user"
+          aria-label={es.profile.takePhoto}
+          className="sr-only"
+          onChange={(event) => pick(event.target.files?.[0])}
+        />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+          aria-label={es.profile.pickFromGallery}
           className="sr-only"
           onChange={(event) => pick(event.target.files?.[0])}
         />

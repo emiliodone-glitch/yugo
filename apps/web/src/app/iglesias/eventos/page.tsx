@@ -100,12 +100,20 @@ export default function ChurchEventsPage() {
                       </button>
                     ) : null}
                     {event.status === 'PUBLISHED' ? (
-                      <Link
-                        href={`/iglesias/eventos/${event.id}/qr`}
-                        className="btn btn-ghost btn-sm"
-                      >
-                        QR de entrada
-                      </Link>
+                      <span className="inline-flex flex-wrap gap-1.5">
+                        <Link
+                          href={`/iglesias/eventos/${event.id}/entrada`}
+                          className="btn btn-olive btn-sm"
+                        >
+                          {es.events.validateTitle}
+                        </Link>
+                        <Link
+                          href={`/iglesias/eventos/${event.id}/qr`}
+                          className="btn btn-ghost btn-sm"
+                        >
+                          QR de entrada
+                        </Link>
+                      </span>
                     ) : null}
                   </Td>
                 </tr>

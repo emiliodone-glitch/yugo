@@ -37,9 +37,14 @@ test.describe('Verificación en tres niveles (RF-VER-01/02/03)', () => {
     await page.getByPlaceholder('pastor@iglesia.do').fill('pastor@montedesion.do');
     await expect(request).toBeEnabled();
     await request.click();
+    // La solicitud se guarda de verdad: se confirma con el destinatario y la
+    // pantalla pasa a «esperando respuesta» en lugar de volver a ofrecer el
+    // formulario.
     await expect(
-      page.getByText('Enviamos la solicitud a tu líder', { exact: false }),
+      page.getByText('Le escribimos a pastor@montedesion.do', { exact: false }),
     ).toBeVisible();
+    await expect(page.getByText('esperando respuesta del líder', { exact: false })).toBeVisible();
+    await expect(request).toHaveCount(0);
   });
 });
 
@@ -100,7 +105,11 @@ test.describe('Detalle de evento (RF-EVE-04/06/08)', () => {
   test('ofrece calendario, compartir y check-in con QR', async ({ page }) => {
     await page.goto('/eventos/ev-vigilia');
 
-    await expect(page.getByRole('button', { name: 'Agregar al calendario' })).toBeVisible();
+    // El calendario es una descarga real (.ics), nunca un botón inerte.
+    const calendar = page.getByRole('link', { name: 'Agregar al calendario' });
+    await expect(calendar).toBeVisible();
+    await expect(calendar).toHaveAttribute('href', /^data:text\/calendar|\/calendar\.ics/);
+    await expect(calendar).toHaveAttribute('download', /\.ics$/);
     await expect(page.getByRole('button', { name: 'Compartir' })).toBeVisible();
 
     // El QR está en la entrada del evento, no en el teléfono: la tarjeta de

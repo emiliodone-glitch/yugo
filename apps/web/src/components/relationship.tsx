@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { es, isExclusive, type RelationshipStage, intlLocale } from '@yugo/shared';
 import { isDemoMode } from '@yugo/app-core';
+import { ConfirmPanel } from '@/components/confirm-panel';
 import {
   useAccompaniment,
   useConsentToMentor,
@@ -197,6 +198,7 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
   const end = useEndAccompaniment(matchId);
   const [code, setCode] = useState('');
   const [opening, setOpening] = useState(false);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!data) return null;
@@ -247,15 +249,29 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
             </p>
           ) : null}
           <p className="mt-1.5 text-[11px] text-olive-text">{es.accompaniment.neverSeesChat}</p>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost mt-2"
-            onClick={() => {
-              if (window.confirm(es.accompaniment.endConfirm)) end.mutate(current.id);
-            }}
-          >
-            {es.accompaniment.end}
-          </button>
+          {confirmingEnd ? (
+            <ConfirmPanel
+              className="mt-2"
+              tone="ink"
+              title={es.accompaniment.end}
+              body={es.accompaniment.endConfirm}
+              confirmLabel={es.accompaniment.end}
+              busy={end.isPending}
+              onConfirm={() => {
+                end.mutate(current.id);
+                setConfirmingEnd(false);
+              }}
+              onCancel={() => setConfirmingEnd(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost mt-2"
+              onClick={() => setConfirmingEnd(true)}
+            >
+              {es.accompaniment.end}
+            </button>
+          )}
         </>
       ) : waitingOnMe ? (
         <>

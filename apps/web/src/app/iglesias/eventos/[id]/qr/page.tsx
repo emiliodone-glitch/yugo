@@ -23,9 +23,21 @@ export default function EventQrPage({ params }: { params: { id: string } }) {
         <Link href="/iglesias/eventos" className="text-[13px] text-muted underline">
           ‹ {es.church.events}
         </Link>
-        <button type="button" className="btn btn-olive w-auto px-5" onClick={() => window.print()}>
-          Imprimir o guardar en PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/iglesias/eventos/${params.id}/entrada`}
+            className="btn btn-ghost w-auto px-4"
+          >
+            {es.events.validateTitle}
+          </Link>
+          <button
+            type="button"
+            className="btn btn-olive w-auto px-5"
+            onClick={() => window.print()}
+          >
+            Imprimir o guardar en PDF
+          </button>
+        </div>
       </div>
 
       {qr.isError ? <QueryError error={qr.error} onRetry={() => void qr.refetch()} /> : null}

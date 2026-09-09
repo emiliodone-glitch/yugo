@@ -3,6 +3,77 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.13.0 — Paridad web ↔ app: lo que parecía funcionar ya funciona
+
+Respuesta a la auditoría pantalla por pantalla entre la web y la app. Cuatro
+bloques, ninguno fuera; ninguna función existente cambió de comportamiento
+salvo para hacer lo que ya prometía.
+
+### Lo que parecía funcionar y no lo hacía (RF-SEG-06/08, RF-VER-03, RF-COM-02, RF-EVE-04)
+- **Privacidad de verdad.** «Ocultar distancia exacta» y «Ocultar asistencia
+  a eventos» se leen y guardan en el servidor (`usePrivacyPreferences` /
+  `useSetPrivacyPreferences`, con «Guardado» al momento) en web y en app.
+  Eliminar cuenta llama a la API, muestra la fecha en que se borra y permite
+  cancelarlo dentro del plazo de gracia (`POST /auth/account/restore`,
+  auditado). «Descargar mis datos» en web entrega el JSON real.
+- **Verificación.** «Solicitar al líder» envía la solicitud y, tras recargar,
+  se ve «esperando respuesta» (`GET /verification/status` la expone). La
+  selfie con gestos captura imagen real: cámara del navegador en web,
+  `expo-camera` en la app, subida al almacenamiento firmado y envío; sin
+  cámara, cae al recorrido guiado anterior.
+- **Botones que ahora hacen algo.** Aceptar/rechazar solicitudes de grupo
+  (web y app), «Proponer un grupo» con estado «En revisión», filtros de
+  eventos (todos, mi iglesia, mi ciudad, fin de semana, tipo) con estado
+  vacío, chips de Descubrir que reflejan las preferencias reales y llevan a
+  editarlas, «Añadir al calendario» nunca inerte (`.ics` real o `data:` en
+  demo).
+- **Sin datos de demostración con la API viva.** Guardados en web usa la lista
+  real; la asistencia a eventos en la app sale de `myStatus` del servidor
+  (Asistiré, Me interesa, Ya no iré) en lista, detalle e Inicio; las
+  reacciones del muro llaman a la API en web y ya no se duplican en la app.
+- **Cierre digno con confirmación.** Al cerrar una conexión, Conexiones
+  muestra «Cerraste la conexión con …» y limpia la URL.
+
+### Lo que faltaba en la app frente a la web (RF-CON-12, RF-PLU-03, RNF-05)
+- **Cerrar sesión** con confirmación en pantalla; **detalle de afinidad**
+  completo (razones, señales de comunidad, voz, respuestas, testimonio, sin
+  porcentajes); **paywall** consciente del nivel actual con «Gestionar mi
+  suscripción» y aviso de bajada programada.
+- **Chat** con auto-scroll al último mensaje y **pantalla propia de
+  videollamada** (hora, aviso de 15 minutos, entrar, cancelar).
+- **Error con reintento** en Inicio, Descubrir, Conexiones, Comunidad y
+  Eventos; estado vacío en Conexiones; portadas de evento por tipo; selector
+  de hora para horas silenciosas; fecha del plan de encuentro por día y hora
+  con error visible; textos de «Te interesa» desde el diccionario; pestaña de
+  oración y chips en Comunidad.
+
+### Lo que faltaba en la web frente a la app (RNF-07)
+- **Cola sin conexión** para mensajes: si no hay red, el mensaje queda como
+  «pendiente de enviar» y sale solo al volver; aviso «Sin conexión» en la
+  cabecera. Estados vacíos en Conexiones y Eventos. Elegir cámara o galería
+  al subir foto. Accesos directos en Perfil a voz, suscripción (con el nivel)
+  y contador de no leídas.
+
+### Placeholders que ya son funciones (RF-EVE-05/06)
+- **Mapa real** de encuentros en web (Leaflet + OpenStreetMap, pin por evento
+  que resalta su tarjeta; en el detalle, pin y «Cómo llegar»). En la app,
+  «Cómo llegar» abre el mapa del teléfono con las coordenadas.
+- **Entrada del miembro.** Con «Asistiré» se genera un código de 10
+  caracteres sin ambigüedad (`EventAttendance.ticketCode`, migración
+  `0020_entrada_con_codigo`) que la persona ve como QR y texto en web y app
+  («Ver mi entrada»). El portal de iglesias tiene «Registrar entradas»:
+  escribe o escanea el código, marca el check-in (idempotente) y lleva la
+  cuenta. Única excepción documentada al «totales, nunca nombres» del
+  portal: quien presenta su propia entrada en la puerta.
+- **Confirmaciones en pantalla** (`ConfirmPanel` en web, `ConfirmSheet` en la
+  app) en vez de `window.confirm` / `Alert.alert` para decisiones
+  destructivas: eliminar cuenta, cancelar suscripción, quitar foto, terminar
+  acompañamiento.
+
+Pruebas: API 251 (16 nuevas), shared 145, móvil 59 (36 rutas montadas) y humo
+RN-Web, web E2E 393 en demo (22 casos nuevos en cuatro archivos) y 4 en vivo
+contra la API real; axe en verde en las superficies nuevas.
+
 ## v0.12.0 — La mejor app de citas cristiana: voz propia, razones, confianza y lo que pasa después del sí
 
 Respuesta a la revisión profunda de producto. Cada tanda se verificó y subió

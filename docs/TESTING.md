@@ -97,6 +97,28 @@ aviso), escribe el p95 por endpoint en el resumen del run y sube
 `k6-summary-*.json` como artefacto. Sin `smoke`, cada guion dura unos 4 minutos
 y genera carga real: no apuntarlo a producción.
 
+## Recorridos de la paridad web ↔ app (v0.13)
+
+1. **Privacidad persistida**: Perfil → Privacidad y seguridad, activa «Ocultar
+   distancia exacta», recarga: sigue activa (en demo se guarda en el
+   navegador; con API viva, en el servidor). «Eliminar mi cuenta» abre el panel
+   de confirmación; al confirmar aparece la fecha de borrado y «Cancelar la
+   eliminación».
+2. **Entrada del miembro**: en un evento con «Asistiré», «Ver mi entrada» muestra
+   el QR y el código. En el portal (`iglesia@yugo.do`), Eventos → «Registrar
+   entradas»: escribe el código (en demo `YUGO-DEMO-1`; `YUGO-DEMO-2` responde
+   «ya se registró») y el contador sube.
+3. **Mapa**: Eventos muestra el mapa con un pin por evento; al tocar un pin se
+   resalta la tarjeta. En el detalle, «Cómo llegar» abre la ruta.
+4. **Sin conexión (web)**: en el chat, con la red apagada (Playwright
+   `setOffline`), el mensaje queda «pendiente de enviar» y sale al volver.
+5. **App**: Perfil → «Cerrar sesión» pide confirmación en pantalla; el detalle
+   de afinidad muestra razones, señales de comunidad y voz; el chat baja al
+   último mensaje al abrir.
+
+Archivos: `apps/web/e2e/privacidad-y-cuenta.spec.ts`, `comunidad-grupos.spec.ts`,
+`eventos-mapa-entrada.spec.ts`, `guardados-y-sin-conexion.spec.ts`.
+
 ## Recorridos por hito
 
 ### Registro y mayoría de edad (RF-AUT-01/03/04)

@@ -3,15 +3,31 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { es, intlLocale } from '@yugo/shared';
+import { calendarDataUrl, es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { calendarUrl, useCheckIn, useEventDetail, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { EventCover } from '@/components/event-cover';
+import { EventMap } from '@/components/event-map';
 import { PageHeader } from '@/components/page-header';
 import { QueryError } from '@/components/query-error';
 import { PageSkeleton } from '@/components/skeleton';
 import { PinIcon } from '@/components/icons';
+
+/** Cómo llegar: con coordenadas exactas si las hay; si no, por la dirección. */
+function directionsUrl(event: {
+  lat?: number;
+  lng?: number;
+  address?: string;
+  city?: string;
+  churchName: string;
+}): string {
+  const destination =
+    typeof event.lat === 'number' && typeof event.lng === 'number'
+      ? `${event.lat},${event.lng}`
+      : [event.churchName, event.address, event.city].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}
 
 /**
  * Detalle de un encuentro. Lee el evento real de la agenda (antes buscaba
@@ -106,7 +122,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
     }
   };
 
-  const calendar = calendarUrl(event.id);
+  // El .ics de la API cuando la hay; si no, se arma aquí mismo desde los datos
+  // del evento. El botón nunca queda muerto.
+  const apiCalendar = calendarUrl(event.id);
+  const calendar = apiCalendar && apiCalendar !== '#' ? apiCalendar : calendarDataUrl(event);
+  const hasCoords = typeof event.lat === 'number' && typeof event.lng === 'number';
 
   return (
     <div className="pb-6">
@@ -149,6 +169,38 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                 </p>
               ) : null}
             </div>
+          </div>
+
+          {/* Dónde es (RF-EVE-04): mapa con el pin y cómo llegar. */}
+          <div className="card">
+            <div className="flex items-center justify-between gap-2">
+              <b className="text-[12.5px]">{es.events.mapTitle}</b>
+              <a
+                href={directionsUrl(event)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost btn-sm"
+              >
+                {es.common.openInMaps}
+              </a>
+            </div>
+            {hasCoords ? (
+              <EventMap
+                events={[
+                  {
+                    id: event.id,
+                    title: event.title,
+                    lat: event.lat as number,
+                    lng: event.lng as number,
+                  },
+                ]}
+                selectedId={event.id}
+                label={`${es.events.map}: ${event.title}`}
+                className="mt-2 h-[180px] lg:h-[240px]"
+              />
+            ) : (
+              <p className="mt-2 text-[12px] text-muted">{es.events.mapUnavailable}</p>
+            )}
           </div>
 
           {/* Connections attending, respecting the privacy preference (RF-EVE-05) */}
@@ -226,19 +278,16 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                   ? 'Tu asistencia ya quedó registrada para este evento.'
                   : 'Al llegar, escanea el QR de la entrada con la app de Yugo (Eventos › Registrar mi asistencia) o con la cámara de tu teléfono. La iglesia solo ve el total de asistentes, nunca tu nombre.'}
               </p>
+              <Link href={`/eventos/${event.id}/entrada`} className="btn btn-olive mt-3">
+                {es.events.ticketOpen}
+              </Link>
             </div>
           ) : null}
 
           <div className="flex gap-2">
-            {calendar !== '#' ? (
-              <a href={calendar} className="btn btn-ghost flex-1" download>
-                {es.events.addToCalendar}
-              </a>
-            ) : (
-              <button type="button" className="btn btn-ghost flex-1">
-                {es.events.addToCalendar}
-              </button>
-            )}
+            <a href={calendar} className="btn btn-ghost flex-1" download={`${event.id}.ics`}>
+              {es.events.addToCalendar}
+            </a>
             <button type="button" className="btn btn-ghost flex-1" onClick={() => void share()}>
               {es.events.share}
             </button>

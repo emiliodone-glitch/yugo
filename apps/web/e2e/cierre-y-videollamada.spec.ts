@@ -25,7 +25,18 @@ test.describe('Cierre digno', () => {
       .fill('Gracias por todo, te deseo lo mejor.');
     await expect(confirm).toBeEnabled();
     await confirm.click();
-    await expect(page).toHaveURL(/\/conexiones\?cerrada=/);
+    await expect(page).toHaveURL(/\/conexiones(\?cerrada=|$)/);
+
+    // De vuelta en la lista se confirma el cierre, se limpia la URL (recargar
+    // no repite el aviso) y la tarjeta se puede quitar.
+    const confirmation = page
+      .getByRole('status')
+      .filter({ hasText: 'Cerraste la conexión con Mariel' });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toContainText('Le llegó tu mensaje');
+    await expect(page).toHaveURL(/\/conexiones$/);
+    await confirmation.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(confirmation).toHaveCount(0);
   });
 });
 

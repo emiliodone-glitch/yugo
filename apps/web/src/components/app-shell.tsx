@@ -14,6 +14,7 @@ import {
 } from './icons';
 import { ApiStatusBanner, SessionGate } from './session-gate';
 import { NotificationBell } from './notification-bell';
+import { OfflineBanner } from './offline-banner';
 
 const TABS = [
   {
@@ -132,6 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           split ? 'xl:pb-0 md:pb-8' : 'md:pb-8'
         } ${dark ? 'bg-ink' : ''}`}
       >
+        <OfflineBanner />
         <div className={`mx-auto w-full max-w-xl md:max-w-2xl xl:px-6 ${widthAtXl}`}>
           <SessionGate>
             <ApiStatusBanner />

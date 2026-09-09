@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { es, LIMITS } from '@yugo/shared';
 import {
   useCityWaitlist,
+  useCurrentMember,
   useDiscover,
   useJoinCityWaitlist,
   useMarkInterest,
@@ -26,6 +27,9 @@ export default function DiscoverPage() {
   const markInterest = useMarkInterest();
   const passProfile = usePassProfile();
   const saveProfile = useSaveProfile();
+  // Los chips del panel reflejan las preferencias reales de la cuenta y
+  // llevan a donde se cambian; antes eran adorno.
+  const { data: member } = useCurrentMember();
 
   const [showFilters, setShowFilters] = useState(false);
   const [sent, setSent] = useState<Record<string, boolean>>({});
@@ -101,10 +105,28 @@ export default function DiscoverPage() {
             >
               Solo respaldados por su iglesia
             </button>
-            <span className="chip">Edad 26–38</span>
-            <span className="chip">≤ 50 km</span>
-            <span className="chip">{es.onboarding.intentionMarriage}</span>
-            <span className="chip chip-wheat">{es.discover.advancedFilters} · Plus</span>
+            {member ? (
+              <>
+                <Link href="/perfil/preferencias" className="chip">
+                  {es.visibility.ageRange} {member.ageMin}–{member.ageMax}
+                </Link>
+                <Link href="/perfil/preferencias" className="chip">
+                  ≤ {member.maxDistanceKm} {es.common.km}
+                </Link>
+                <Link href="/perfil/preferencias" className="chip">
+                  {member.intention === 'MARRIAGE'
+                    ? es.onboarding.intentionMarriage
+                    : member.intention === 'FRIENDSHIP'
+                      ? es.onboarding.intentionFriendship
+                      : es.onboarding.intentionBoth}
+                </Link>
+              </>
+            ) : null}
+            {member && !member.tier ? (
+              <Link href="/plus" className="chip chip-wheat">
+                {es.discover.advancedFilters} · Plus
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : null}

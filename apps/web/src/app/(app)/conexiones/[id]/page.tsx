@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { es } from '@yugo/shared';
+import { errorMessage } from '@/lib/api';
+import { isNetworkFailure, useOutbox, type FlushResult } from '@/lib/outbox';
 import {
   useBlockUser,
   useConnections,
@@ -46,6 +48,13 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Sin señal el mensaje espera en la cola y sale solo al volver (RNF-06).
+  const onFlushed = useCallback((result: FlushResult) => {
+    if (result.rejected.length > 0) setNotice(es.connections.queuedRejected);
+    else if (result.sent.length > 0) setNotice(es.connections.queuedSent(result.sent.length));
+  }, []);
+  const { pending, enqueue, online } = useOutbox(params.id, onFlushed);
+
   // Teclado: Escape cierra el menú o el selector de eventos y devuelve el
   // foco al campo de escribir, para no quedarse «flotando» en un popover.
   useEffect(() => {
@@ -74,7 +83,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [messages.length, pending.length]);
 
   // Wait for the list before deciding the conversation does not exist,
   // otherwise the first render 404s while the query is still in flight.
@@ -89,10 +98,25 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     const body = text.trim();
     if (!body) return;
     setDraft('');
-    const message = await sendMessage.mutateAsync(body);
-    if (message.moderationStatus === 'HELD') setNotice(es.connections.messageHeld);
-    else if (message.moderationStatus === 'REJECTED') setNotice(es.connections.messageRejected);
-    else setNotice(null);
+    if (!online) {
+      await enqueue(body);
+      setNotice(null);
+      return;
+    }
+    try {
+      const message = await sendMessage.mutateAsync(body);
+      if (message.moderationStatus === 'HELD') setNotice(es.connections.messageHeld);
+      else if (message.moderationStatus === 'REJECTED') setNotice(es.connections.messageRejected);
+      else setNotice(null);
+    } catch (error) {
+      // La red se fue a mitad del envío: a la cola, no a un error rojo.
+      if (isNetworkFailure(error)) {
+        await enqueue(body);
+        setNotice(null);
+      } else {
+        setNotice(errorMessage(error));
+      }
+    }
   };
 
   return (
@@ -277,8 +301,21 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           );
         })}
 
+        {/* Pendientes de enviar: se ven como propios, marcados, hasta que salen. */}
+        {pending.map((item) => (
+          <div key={item.id} className="mb-2 flex justify-end" data-testid="pending-message">
+            <div className="max-w-[78%] rounded-2xl rounded-br-[4px] border border-dashed border-line bg-linen px-3 py-2 text-[12.5px] leading-snug text-body">
+              {item.body}
+              <div className="mt-1 text-[10px] text-muted">⏳ {es.connections.queuedOffline}</div>
+            </div>
+          </div>
+        ))}
+
         {notice ? (
-          <div className="my-2 rounded-field bg-wine-soft px-3 py-2 text-center text-[11px] text-wine">
+          <div
+            role="status"
+            className="my-2 rounded-field bg-wine-soft px-3 py-2 text-center text-[11px] text-wine"
+          >
             {notice}
           </div>
         ) : null}

@@ -11,6 +11,7 @@ import {
   QueryClientProvider,
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient } from './api';
+import { initDemoPersistence } from './demo-persist';
 import { applyAccountLocale, LocaleGate } from './locale';
 
 // Tells the shared hooks which client to use. Runs at module scope so it is
@@ -50,6 +51,10 @@ if (typeof document !== 'undefined') {
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [queryClient] = useState(createQueryClient);
+
+  // Tras hidratar (así el HTML del servidor y el primer render coinciden), la
+  // demo recupera lo poco que guarda entre visitas.
+  useEffect(() => initDemoPersistence(), []);
 
   useEffect(() => {
     const onSignedOut = () => {

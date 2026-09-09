@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { es, intlLocale } from '@yugo/shared';
 import { ListSkeleton } from './skeleton';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@/lib/hooks';
@@ -28,6 +30,40 @@ function formatTime(iso: string): string {
   })
     .format(date)
     .replace('.', '');
+}
+
+/**
+ * Cierre digno (RF-CON-11): al cerrar una conexión se vuelve aquí con
+ * `?cerrada=Nombre`. Se confirma en una tarjeta que se puede quitar y la URL
+ * queda limpia, para que recargar o compartir el enlace no repita el aviso.
+ */
+function ClosedConfirmation() {
+  const router = useRouter();
+  const search = useSearchParams();
+  const closedName = search.get('cerrada');
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!closedName) return;
+    setName(closedName);
+    router.replace('/conexiones');
+  }, [closedName, router]);
+
+  if (!name) return null;
+  return (
+    <div role="status" className="card mb-3 border-0 bg-olive-soft">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12.5px] text-olive-text">{es.connections.closedConfirmation(name)}</p>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm w-auto flex-none px-3"
+          onClick={() => setName(null)}
+        >
+          {es.common.close}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -60,16 +96,31 @@ export function ConnectionsList({ activeId }: { activeId?: string }) {
         </Link>
       </div>
 
+      <ClosedConfirmation />
+
       {isLoading ? <ListSkeleton rows={5} /> : null}
 
       {/* Presentación por padrino (RF-ACO-05): se responde desde aquí */}
       <IntroductionsCard />
 
+      {/* Sin conexiones todavía: se dice y se lleva a donde nacen. */}
+      {!isLoading && connections.length === 0 ? (
+        <div className="card py-8 text-center">
+          <p className="text-[14px] font-semibold text-ink">{es.connections.emptyTitle}</p>
+          <p className="mt-1 text-[12.5px] text-muted">{es.connections.emptyBody}</p>
+          <Link href="/descubrir" className="btn btn-sm btn-olive mt-3 w-auto px-5">
+            {es.tabs.discover}
+          </Link>
+        </div>
+      ) : null}
+
       {/* New connections */}
-      <div className="mb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">
-        {es.connections.newSection}
-      </div>
-      <div className="mb-3.5 flex gap-3 overflow-x-auto">
+      {fresh.length > 0 ? (
+        <div className="mb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">
+          {es.connections.newSection}
+        </div>
+      ) : null}
+      <div className={`flex gap-3 overflow-x-auto ${fresh.length > 0 ? 'mb-3.5' : ''}`}>
         {fresh.map((connection) => (
           <Link
             key={connection.matchId}
@@ -89,9 +140,11 @@ export function ConnectionsList({ activeId }: { activeId?: string }) {
       </div>
 
       {/* Conversations */}
-      <div className="mb-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">
-        {es.connections.conversations}
-      </div>
+      {conversations.length > 0 ? (
+        <div className="mb-0.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted">
+          {es.connections.conversations}
+        </div>
+      ) : null}
       <div>
         {conversations.map((connection) => (
           <Link

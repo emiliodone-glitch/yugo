@@ -3,8 +3,16 @@
 import { notFound } from 'next/navigation';
 import { useState } from 'react';
 import { es, intlLocale } from '@yugo/shared';
+import { DEMO_MODE, errorMessage } from '@/lib/api';
 import { useDemoStore } from '@/lib/demo-store';
-import { useCreatePost, useCurrentMember, useGroupDetail, useJoinRequests } from '@/lib/hooks';
+import {
+  useCreatePost,
+  useCurrentMember,
+  useGroupDetail,
+  useJoinRequests,
+  useReactToPost,
+  useResolveJoinRequest,
+} from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
 import { PageSkeleton } from '@/components/skeleton';
 import { PageHeader } from '@/components/page-header';
@@ -26,10 +34,20 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
   const [localPosts, setLocalPosts] = useState<
     Array<{ id: string; body: string; isPrayer: boolean; held: boolean }>
   >([]);
-  const { praying, amen, togglePraying, toggleAmen, activityJoined, toggleActivity } =
-    useDemoStore();
+  // En la demo las reacciones viven en su almacén (el hook las alterna ahí);
+  // en vivo el contador sube al instante en la caché y el servidor confirma.
+  const { praying, amen, activityJoined, toggleActivity } = useDemoStore();
+  const react = useReactToPost();
+  const [reacted, setReacted] = useState<Record<string, boolean>>({});
+  const resolveRequest = useResolveJoinRequest(params.id);
+  const [memberNotice, setMemberNotice] = useState<string | null>(null);
 
-  const isAdmin = group?.myRole === 'ADMIN' || group?.myRole === 'MODERATOR';
+  // La demo no reparte roles de administración; la cola de solicitudes se
+  // enseña en el grupo oficial al que pertenece la persona.
+  const isAdmin =
+    group?.myRole === 'ADMIN' ||
+    group?.myRole === 'MODERATOR' ||
+    (DEMO_MODE && group?.myRole === 'MEMBER' && group.isOfficial);
   const { data: joinRequests = [] } = useJoinRequests(params.id, !!isAdmin);
 
   if (isLoading) {
@@ -52,6 +70,25 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
     );
     setDraft('');
     setIsPrayer(false);
+  };
+
+  const hasReacted = (postId: string, type: 'PRAYING' | 'AMEN') =>
+    DEMO_MODE
+      ? !!(type === 'PRAYING' ? praying[postId] : amen[postId])
+      : !!reacted[`${postId}:${type}`];
+
+  const toggleReaction = (postId: string, type: 'PRAYING' | 'AMEN') => {
+    setReacted((current) => ({ ...current, [`${postId}:${type}`]: !current[`${postId}:${type}`] }));
+    react.mutate({ postId, type });
+  };
+
+  const decide = async (requestId: string, accept: boolean) => {
+    try {
+      await resolveRequest.mutateAsync({ requestId, accept });
+      setMemberNotice(accept ? es.community.requestAccepted : es.community.requestRejected);
+    } catch (caught) {
+      setMemberNotice(errorMessage(caught));
+    }
   };
 
   return (
@@ -178,14 +215,21 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
                     {post.isPrayerRequest ? (
                       <button
                         type="button"
-                        onClick={() => togglePraying(post.id)}
-                        className={`chip chip-olive ${praying[post.id] ? 'ring-1 ring-olive' : ''}`}
+                        aria-pressed={hasReacted(post.id, 'PRAYING')}
+                        onClick={() => toggleReaction(post.id, 'PRAYING')}
+                        className={`chip chip-olive ${hasReacted(post.id, 'PRAYING') ? 'ring-1 ring-olive' : ''}`}
                       >
-                        🙏 {es.community.praying} · {post.prayingCount + (praying[post.id] ? 1 : 0)}
+                        🙏 {es.community.praying} ·{' '}
+                        {post.prayingCount + (DEMO_MODE && praying[post.id] ? 1 : 0)}
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => toggleAmen(post.id)} className="chip">
-                      {es.community.amen} · {post.amenCount + (amen[post.id] ? 1 : 0)}
+                    <button
+                      type="button"
+                      aria-pressed={hasReacted(post.id, 'AMEN')}
+                      onClick={() => toggleReaction(post.id, 'AMEN')}
+                      className={`chip ${hasReacted(post.id, 'AMEN') ? 'ring-1 ring-ink' : ''}`}
+                    >
+                      {es.community.amen} · {post.amenCount + (DEMO_MODE && amen[post.id] ? 1 : 0)}
                     </button>
                   </div>
                 </div>
@@ -241,6 +285,14 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
 
         {tab === 'members' ? (
           <>
+            {memberNotice ? (
+              <div
+                role="status"
+                className="card mb-3 border-0 bg-olive-soft text-[12px] text-olive-text"
+              >
+                {memberNotice}
+              </div>
+            ) : null}
             {/* RF-COM-02: cola de solicitudes para grupos con aprobación */}
             {isAdmin && joinRequests.length > 0 ? (
               <div className="card">
@@ -257,10 +309,20 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
                         <div className="mt-0.5 text-[11px] text-muted">{request.message}</div>
                       ) : null}
                     </div>
-                    <button type="button" className="btn btn-sm btn-olive">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-olive"
+                      disabled={resolveRequest.isPending}
+                      onClick={() => void decide(request.id, true)}
+                    >
                       Aceptar
                     </button>
-                    <button type="button" className="btn btn-sm btn-ghost">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={resolveRequest.isPending}
+                      onClick={() => void decide(request.id, false)}
+                    >
                       Rechazar
                     </button>
                   </div>

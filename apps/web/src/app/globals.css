@@ -232,3 +232,10 @@ body {
     break-after: page;
   }
 }
+
+/* Mapa (Leaflet): la atribución es texto corrido con enlaces; el subrayado
+   los distingue sin depender del color (WCAG 1.4.1). Fuera de @layer para que
+   Tailwind no lo descarte: estas clases las pone Leaflet, no nuestro código. */
+.leaflet-container .leaflet-control-attribution a {
+  text-decoration: underline;
+}

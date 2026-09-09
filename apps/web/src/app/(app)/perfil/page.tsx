@@ -11,6 +11,7 @@ import {
   usePauseProfile,
   useSession,
   useSubscriptionState,
+  useUnreadNotifications,
   useVerificationStatus,
   useSaveLocalePreference,
 } from '@/lib/hooks';
@@ -46,6 +47,7 @@ export default function ProfilePage() {
   const { data: verification } = useVerificationStatus();
   const { data: myPhotos = [] } = useMyPhotos();
   const { data: subscription } = useSubscriptionState();
+  const { data: unread = 0 } = useUnreadNotifications();
   const logout = useLogout();
 
   if (member.isError) {
@@ -191,12 +193,38 @@ export default function ProfilePage() {
         {/* Settings rows */}
         <div className="mt-1.5 lg:mt-0 lg:rounded-card lg:border lg:border-line lg:bg-white lg:px-3.5">
           <SettingsLink href="/perfil/fotos" label={es.onboarding.photosTitle} />
+          <SettingsLink
+            href="/perfil/voz"
+            label={es.profile.voiceLink}
+            trailing={<span className="text-[11px] text-muted">{es.profile.voiceLinkHint}</span>}
+          />
           <SettingsLink href="/perfil/preferencias" label={es.profile.searchPreferences} />
           <SettingsLink href="/perfil/visibilidad" label={es.visibility.title} />
+          <SettingsLink
+            href="/perfil/suscripcion"
+            label={es.paywall.manageSubscription}
+            trailing={
+              <span className={`chip ${subscription?.tier ? 'bg-wheat text-ink-deep' : ''}`}>
+                {subscription?.tier
+                  ? `Yugo ${subscription.tier === 'ORO' ? 'Oro' : 'Plus'}`
+                  : es.common.free}
+              </span>
+            }
+          />
           <SettingsLink href="/perfil/destacar" label="Perfil destacado" />
           <SettingsLink href="/perfil/promo" label="Código promocional" />
           <SettingsLink href="/perfil/acompanar" label={es.accompaniment.mentorTitle} />
-          <SettingsLink href="/perfil/notificaciones" label={es.notifications.title} />
+          <SettingsLink
+            href="/perfil/notificaciones"
+            label={es.notifications.title}
+            trailing={
+              unread > 0 ? (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-wine px-1.5 text-[10.5px] font-semibold text-white">
+                  {unread}
+                </span>
+              ) : null
+            }
+          />
           <SettingsLink href="/perfil/privacidad" label={es.profile.privacySecurity} />
           {/* RNF-06: español dominicano por defecto, inglés para la diáspora. */}
           <div className="list-row text-[12.5px]">
@@ -259,11 +287,23 @@ function StepMark({ done, step }: { done: boolean; step: number }) {
   );
 }
 
-function SettingsLink({ href, label }: { href: string; label: string }) {
+function SettingsLink({
+  href,
+  label,
+  trailing,
+}: {
+  href: string;
+  label: string;
+  /** Un dato al final de la fila: el plan actual, las no leídas. */
+  trailing?: React.ReactNode;
+}) {
   return (
     <Link href={href} className="list-row text-[12.5px]">
       <span>{label}</span>
-      <span className="ml-auto text-muted">›</span>
+      <span className="ml-auto flex items-center gap-2 text-muted">
+        {trailing}
+        <span>›</span>
+      </span>
     </Link>
   );
 }
