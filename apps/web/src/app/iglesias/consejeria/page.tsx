@@ -8,12 +8,12 @@
  * conversación no aparece aquí ni en ningún otro sitio del portal.
  */
 import { useState } from 'react';
-import { es, type PortalCounselingRequest } from '@yugo/shared';
+import { es, type PortalCounselingRequest, intlLocale } from '@yugo/shared';
 import { useCounselingRequests, useRespondCounselingRequest } from '@/lib/hooks';
 import { BarTop, Panel } from '@/components/admin';
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

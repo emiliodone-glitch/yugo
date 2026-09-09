@@ -47,6 +47,19 @@ export async function chooseLocale(locale: Locale): Promise<void> {
   }
 }
 
+/** El idioma de la cuenta manda solo si en este teléfono no se eligió ninguno. */
+export async function applyAccountLocale(locale: string): Promise<void> {
+  if (!isLocale(locale) || locale === getLocale()) return;
+  let stored: string | null = null;
+  try {
+    stored = await AsyncStorage.getItem(KEY);
+  } catch {
+    stored = null;
+  }
+  if (isLocale(stored)) return;
+  await chooseLocale(locale);
+}
+
 export function useLocale(): Locale {
   return useSyncExternalStore(onLocaleChange, getLocale, getLocale);
 }

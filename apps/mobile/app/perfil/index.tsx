@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es, LOCALE_NAMES, SUPPORTED_LOCALES } from '@yugo/shared';
+import { es, LOCALE_NAMES, SUPPORTED_LOCALES, intlLocale } from '@yugo/shared';
 import {
   useCurrentMember,
   useDemoStore,
@@ -33,7 +33,7 @@ const { colors, fonts } = theme;
 
 const shortDate = (iso?: string | null) =>
   iso
-    ? new Intl.DateTimeFormat('es-DO', {
+    ? new Intl.DateTimeFormat(intlLocale(), {
         day: 'numeric',
         month: 'short',
         timeZone: 'America/Santo_Domingo',
@@ -265,8 +265,10 @@ export default function ProfileScreen() {
           hint={LOCALE_NAMES[locale]}
           onPress={() => {
             const next = SUPPORTED_LOCALES.find((candidate) => candidate !== locale) ?? locale;
-            void chooseLocale(next);
             saveLocale.mutate(next);
+            // El cambio vuelve a montar la navegación; se regresa a Perfil
+            // para que la persona vea el cambio donde lo pidió.
+            void chooseLocale(next).then(() => setTimeout(() => router.push('/perfil'), 0));
           }}
         />
         <ListRow

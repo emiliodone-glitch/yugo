@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useCancelSubscription, useMyPayments, useSubscriptionState } from '@yugo/app-core';
 import { Button, Card, Chip, Notice, ScreenHeader, Sub } from '../../components/ui';
 import { errorMessage } from '../../lib/api';
@@ -29,7 +29,7 @@ const STATUS: Record<string, string> = {
   REFUND_REQUESTED: 'Reembolso en revisión',
   REFUNDED: 'Reembolsado',
 };
-const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('es-DO') : '—');
+const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(intlLocale()) : '—');
 
 /** Mi suscripción (RF-PLU-05/07): nivel, hasta cuándo, recibos y cancelar. */
 export default function SubscriptionScreen() {
@@ -138,7 +138,7 @@ export default function SubscriptionScreen() {
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.receiptTitle}>
                     {payment.currency === 'DOP' ? 'RD$' : 'US$'}{' '}
-                    {payment.amount.toLocaleString('es-DO')}
+                    {payment.amount.toLocaleString(intlLocale())}
                   </Text>
                   <Sub style={{ fontSize: 11 }}>{STATUS[payment.status] ?? payment.status}</Sub>
                 </View>

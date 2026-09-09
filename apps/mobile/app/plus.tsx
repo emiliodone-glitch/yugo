@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DEFAULT_PRICES, es, LIMITS } from '@yugo/shared';
+import { DEFAULT_PRICES, es, LIMITS, intlLocale } from '@yugo/shared';
 import { usePrices, usePurchaseSubscription } from '@yugo/app-core';
 import { Button, CheckMark, Chip, Notice } from '../components/ui';
 import { errorMessage } from '../lib/api';
@@ -20,7 +20,7 @@ export default function PaywallScreen() {
 
   const price = (tier: 'PLUS' | 'ORO') => {
     const value = prices[tier][cycle].DOP;
-    return `RD$ ${value.toLocaleString('es-DO')} / ${cycle === 'ANNUAL' ? 'año' : 'mes'}`;
+    return `RD$ ${value.toLocaleString(intlLocale())} / ${cycle === 'ANNUAL' ? 'año' : 'mes'}`;
   };
 
   /**

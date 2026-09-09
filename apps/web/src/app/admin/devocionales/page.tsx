@@ -14,7 +14,7 @@
  * lo mismo.
  */
 import { useState } from 'react';
-import { es, type DevotionalDraft, type ScheduledDevotional } from '@yugo/shared';
+import { es, type DevotionalDraft, type ScheduledDevotional, intlLocale } from '@yugo/shared';
 import { useDevotionalSchedule, useRemoveDevotional, useUpsertDevotional } from '@/lib/hooks';
 import { BarTop, Panel } from '@/components/admin';
 
@@ -25,7 +25,7 @@ function addDays(day: string, n: number): string {
 }
 
 function longDate(day: string): string {
-  const text = new Intl.DateTimeFormat('es-DO', {
+  const text = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

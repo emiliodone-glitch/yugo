@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import {
   useChurchInvitations,
@@ -223,7 +223,7 @@ export default function PortalUsersPage() {
                 <tr key={invitation.id}>
                   <Td>{invitation.email}</Td>
                   <Td>{ROLE_LABEL[invitation.role] ?? invitation.role}</Td>
-                  <Td>{new Date(invitation.expiresAt).toLocaleDateString('es-DO')}</Td>
+                  <Td>{new Date(invitation.expiresAt).toLocaleDateString(intlLocale())}</Td>
                   <Td>
                     <span className="flex gap-1.5">
                       <button

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { calendarUrl, useCheckIn, useEventDetail, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
@@ -72,7 +72,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
   // «Viernes, 4 de septiembre»: en español solo va en mayúscula la primera
   // letra; un `capitalize` de CSS escribía «4 De Septiembre».
-  const rawDate = new Intl.DateTimeFormat('es-DO', {
+  const rawDate = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

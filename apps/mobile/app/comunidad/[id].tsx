@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import {
   useCreatePost,
   useCurrentMember,
@@ -30,7 +30,7 @@ const { colors, fonts } = theme;
 type Tab = 'wall' | 'activities' | 'members';
 
 const dateTime = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

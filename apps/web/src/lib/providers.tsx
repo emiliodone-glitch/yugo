@@ -11,11 +11,15 @@ import {
   QueryClientProvider,
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient } from './api';
-import { LocaleGate } from './locale';
+import { applyAccountLocale, LocaleGate } from './locale';
 
 // Tells the shared hooks which client to use. Runs at module scope so it is
 // in place before any screen renders.
-configureAppRuntime({ demoMode: DEMO_MODE, client: getApiClient });
+configureAppRuntime({
+  demoMode: DEMO_MODE,
+  client: getApiClient,
+  onAccountLocale: applyAccountLocale,
+});
 // Eventos de producto anónimos (RF-ADM-12): un id por navegador, nunca PII.
 configureAnalytics({
   platform: 'web',

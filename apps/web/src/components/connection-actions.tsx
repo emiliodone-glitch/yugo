@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { CLOSING_TEMPLATES, es } from '@yugo/shared';
+import { CLOSING_TEMPLATES, es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useCancelCall, useCloseConnection, useScheduleCall, useVideoCalls } from '@/lib/hooks';
 
@@ -126,7 +126,7 @@ function defaultSlot() {
 }
 
 export function whenLabel(iso: string) {
-  return new Intl.DateTimeFormat('es-DO', {
+  return new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

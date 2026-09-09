@@ -13,7 +13,7 @@
  * (para poder rescatarlas) y fotos que el clasificador no pudo procesar.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { es, type HeldContentItem } from '@yugo/shared';
+import { es, type HeldContentItem, intlLocale } from '@yugo/shared';
 import { useHeldPhotos, useResolveHeld } from '@/lib/hooks';
 import { BarTop, Panel, PriorityChip } from '@/components/admin';
 import { Avatar } from '@/components/ui';
@@ -39,7 +39,9 @@ const AUTO_LABEL: Record<string, { label: string; chip: string; hint: string }> 
 
 const since = (iso?: string) =>
   iso
-    ? new Intl.DateTimeFormat('es-DO', { month: 'short', year: 'numeric' }).format(new Date(iso))
+    ? new Intl.DateTimeFormat(intlLocale(), { month: 'short', year: 'numeric' }).format(
+        new Date(iso),
+      )
     : null;
 
 const waiting = (iso: string) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { ListSkeleton } from './skeleton';
 import { useConnections, useSafetyTips, useWhoMarkedMe } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
@@ -13,7 +13,7 @@ function formatTime(iso: string): string {
   const now = new Date();
   const sameDay = date.toDateString() === now.toDateString();
   if (sameDay) {
-    return new Intl.DateTimeFormat('es-DO', {
+    return new Intl.DateTimeFormat(intlLocale(), {
       hour: 'numeric',
       minute: '2-digit',
       hour12: false,
@@ -22,7 +22,10 @@ function formatTime(iso: string): string {
   }
   const yesterday = new Date(now.getTime() - 86400000);
   if (date.toDateString() === yesterday.toDateString()) return es.common.yesterday;
-  return new Intl.DateTimeFormat('es-DO', { weekday: 'short', timeZone: 'America/Santo_Domingo' })
+  return new Intl.DateTimeFormat(intlLocale(), {
+    weekday: 'short',
+    timeZone: 'America/Santo_Domingo',
+  })
     .format(date)
     .replace('.', '');
 }

@@ -9,9 +9,19 @@ import type { YugoApiClient } from '@yugo/shared';
 interface AppRuntime {
   demoMode: boolean;
   client: () => YugoApiClient;
+  /**
+   * Idioma guardado en la cuenta (RNF-06), avisado cada vez que se carga la
+   * sesión. La app decide si lo aplica: solo cuando la persona no eligió uno
+   * en este dispositivo.
+   */
+  onAccountLocale?: (locale: string) => void;
 }
 
 let runtime: AppRuntime | null = null;
+
+export function notifyAccountLocale(locale: string | null | undefined): void {
+  if (locale) runtime?.onAccountLocale?.(locale);
+}
 
 export function configureAppRuntime(next: AppRuntime): void {
   runtime = next;

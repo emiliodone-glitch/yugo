@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es, type AdminMemberRow } from '@yugo/shared';
+import { es, type AdminMemberRow, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useAdminMemberAction, useAdminMembers } from '@/lib/hooks';
 import { BarTop, DataTable, Panel, Td } from '@/components/admin';
@@ -168,7 +168,7 @@ export default function MembersPage() {
                     {selected.reports} recibidos · {selected.sanctions} sanciones
                   </dd>
                   <dt className="text-muted">Miembro desde</dt>
-                  <dd>{new Date(selected.createdAt).toLocaleDateString('es-DO')}</dd>
+                  <dd>{new Date(selected.createdAt).toLocaleDateString(intlLocale())}</dd>
                   <dt className="text-muted">Estado</dt>
                   <dd>{STATUS_LABEL[selected.status] ?? selected.status}</dd>
                 </dl>

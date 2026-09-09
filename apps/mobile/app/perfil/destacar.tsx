@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es, LIMITS } from '@yugo/shared';
+import { es, LIMITS, intlLocale } from '@yugo/shared';
 import { useActivateBoost, useBoostStatus } from '@yugo/app-core';
 import { Button, Card, Notice, ProgressBar, ScreenHeader, Sub } from '../../components/ui';
 import { errorMessage } from '../../lib/api';
@@ -72,7 +72,7 @@ export default function BoostScreen() {
                 <Text style={styles.upsellTitle}>Tu perfil está destacado ahora</Text>
                 <Sub style={{ fontSize: 11, color: colors.wheatText, marginTop: 4 }}>
                   Hasta el{' '}
-                  {new Intl.DateTimeFormat('es-DO', {
+                  {new Intl.DateTimeFormat(intlLocale(), {
                     weekday: 'long',
                     hour: 'numeric',
                     minute: '2-digit',

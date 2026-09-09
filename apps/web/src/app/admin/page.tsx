@@ -1,6 +1,6 @@
 'use client';
 
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useAdminDashboard } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { BarTop, Kpi, Panel, PriorityChip } from '@/components/admin';
@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   if (isError || !data) return <QueryError error={error} onRetry={() => void refetch()} />;
 
   const { kpis, attention } = data;
-  const fmt = (n: number) => n.toLocaleString('es-DO');
+  const fmt = (n: number) => n.toLocaleString(intlLocale());
 
   return (
     <div>

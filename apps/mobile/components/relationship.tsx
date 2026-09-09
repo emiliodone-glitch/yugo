@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
-import { es, isExclusive, type RelationshipStage } from '@yugo/shared';
+import { es, isExclusive, type RelationshipStage, intlLocale } from '@yugo/shared';
 import {
   useAccompaniment,
   useConsentToMentor,
@@ -74,7 +74,7 @@ export function RelationshipStageCard({
             <View key={entry.createdAt} style={styles.historyRow}>
               <Sub style={{ fontSize: 11 }}>{stageName(entry.toStage)}</Sub>
               <Sub style={{ fontSize: 11 }}>
-                {new Date(entry.createdAt).toLocaleDateString('es-DO', {
+                {new Date(entry.createdAt).toLocaleDateString(intlLocale(), {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
@@ -314,9 +314,7 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
                 : ''}
             </Sub>
           ) : null}
-          <Text style={[styles.oliveBody, { marginTop: 6 }]}>
-            {es.accompaniment.neverSeesChat}
-          </Text>
+          <Text style={[styles.oliveBody, { marginTop: 6 }]}>{es.accompaniment.neverSeesChat}</Text>
           <Button
             label={es.accompaniment.end}
             tone="ghost"
@@ -336,9 +334,7 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
       ) : waitingOnMe ? (
         <>
           <Text style={styles.oliveBody}>{es.accompaniment.partnerInvited(pairName)}</Text>
-          <Text style={[styles.oliveBody, { marginTop: 4 }]}>
-            {es.accompaniment.neverSeesChat}
-          </Text>
+          <Text style={[styles.oliveBody, { marginTop: 4 }]}>{es.accompaniment.neverSeesChat}</Text>
           <View style={styles.actions}>
             <Button
               label={es.accompaniment.agree}
@@ -455,9 +451,7 @@ export function OurStoryCard({ matchId }: { matchId: string }) {
         </>
       ) : writing ? (
         <>
-          <Sub style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>
-            {es.stories.namesLabel}
-          </Sub>
+          <Sub style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>{es.stories.namesLabel}</Sub>
           <Field value={names} onChangeText={setNames} placeholder={es.stories.namesPlaceholder} />
 
           <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>
@@ -544,7 +538,7 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
         <>
           <Text style={styles.stage}>{plan.place}</Text>
           <Sub style={{ fontSize: 11 }}>
-            {new Date(plan.meetsAt).toLocaleString('es-DO', {
+            {new Date(plan.meetsAt).toLocaleString(intlLocale(), {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
@@ -601,7 +595,11 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           <Sub style={{ fontSize: 11, marginTop: 8, marginBottom: 4 }}>
             {es.meetingPlan.placeLabel}
           </Sub>
-          <Field value={place} onChangeText={setPlace} placeholder={es.meetingPlan.placePlaceholder} />
+          <Field
+            value={place}
+            onChangeText={setPlace}
+            placeholder={es.meetingPlan.placePlaceholder}
+          />
           <Sub style={{ fontSize: 11, marginTop: 4 }}>{es.meetingPlan.placeHint}</Sub>
 
           <Sub style={{ fontSize: 11, marginTop: 10, marginBottom: 4 }}>

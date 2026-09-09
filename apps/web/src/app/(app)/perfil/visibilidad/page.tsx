@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { es, LIMITS } from '@yugo/shared';
+import { es, LIMITS, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { CITIES } from '@/lib/cities';
 import {
@@ -18,7 +18,7 @@ import { Toggle } from '@/components/ui';
 import { PageHeader } from '@/components/page-header';
 
 function shortDate(iso: string): string {
-  return new Intl.DateTimeFormat('es-DO', {
+  return new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     timeZone: 'America/Santo_Domingo',

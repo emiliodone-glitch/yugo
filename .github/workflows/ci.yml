@@ -2,8 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # La rama por defecto del repositorio hoy no se llama `main`; sin ella
+    # aquí, ningún push corría lint, pruebas ni E2E.
+    branches: [main, claude/yugo-user-interface-xeq4er]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   # Va primero y sin `needs`: es lo único que no tiene vuelta atrás. Un lint que

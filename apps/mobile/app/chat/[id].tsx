@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import { CLOSING_TEMPLATES, es } from '@yugo/shared';
+import { CLOSING_TEMPLATES, es, intlLocale } from '@yugo/shared';
 import {
   useBlockUser,
   useCancelCall,
@@ -228,7 +228,7 @@ export default function ChatScreen() {
   };
 
   const whenLabel = (iso: string) =>
-    new Intl.DateTimeFormat('es-DO', {
+    new Intl.DateTimeFormat(intlLocale(), {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -569,7 +569,7 @@ export default function ChatScreen() {
                     <Text style={styles.name}>{event.title}</Text>
                     <Sub style={{ fontSize: 11 }}>
                       {event.churchName} ·{' '}
-                      {new Intl.DateTimeFormat('es-DO', {
+                      {new Intl.DateTimeFormat(intlLocale(), {
                         weekday: 'short',
                         day: 'numeric',
                         month: 'short',

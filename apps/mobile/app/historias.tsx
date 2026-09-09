@@ -7,7 +7,7 @@
  */
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useStories } from '@yugo/app-core';
 import { Card, ScreenHeader, Sub } from '../components/ui';
 import { theme } from '../lib/theme';
@@ -15,7 +15,7 @@ import { theme } from '../lib/theme';
 const { colors, fonts } = theme;
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

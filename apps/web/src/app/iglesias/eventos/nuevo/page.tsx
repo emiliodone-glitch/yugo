@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { es, EVENT_TYPES } from '@yugo/shared';
+import { es, EVENT_TYPES, intlLocale } from '@yugo/shared';
 import { useChurchMe, useCreateChurchEvent } from '@/lib/hooks';
 import { errorMessage } from '@/lib/api';
 import { BarTop, Panel } from '@/components/admin';
@@ -29,7 +29,7 @@ export default function NewEventPage() {
 
   const typeName = EVENT_TYPES.find((t) => t.slug === type)?.name ?? type;
   const startLabel = start
-    ? new Intl.DateTimeFormat('es-DO', {
+    ? new Intl.DateTimeFormat(intlLocale(), {
         weekday: 'short',
         day: 'numeric',
         month: 'short',

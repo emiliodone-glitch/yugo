@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es, type RelationshipStage } from '@yugo/shared';
+import { es, type RelationshipStage, intlLocale } from '@yugo/shared';
 import {
   useAccompaniedBonds,
   useEnableMentor,
@@ -25,7 +25,11 @@ const { colors, fonts } = theme;
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(iso).toLocaleDateString(intlLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
 export default function AccompanyScreen() {
   const { data: profile, isLoading: profileLoading } = useMentorProfile();

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useHomeSummary, usePrayerWall, useSession, useSetAttendance } from '@yugo/app-core';
 import { AffinityRing, AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { DevotionalCard } from '../../components/devotional';
@@ -18,7 +18,7 @@ export default function HomeScreen() {
   const displayName = session?.displayName ?? '';
   const summary = data?.summary;
   const featured = data?.featuredEvent;
-  const todayText = new Intl.DateTimeFormat('es-DO', {
+  const todayText = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -98,7 +98,7 @@ export default function HomeScreen() {
                 <View style={styles.rowBetween}>
                   <Chip label={featured.typeName} tone="wine" />
                   <Sub>
-                    {new Intl.DateTimeFormat('es-DO', {
+                    {new Intl.DateTimeFormat(intlLocale(), {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',

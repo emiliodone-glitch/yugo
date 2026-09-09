@@ -7,7 +7,13 @@
  */
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { es, STAGE_ORDER, type CoupleMilestoneState, type RelationshipStage } from '@yugo/shared';
+import {
+  es,
+  STAGE_ORDER,
+  type CoupleMilestoneState,
+  type RelationshipStage,
+  intlLocale,
+} from '@yugo/shared';
 import {
   isDemoMode,
   useCoupleJourney,
@@ -21,7 +27,11 @@ import { theme } from '../lib/theme';
 const { colors, fonts } = theme;
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(iso).toLocaleDateString(intlLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 
 export function CoupleJourneyCard({ matchId, otherName }: { matchId: string; otherName: string }) {

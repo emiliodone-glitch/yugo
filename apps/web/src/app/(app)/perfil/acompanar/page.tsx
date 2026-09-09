@@ -9,7 +9,7 @@
  * would answer one.
  */
 import { useState } from 'react';
-import { es, type RelationshipStage } from '@yugo/shared';
+import { es, type RelationshipStage, intlLocale } from '@yugo/shared';
 import {
   useAccompaniedBonds,
   useEnableMentor,
@@ -22,7 +22,11 @@ import { ProposeIntroduction } from '@/components/propose-introduction';
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(iso).toLocaleDateString(intlLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
 export default function AccompanyPage() {
   const { data: profile, isLoading: profileLoading } = useMentorProfile();

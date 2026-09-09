@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { DEFAULT_PRICES, es, LIMITS } from '@yugo/shared';
+import { DEFAULT_PRICES, es, LIMITS, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useCheckout, usePrices, useSubscriptionState } from '@/lib/hooks';
 import { Segment } from '@/components/ui';
@@ -30,7 +30,7 @@ export default function PaywallPage() {
 
   const priceLabel = (tier: 'PLUS' | 'ORO') => {
     const price = prices[tier][cycle].DOP;
-    const formatted = `RD$ ${price.toLocaleString('es-DO')}`;
+    const formatted = `RD$ ${price.toLocaleString(intlLocale())}`;
     return cycle === 'ANNUAL' ? es.paywall.perYear(formatted) : es.paywall.perMonth(formatted);
   };
 
@@ -47,7 +47,7 @@ export default function PaywallPage() {
       }
       if (result.mode === 'scheduled') {
         setNotice(
-          `Listo: pasarás a Plus el ${new Date(result.effectiveAt).toLocaleDateString('es-DO')}, cuando termine tu período Oro. Hasta entonces conservas todo.`,
+          `Listo: pasarás a Plus el ${new Date(result.effectiveAt).toLocaleDateString(intlLocale())}, cuando termine tu período Oro. Hasta entonces conservas todo.`,
         );
         return;
       }

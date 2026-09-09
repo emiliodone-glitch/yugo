@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useHomeSummary, useSession, useSetAttendance } from '@/lib/hooks';
 import { Avatar, AffinityRing } from '@/components/ui';
 import { DevotionalCard } from '@/components/devotional';
@@ -13,7 +13,7 @@ import { CompleteProfileCard } from '@/components/complete-profile-card';
 import { PageSkeleton } from '@/components/skeleton';
 
 function formatDate(date: Date): string {
-  const text = new Intl.DateTimeFormat('es-DO', {
+  const text = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -62,7 +62,7 @@ function PrayerPeek() {
 }
 
 function formatEventDay(iso: string): string {
-  return new Intl.DateTimeFormat('es-DO', {
+  return new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

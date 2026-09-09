@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import {
   useAdminEventsInReview,
@@ -13,7 +13,7 @@ import { BarTop, DataTable, Td } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
 
 const shortDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     timeZone: 'America/Santo_Domingo',

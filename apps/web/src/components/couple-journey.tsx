@@ -9,7 +9,13 @@
  * iglesia, que la iglesia solo ve cuando la firman los dos.
  */
 import { useState } from 'react';
-import { es, STAGE_ORDER, type CoupleMilestoneState, type RelationshipStage } from '@yugo/shared';
+import {
+  es,
+  STAGE_ORDER,
+  type CoupleMilestoneState,
+  type RelationshipStage,
+  intlLocale,
+} from '@yugo/shared';
 import { isDemoMode } from '@yugo/app-core';
 import {
   useCoupleJourney,
@@ -19,7 +25,11 @@ import {
 } from '@/lib/hooks';
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(iso).toLocaleDateString(intlLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
 const stageName = (stage: RelationshipStage) => es.relationship.stages[stage];
 

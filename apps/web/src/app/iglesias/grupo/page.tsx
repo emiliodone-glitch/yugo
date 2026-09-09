@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useChurchMe, useChurchOfficialGroup } from '@/lib/hooks';
 import { BarTop, Panel } from '@/components/admin';
 import { Avatar } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
 
 const when = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     timeZone: 'America/Santo_Domingo',

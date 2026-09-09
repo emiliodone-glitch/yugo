@@ -1,6 +1,6 @@
 'use client';
 
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useChurchMetrics } from '@/lib/hooks';
 import { BarTop, Kpi, Panel, SparkBars } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
@@ -12,7 +12,7 @@ import { QueryError } from '@/components/query-error';
 export default function ChurchMetricsPage() {
   const metrics = useChurchMetrics();
   const m = metrics.data;
-  const value = (n: number | undefined) => (n === undefined ? '…' : n.toLocaleString('es-DO'));
+  const value = (n: number | undefined) => (n === undefined ? '…' : n.toLocaleString(intlLocale()));
 
   const reach = m?.weeklyReach ?? [];
   const reachMax = Math.max(1, ...reach);

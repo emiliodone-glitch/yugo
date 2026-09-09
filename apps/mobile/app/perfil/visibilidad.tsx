@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CITIES, es, LIMITS } from '@yugo/shared';
+import { CITIES, es, LIMITS, intlLocale } from '@yugo/shared';
 import {
   useCurrentMember,
   useSetInvisibleMode,
@@ -18,7 +18,7 @@ import { theme } from '../../lib/theme';
 const { colors, fonts } = theme;
 
 const shortDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     timeZone: 'America/Santo_Domingo',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useAdminVerificationQueue, useDecideVerification } from '@/lib/hooks';
 import { BarTop, Panel } from '@/components/admin';
@@ -9,7 +9,7 @@ import { PhotoPlaceholder } from '@/components/ui';
 import { QueryError } from '@/components/query-error';
 
 const shortDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
@@ -164,7 +164,8 @@ export default function VerificationQueuePage() {
               <div className="mt-1.5 flex items-center justify-between text-[12.5px]">
                 <span>{es.admin.declaredBirth}</span>
                 <span className="chip">
-                  {new Date(current.birthDate).toLocaleDateString('es-DO')} · {current.age} años
+                  {new Date(current.birthDate).toLocaleDateString(intlLocale())} · {current.age}{' '}
+                  años
                 </span>
               </div>
               {current.priority ? (
@@ -209,7 +210,7 @@ export default function VerificationQueuePage() {
                 {es.admin.memberHistory(
                   current.history.reports,
                   current.history.sanctions,
-                  new Date(current.history.since).toLocaleDateString('es-DO'),
+                  new Date(current.history.since).toLocaleDateString(intlLocale()),
                 )}
               </p>
               {items.length > 1 ? (

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useChurchEvents, useChurchMe } from '@/lib/hooks';
 import { BarTop, Kpi, Panel } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
 
-const when = new Intl.DateTimeFormat('es-DO', {
+const when = new Intl.DateTimeFormat(intlLocale(), {
   weekday: 'short',
   day: 'numeric',
   month: 'short',

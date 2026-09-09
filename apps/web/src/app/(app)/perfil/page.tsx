@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { DEMO_MODE } from '@/lib/api';
 import { useDemoStore } from '@/lib/demo-store';
 import {
@@ -23,7 +23,7 @@ import { LanguageSwitch } from '@/lib/locale';
 
 function shortDate(iso?: string | null): string | null {
   if (!iso) return null;
-  return new Intl.DateTimeFormat('es-DO', {
+  return new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     timeZone: 'America/Santo_Domingo',
@@ -177,7 +177,7 @@ export default function ProfilePage() {
               {subscription?.tier
                 ? `Activo${
                     subscription.renewsAt
-                      ? ` · renueva el ${new Date(subscription.renewsAt).toLocaleDateString('es-DO')}`
+                      ? ` · renueva el ${new Date(subscription.renewsAt).toLocaleDateString(intlLocale())}`
                       : ''
                   }`
                 : es.profile.plusOroSub}

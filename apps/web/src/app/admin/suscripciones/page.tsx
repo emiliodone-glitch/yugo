@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useAdminPayments, useAdminSubscriptionSummary, useApproveRefund } from '@/lib/hooks';
 import { BarTop, DataTable, Kpi, Td } from '@/components/admin';
@@ -28,7 +28,7 @@ const STATUS: Record<string, string> = {
 };
 
 const money = (amount: number, currency: string) =>
-  `${currency === 'DOP' ? 'RD$' : 'US$'} ${amount.toLocaleString('es-DO', { minimumFractionDigits: currency === 'DOP' ? 0 : 2 })}`;
+  `${currency === 'DOP' ? 'RD$' : 'US$'} ${amount.toLocaleString(intlLocale(), { minimumFractionDigits: currency === 'DOP' ? 0 : 2 })}`;
 
 /** Suscripciones y pagos (RF-ADM-09): resumen real y reembolsos con doble aprobación. */
 export default function SubscriptionsAdminPage() {
@@ -68,7 +68,7 @@ export default function SubscriptionsAdminPage() {
           <Kpi label="Suscriptores Oro" value={summary.data?.oro ?? '…'} />
           <Kpi
             label="Ingresos del mes (RD$)"
-            value={summary.data ? summary.data.revenueMonthDop.toLocaleString('es-DO') : '…'}
+            value={summary.data ? summary.data.revenueMonthDop.toLocaleString(intlLocale()) : '…'}
           />
           <Kpi
             label="Reembolsos pendientes"
@@ -100,7 +100,7 @@ export default function SubscriptionsAdminPage() {
               <Td>{payment.plan ? (PLAN[payment.plan] ?? payment.plan) : '—'}</Td>
               <Td>{PROVIDER[payment.provider] ?? payment.provider}</Td>
               <Td>{money(payment.amount, payment.currency)}</Td>
-              <Td>{new Date(payment.createdAt).toLocaleDateString('es-DO')}</Td>
+              <Td>{new Date(payment.createdAt).toLocaleDateString(intlLocale())}</Td>
               <Td className={payment.status === 'REFUND_REQUESTED' ? 'text-wine' : ''}>
                 {STATUS[payment.status] ?? payment.status}
               </Td>

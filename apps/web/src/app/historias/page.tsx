@@ -9,12 +9,12 @@
  * behind it — one nobody can check is marketing.
  */
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useStories } from '@/lib/hooks';
 import { YugoMark } from '@/components/icons';
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

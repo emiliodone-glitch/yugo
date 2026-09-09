@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useCancelSubscription, useMyPayments, useSubscriptionState } from '@/lib/hooks';
 import { PageHeader } from '@/components/page-header';
@@ -27,7 +27,7 @@ const STATUS: Record<string, string> = {
   REFUNDED: 'Reembolsado',
 };
 
-const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('es-DO') : '—');
+const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(intlLocale()) : '—');
 
 /**
  * Mi suscripción (RF-PLU-05/07): qué nivel tengo, hasta cuándo, recibos y
@@ -173,7 +173,7 @@ export default function SubscriptionPage() {
                   <div className="text-right">
                     <b className="text-[12.5px]">
                       {payment.currency === 'DOP' ? 'RD$' : 'US$'}{' '}
-                      {payment.amount.toLocaleString('es-DO')}
+                      {payment.amount.toLocaleString(intlLocale())}
                     </b>
                     <div className="text-[11px] text-muted">
                       {STATUS[payment.status] ?? payment.status}

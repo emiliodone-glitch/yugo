@@ -12,11 +12,16 @@ import {
 } from '@yugo/app-core';
 import { DEMO_MODE, getApiClient, onSignOut } from './api';
 import { bindNetworkState, queryPersister, startOutboxSync } from './offline';
+import { applyAccountLocale } from './locale';
 import { listenToNotificationTaps, registerForPush } from './push';
 
 // Points the shared hooks at this app's client. At module scope so it is in
 // place before any screen renders.
-configureAppRuntime({ demoMode: DEMO_MODE, client: getApiClient });
+configureAppRuntime({
+  demoMode: DEMO_MODE,
+  client: getApiClient,
+  onAccountLocale: (locale) => void applyAccountLocale(locale),
+});
 // Eventos de producto anónimos (RF-ADM-12): un id por instalación, nunca PII.
 configureAnalytics({
   platform: Platform.OS === 'ios' ? 'ios' : 'android',

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es, NOTIFICATION_CATEGORIES, type NotificationCategory } from '@yugo/shared';
+import { es, NOTIFICATION_CATEGORIES, type NotificationCategory, intlLocale } from '@yugo/shared';
 import {
   useDigestSetting,
   useMarkAllNotificationsRead,
@@ -33,9 +33,11 @@ const CATEGORY_TONE: Record<string, 'default' | 'olive' | 'wheat' | 'wine'> = {
 
 /** Formats a whole hour the way es-DO reads it: "10:00 pm". */
 const hourLabel = (hour: number) =>
-  new Intl.DateTimeFormat('es-DO', { hour: 'numeric', minute: '2-digit', hour12: true }).format(
-    new Date(2026, 0, 1, hour, 0),
-  );
+  new Intl.DateTimeFormat(intlLocale(), {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(2026, 0, 1, hour, 0));
 
 /** Notification centre and per-category preferences (RF-NOT-01/02). */
 export default function NotificationsScreen() {
@@ -106,7 +108,7 @@ export default function NotificationsScreen() {
                     tone={CATEGORY_TONE[notification.category] ?? 'default'}
                   />
                   <Sub style={{ fontSize: 11 }}>
-                    {new Intl.DateTimeFormat('es-DO', {
+                    {new Intl.DateTimeFormat(intlLocale(), {
                       day: 'numeric',
                       month: 'short',
                       hour: 'numeric',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useMyPayments, useSubscriptionState } from '@/lib/hooks';
 import { YugoMark } from '@/components/icons';
 
@@ -55,13 +55,13 @@ export default function ThanksPage() {
                 </span>
                 <b>
                   {receipt.currency === 'DOP' ? 'RD$' : 'US$'}{' '}
-                  {receipt.amount.toLocaleString('es-DO')}
+                  {receipt.amount.toLocaleString(intlLocale())}
                 </b>
               </div>
               <div className="mt-1 text-[11px] text-muted">
-                {new Date(receipt.createdAt).toLocaleDateString('es-DO')}
+                {new Date(receipt.createdAt).toLocaleDateString(intlLocale())}
                 {receipt.periodEndsAt
-                  ? ` · acceso hasta el ${new Date(receipt.periodEndsAt).toLocaleDateString('es-DO')}`
+                  ? ` · acceso hasta el ${new Date(receipt.periodEndsAt).toLocaleDateString(intlLocale())}`
                   : ''}
                 . También te lo enviamos por correo.
               </div>

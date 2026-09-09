@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { es, EVENT_TYPES } from '@yugo/shared';
+import { es, EVENT_TYPES, intlLocale } from '@yugo/shared';
 import { useChurchEvents, useSubmitChurchEvent } from '@/lib/hooks';
 import { BarTop, DataTable, Td } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
 
-const when = new Intl.DateTimeFormat('es-DO', {
+const when = new Intl.DateTimeFormat(intlLocale(), {
   day: 'numeric',
   month: 'short',
   hour: 'numeric',

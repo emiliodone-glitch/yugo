@@ -2,7 +2,7 @@
 
 import { notFound } from 'next/navigation';
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useDemoStore } from '@/lib/demo-store';
 import { useCreatePost, useCurrentMember, useGroupDetail, useJoinRequests } from '@/lib/hooks';
 import { Avatar, Segment } from '@/components/ui';
@@ -162,7 +162,7 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
                     <div>
                       <b className="text-xs">{post.author.displayName}</b>
                       <div className="text-[11px] text-muted">
-                        {new Intl.DateTimeFormat('es-DO', {
+                        {new Intl.DateTimeFormat(intlLocale(), {
                           day: 'numeric',
                           month: 'short',
                           hour: 'numeric',
@@ -205,7 +205,7 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
                 <div className="flex items-center justify-between">
                   <span className="chip chip-wheat">{es.community.activityChip}</span>
                   <span className="text-[11px] capitalize text-muted">
-                    {new Intl.DateTimeFormat('es-DO', {
+                    {new Intl.DateTimeFormat(intlLocale(), {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',

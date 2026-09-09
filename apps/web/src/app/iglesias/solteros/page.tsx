@@ -9,12 +9,12 @@
  * is talking to whom. That line is what makes the endorsement worth anything.
  */
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useSinglesMinistry } from '@/lib/hooks';
 import { BarTop, Kpi, Panel } from '@/components/admin';
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
@@ -46,17 +46,20 @@ export default function SinglesMinistryPage() {
             <div className="mb-4 grid grid-cols-2 gap-3.5 xl:grid-cols-4">
               <Kpi
                 label={es.singlesMinistry.endorsedSingles}
-                value={data.endorsedSingles.toLocaleString('es-DO')}
+                value={data.endorsedSingles.toLocaleString(intlLocale())}
               />
               <Kpi
                 label={es.singlesMinistry.pastEncounters}
-                value={data.pastEncounters.toLocaleString('es-DO')}
+                value={data.pastEncounters.toLocaleString(intlLocale())}
               />
-              <Kpi label={es.singlesMinistry.going} value={data.going.toLocaleString('es-DO')} />
+              <Kpi
+                label={es.singlesMinistry.going}
+                value={data.going.toLocaleString(intlLocale())}
+              />
               <Kpi
                 label={es.singlesMinistry.checkInRate}
                 value={`${data.checkInRate}%`}
-                small={`${data.checkIns.toLocaleString('es-DO')} check-ins`}
+                small={`${data.checkIns.toLocaleString(intlLocale())} check-ins`}
               />
             </div>
 
@@ -64,7 +67,7 @@ export default function SinglesMinistryPage() {
             {data.waitlisted > 0 ? (
               <div className="mb-4 rounded-[14px] border border-wheat bg-wheat-soft px-4 py-3">
                 <b className="text-[12.5px] text-wheat-text">
-                  {data.waitlisted.toLocaleString('es-DO')}{' '}
+                  {data.waitlisted.toLocaleString(intlLocale())}{' '}
                   {es.singlesMinistry.waitlisted.toLowerCase()}
                 </b>
                 <p className="mt-0.5 text-[11.5px] text-wheat-text">

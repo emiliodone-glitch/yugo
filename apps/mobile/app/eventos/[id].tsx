@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import {
   calendarUrl,
   useCheckIn,
@@ -46,7 +46,7 @@ export default function EventDetailScreen() {
   }
 
   const mine = eventStatus[event.id];
-  const dateLabel = new Intl.DateTimeFormat('es-DO', {
+  const dateLabel = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

@@ -45,6 +45,15 @@ export function chooseLocale(locale: Locale): void {
   document.documentElement.lang = locale;
 }
 
+/**
+ * El idioma guardado en la cuenta manda solo si en este navegador no se
+ * eligió ninguno: la elección local es más reciente que la de la cuenta.
+ */
+export function applyAccountLocale(locale: string): void {
+  if (!isLocale(locale) || storedLocale() || locale === getLocale()) return;
+  chooseLocale(locale);
+}
+
 export function useLocale(): Locale {
   return useSyncExternalStore(onLocaleChange, getLocale, () => DEFAULT_LOCALE);
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useAdminStaff, useAuditLog } from '@/lib/hooks';
 import { BarTop, DataTable, Panel, Td } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
@@ -19,7 +19,7 @@ const ROLES: Array<{ role: string; label: string; scope: string }> = [
 ];
 
 const when = (iso: string) =>
-  new Intl.DateTimeFormat('es-DO', {
+  new Intl.DateTimeFormat(intlLocale(), {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',

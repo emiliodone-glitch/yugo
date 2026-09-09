@@ -153,9 +153,19 @@ por separado; esta entrada crece con cada una.
   App: fila «Idioma» en Perfil; arranca en lo guardado o en el idioma del
   sistema. Con sesión, la elección se guarda en la cuenta
   (`PUT /profiles/me/locale`, columna `User.locale`, migración `0019_idioma`).
+- **Fechas y números en el idioma elegido.** Toda la web y la app formatean
+  con el idioma activo (`intlLocale()`); el servidor sigue en es-DO porque
+  allí no hay una persona activa.
+- **La cuenta y el dispositivo coinciden.** Al cargar la sesión, el idioma
+  guardado en la cuenta se aplica solo si en ese navegador o teléfono no se
+  eligió ninguno: la elección local, más reciente, manda. En la app,
+  cambiar de idioma vuelve a Perfil.
 - **Lo que sigue en español a propósito:** nombres de lugares e iglesias,
-  el texto legal del Pacto (se firma en español), las fechas y lo que
-  escribe el servidor (avisos, correos), pendiente de una segunda etapa.
+  el texto legal del Pacto (se firma en español) y lo que escribe el
+  servidor (avisos, correos), pendiente de una segunda etapa.
+- CI corre también en la rama por defecto del repositorio (antes solo en
+  `main`, que no existe, así que ningún push pasaba por lint, pruebas ni
+  E2E).
 
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 

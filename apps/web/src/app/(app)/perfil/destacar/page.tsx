@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { es, LIMITS } from '@yugo/shared';
+import { es, LIMITS, intlLocale } from '@yugo/shared';
 import { useActivateBoost, useBoostStatus } from '@/lib/hooks';
 import { errorMessage } from '@/lib/api';
 import { PageHeader } from '@/components/page-header';
@@ -36,8 +36,8 @@ export default function BoostPage() {
             <b className="text-[12.5px]">Aparece primero por 24 horas</b>
           </div>
           <p className="mt-1.5 text-[11px] leading-relaxed text-ink-muted">
-            Tu perfil se muestra en las primeras posiciones de Descubrir de las personas
-            compatibles contigo. La regla mutua de edad y el resto de filtros siguen aplicando.
+            Tu perfil se muestra en las primeras posiciones de Descubrir de las personas compatibles
+            contigo. La regla mutua de edad y el resto de filtros siguen aplicando.
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function BoostPage() {
                 <b className="text-[12.5px] text-wheat-text">Tu perfil está destacado ahora</b>
                 <div className="mt-1 text-[11px] text-wheat-text">
                   Hasta el{' '}
-                  {new Intl.DateTimeFormat('es-DO', {
+                  {new Intl.DateTimeFormat(intlLocale(), {
                     weekday: 'long',
                     hour: 'numeric',
                     minute: '2-digit',

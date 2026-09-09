@@ -9,7 +9,7 @@
  * still measured, no longer the finish line.
  */
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useAdminReport } from '@/lib/hooks';
 import { BarTop, Kpi, Panel, SparkBars } from '@/components/admin';
 
@@ -89,7 +89,7 @@ export default function ReportsPage() {
           />
           <Kpi
             label="En noviazgo o compromiso"
-            value={stageValue('En noviazgo o compromiso').toLocaleString('es-DO')}
+            value={stageValue('En noviazgo o compromiso').toLocaleString(intlLocale())}
             small="Personas que salieron de Descubrir"
           />
         </div>
@@ -130,7 +130,7 @@ export default function ReportsPage() {
                         {columns.map((column) => (
                           <td key={column} className="py-1.5 pr-3">
                             {typeof row[column] === 'number'
-                              ? row[column].toLocaleString('es-DO')
+                              ? row[column].toLocaleString(intlLocale())
                               : row[column]}
                           </td>
                         ))}
@@ -152,7 +152,7 @@ export default function ReportsPage() {
                   <div className="flex justify-between text-[12.5px]">
                     <span>{row.Etapa}</span>
                     <b>
-                      {Number(row.Miembros).toLocaleString('es-DO')} · {pct}%
+                      {Number(row.Miembros).toLocaleString(intlLocale())} · {pct}%
                     </b>
                   </div>
                   <div className="bar mt-1">
@@ -186,7 +186,7 @@ export default function ReportsPage() {
                 <div className="mt-1.5 flex justify-between text-[11px] text-muted">
                   <span>{es.admin.weeklyLegend}</span>
                   <span>
-                    {growthRows.length} semanas · {totalRegistrations.toLocaleString('es-DO')}{' '}
+                    {growthRows.length} semanas · {totalRegistrations.toLocaleString(intlLocale())}{' '}
                     registros
                   </span>
                 </div>

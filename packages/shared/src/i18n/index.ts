@@ -117,6 +117,15 @@ export function activeDictionary(): Dictionary {
   return DICTIONARIES[active];
 }
 
+/**
+ * The BCP 47 tag to hand to `Intl` and `toLocaleDateString`, so dates and
+ * numbers follow the language the person reads in. Server code keeps its own
+ * fixed 'es-DO': there is no active person there.
+ */
+export function intlLocale(): Locale {
+  return active;
+}
+
 // ---------------------------------------------------------------------------
 // `es`: the reference's type, the active locale's strings
 // ---------------------------------------------------------------------------

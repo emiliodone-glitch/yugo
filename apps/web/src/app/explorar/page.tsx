@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { usePublicDevotional, usePublicEvents, usePublicGroups, useStories } from '@/lib/hooks';
 import { CalendarIcon, PinIcon } from '@/components/icons';
 
-const when = new Intl.DateTimeFormat('es-DO', {
+const when = new Intl.DateTimeFormat(intlLocale(), {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
@@ -38,7 +38,10 @@ export default function ExplorePage() {
 
       {/* Devocional */}
       <section aria-labelledby="explore-devotional">
-        <h2 id="explore-devotional" className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <h2
+          id="explore-devotional"
+          className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
+        >
           {es.explore.devotionalToday}
         </h2>
         <div className="card">
@@ -56,19 +59,26 @@ export default function ExplorePage() {
                 <p className="mt-1 text-[15px]">{devotional.data.question}</p>
               </div>
               {devotional.data.readCount > 0 ? (
-                <div className="mt-3 text-[13px] text-muted">{es.explore.readBy(devotional.data.readCount)}</div>
+                <div className="mt-3 text-[13px] text-muted">
+                  {es.explore.readBy(devotional.data.readCount)}
+                </div>
               ) : null}
             </>
           ) : (
             <div className="text-sm text-muted">{es.explore.noDevotional}</div>
           )}
-          <p className="mt-3 border-t border-line pt-3 text-[12.5px] text-muted">{es.explore.devotionalHint}</p>
+          <p className="mt-3 border-t border-line pt-3 text-[12.5px] text-muted">
+            {es.explore.devotionalHint}
+          </p>
         </div>
       </section>
 
       {/* Eventos */}
       <section aria-labelledby="explore-events">
-        <h2 id="explore-events" className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <h2
+          id="explore-events"
+          className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
+        >
           {es.explore.events}
         </h2>
         {events.isLoading ? (
@@ -81,9 +91,14 @@ export default function ExplorePage() {
               <li key={event.id} className="card flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="chip chip-wine">{event.typeName}</span>
-                  <span className="text-[11px] capitalize text-muted">{when.format(new Date(event.startsAt))}</span>
+                  <span className="text-[11px] capitalize text-muted">
+                    {when.format(new Date(event.startsAt))}
+                  </span>
                 </div>
-                <Link href={`/e/${event.id}`} className="h-display text-[16px] leading-snug hover:underline">
+                <Link
+                  href={`/e/${event.id}`}
+                  className="h-display text-[16px] leading-snug hover:underline"
+                >
                   {event.title}
                 </Link>
                 <div className="flex items-center gap-1 text-[12.5px] text-muted">
@@ -94,7 +109,9 @@ export default function ExplorePage() {
                 <div className="mt-auto flex items-center justify-between text-[12.5px]">
                   <span className="text-muted">
                     {event.costLabel}
-                    {event.interestedCount > 0 ? ` · ${es.explore.interested(event.interestedCount)}` : ''}
+                    {event.interestedCount > 0
+                      ? ` · ${es.explore.interested(event.interestedCount)}`
+                      : ''}
                   </span>
                   <Link href={`/e/${event.id}`} className="font-semibold text-ink">
                     {es.explore.seeEvent} ›
@@ -109,7 +126,10 @@ export default function ExplorePage() {
 
       {/* Cómo funciona Descubrir */}
       <section aria-labelledby="explore-how">
-        <h2 id="explore-how" className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <h2
+          id="explore-how"
+          className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
+        >
           {es.explore.how}
         </h2>
         <div className="grid gap-4 md:grid-cols-[1fr_260px]">
@@ -127,7 +147,9 @@ export default function ExplorePage() {
           {/* Tarjeta de ejemplo: silueta, sin nombre, marcada como ilustración. */}
           <figure className="card overflow-hidden p-0" aria-label={es.explore.exampleLabel}>
             <div className="relative flex h-44 items-end bg-gradient-to-b from-[#B7B0A0] to-[#8E8776] p-3 text-white">
-              <span className="chip absolute left-3 top-3 bg-white/85 text-ink">{es.explore.exampleLabel}</span>
+              <span className="chip absolute left-3 top-3 bg-white/85 text-ink">
+                {es.explore.exampleLabel}
+              </span>
               <div>
                 <div className="h-display text-[20px]">{es.explore.exampleName}</div>
                 <div className="text-[12px] opacity-90">{es.explore.exampleLine}</div>
@@ -146,7 +168,10 @@ export default function ExplorePage() {
 
       {/* Historias */}
       <section aria-labelledby="explore-stories">
-        <h2 id="explore-stories" className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <h2
+          id="explore-stories"
+          className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
+        >
           {es.explore.stories}
         </h2>
         <div className="card">
@@ -170,7 +195,10 @@ export default function ExplorePage() {
 
       {/* Comunidad */}
       <section aria-labelledby="explore-community">
-        <h2 id="explore-community" className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
+        <h2
+          id="explore-community"
+          className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
+        >
           {es.explore.community}
         </h2>
         {groups.isLoading ? (
@@ -185,11 +213,14 @@ export default function ExplorePage() {
                 <div className="min-w-0">
                   <div className="truncate text-[14px] font-semibold">
                     {group.name}
-                    {group.isOfficial ? <span className="chip chip-olive ml-1.5">{es.common.official}</span> : null}
+                    {group.isOfficial ? (
+                      <span className="chip chip-olive ml-1.5">{es.common.official}</span>
+                    ) : null}
                   </div>
                   <div className="text-[12px] text-muted">
                     {group.category}
-                    {group.city ? ` · ${group.city}` : ''} · {es.explore.membersCount(group.memberCount)}
+                    {group.city ? ` · ${group.city}` : ''} ·{' '}
+                    {es.explore.membersCount(group.memberCount)}
                   </div>
                 </div>
               </li>
@@ -207,7 +238,10 @@ export default function ExplorePage() {
           <Link href="/registro" className="btn btn-wheat w-auto px-5">
             {es.explore.create}
           </Link>
-          <Link href="/entrar" className="btn w-auto border-[1.5px] border-white/40 bg-transparent px-5 text-white">
+          <Link
+            href="/entrar"
+            className="btn w-auto border-[1.5px] border-white/40 bg-transparent px-5 text-white"
+          >
             {es.welcome.haveAccount}
           </Link>
         </div>

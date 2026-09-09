@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useEvents, useSetAttendance } from '@/lib/hooks';
 import { Avatar } from '@/components/ui';
 import { CardSkeleton } from '@/components/skeleton';
@@ -11,7 +11,7 @@ import { EventCover } from '@/components/event-cover';
 function dayParts(iso: string): { weekday: string; day: number } {
   const date = new Date(iso);
   return {
-    weekday: new Intl.DateTimeFormat('es-DO', {
+    weekday: new Intl.DateTimeFormat(intlLocale(), {
       weekday: 'short',
       timeZone: 'America/Santo_Domingo',
     })
@@ -19,7 +19,7 @@ function dayParts(iso: string): { weekday: string; day: number } {
       .replace('.', '')
       .toUpperCase(),
     day: Number(
-      new Intl.DateTimeFormat('es-DO', {
+      new Intl.DateTimeFormat(intlLocale(), {
         day: 'numeric',
         timeZone: 'America/Santo_Domingo',
       }).format(date),
@@ -28,7 +28,7 @@ function dayParts(iso: string): { weekday: string; day: number } {
 }
 
 function timeLabel(iso: string): string {
-  return new Intl.DateTimeFormat('es-DO', {
+  return new Intl.DateTimeFormat(intlLocale(), {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
@@ -116,9 +116,7 @@ export default function EventsPage() {
           <p className="hidden text-center text-[11px] text-muted xl:block">{es.events.reminder}</p>
         </aside>
         <div className="xl:order-1">
-          {isLoading ? (
-            <CardSkeleton lines={2} />
-          ) : null}
+          {isLoading ? <CardSkeleton lines={2} /> : null}
 
           <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
             {events.map((event) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { useChurchCodes, useChurchMe } from '@/lib/hooks';
 import { QueryError } from '@/components/query-error';
 import { YugoMark } from '@/components/icons';
@@ -19,7 +19,7 @@ export default function PrintCodesPage() {
   );
   const churchName = me.data?.church.name ?? 'tu iglesia';
   const expires = active[0]
-    ? new Intl.DateTimeFormat('es-DO', { day: 'numeric', month: 'long' }).format(
+    ? new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'long' }).format(
         new Date(active[0].expiresAt),
       )
     : null;

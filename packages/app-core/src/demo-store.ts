@@ -35,6 +35,7 @@ import {
   type MeetingPlanInput,
   type RelationshipStage,
   type StoryDraftInput,
+  intlLocale,
 } from '@yugo/shared';
 
 /** Per-connection stage state, mirroring what the API returns. */
@@ -121,7 +122,10 @@ interface DemoState {
 
   /** Calendario de devocionales del panel. */
   devotionalSchedule: DevotionalSchedule;
-  upsertDevotional: (date: string, draft: DevotionalDraft) => { id: string; publishOn: string; created: boolean };
+  upsertDevotional: (
+    date: string,
+    draft: DevotionalDraft,
+  ) => { id: string; publishOn: string; created: boolean };
   removeDevotional: (id: string) => void;
 
   /** Muro de oración. */
@@ -139,7 +143,7 @@ interface DemoState {
  * con nervios.
  */
 function demoShareText(input: MeetingPlanInput): string {
-  const when = new Intl.DateTimeFormat('es-DO', {
+  const when = new Intl.DateTimeFormat(intlLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -291,7 +295,8 @@ const demoQuestionAnswers: Record<string, Record<string, { mine?: string; theirs
     },
     'familia-origen': {
       mine: 'Quiero repetir la mesa de los domingos. No quiero repetir el silencio cuando algo dolía.',
-      theirs: 'De mi casa me llevo la fe de mi mamá. Dejo atrás lo estrictos que fueron con mi hermana.',
+      theirs:
+        'De mi casa me llevo la fe de mi mamá. Dejo atrás lo estrictos que fueron con mi hermana.',
     },
   },
 };
@@ -502,14 +507,18 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     const items = [...current.items.filter((d) => d.publishOn !== date), item].sort((a, b) =>
       a.publishOn.localeCompare(b.publishOn),
     );
-    set({ devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) } });
+    set({
+      devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) },
+    });
     return { id: item.id, publishOn: date, created: !existing };
   },
 
   removeDevotional: (id) => {
     const current = get().devotionalSchedule;
     const items = current.items.filter((d) => d.id !== id);
-    set({ devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) } });
+    set({
+      devotionalSchedule: { ...current, items, runwayDays: demoRunway(items, current.today) },
+    });
   },
 
   resolveHeld: (caseId, approve) => {
@@ -738,7 +747,13 @@ export const useDemoStore = create<DemoState>((set, get) => ({
           item.id === pending.id
             ? // En la demo el matrimonio contesta enseguida; en producción hace
               // falta que los tres digan que sí.
-              { ...item, status: 'ACTIVE' as const, myConsent: true, theirConsent: true, mentorAccepted: true }
+              {
+                ...item,
+                status: 'ACTIVE' as const,
+                myConsent: true,
+                theirConsent: true,
+                mentorAccepted: true,
+              }
             : item,
         )
       : current.items.filter((item) => item.id !== pending.id);

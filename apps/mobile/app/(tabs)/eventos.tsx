@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APP_TIMEZONE, es } from '@yugo/shared';
+import { APP_TIMEZONE, es, intlLocale } from '@yugo/shared';
 import { useDemoStore, useEvents, useSetAttendance } from '@yugo/app-core';
 import { AvatarCircle, Button, Card, Chip, H, Sub } from '../../components/ui';
 import { theme } from '../../lib/theme';
@@ -16,12 +16,12 @@ function dayParts(iso: string) {
   // zone showed "SÁB" here and "viernes" on the detail for the same event.
   const timeZone = APP_TIMEZONE;
   return {
-    weekday: new Intl.DateTimeFormat('es-DO', { weekday: 'short', timeZone })
+    weekday: new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', timeZone })
       .format(date)
       .replace('.', '')
       .toUpperCase(),
-    day: new Intl.DateTimeFormat('es-DO', { day: 'numeric', timeZone }).format(date),
-    time: new Intl.DateTimeFormat('es-DO', {
+    day: new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', timeZone }).format(date),
+    time: new Intl.DateTimeFormat(intlLocale(), {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
@@ -73,9 +73,7 @@ export default function EventsScreen() {
           <Chip label={es.events.list} style={styles.mapChip} />
         </View>
 
-        {isLoading ? (
-          <CardSkeleton lines={2} />
-        ) : null}
+        {isLoading ? <CardSkeleton lines={2} /> : null}
 
         {events.map((event) => {
           const parts = dayParts(event.startsAt);
@@ -107,7 +105,10 @@ export default function EventsScreen() {
                       {event.connectionsGoing.length > 0 ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           {event.connectionsGoing.slice(0, 2).map((connection, index) => (
-                            <View key={connection.userId} style={{ marginLeft: index > 0 ? -8 : 0 }}>
+                            <View
+                              key={connection.userId}
+                              style={{ marginLeft: index > 0 ? -8 : 0 }}
+                            >
                               <AvatarCircle name={connection.displayName} size={22} />
                             </View>
                           ))}

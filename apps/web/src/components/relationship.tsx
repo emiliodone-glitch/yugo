@@ -8,7 +8,7 @@
  * other person a card, and only their agreement moves it.
  */
 import { useState } from 'react';
-import { es, isExclusive, type RelationshipStage } from '@yugo/shared';
+import { es, isExclusive, type RelationshipStage, intlLocale } from '@yugo/shared';
 import { isDemoMode } from '@yugo/app-core';
 import {
   useAccompaniment,
@@ -78,7 +78,7 @@ export function RelationshipStageCard({
             <li key={entry.createdAt} className="flex justify-between py-0.5">
               <span>{stageName(entry.toStage)}</span>
               <time dateTime={entry.createdAt}>
-                {new Date(entry.createdAt).toLocaleDateString('es-DO', {
+                {new Date(entry.createdAt).toLocaleDateString(intlLocale(), {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
@@ -233,13 +233,17 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
         <>
           <p className="mt-1 text-[12.5px] text-olive-text">
             {es.accompaniment.active(
-              current.spouseName ? `${current.mentorName} y ${current.spouseName}` : current.mentorName,
+              current.spouseName
+                ? `${current.mentorName} y ${current.spouseName}`
+                : current.mentorName,
             )}
           </p>
           {current.churchName ? (
             <p className="text-[11px] text-muted">
               {current.churchName}
-              {current.marriedSince ? ` · ${es.accompaniment.marriedSince(current.marriedSince)}` : ''}
+              {current.marriedSince
+                ? ` · ${es.accompaniment.marriedSince(current.marriedSince)}`
+                : ''}
             </p>
           ) : null}
           <p className="mt-1.5 text-[11px] text-olive-text">{es.accompaniment.neverSeesChat}</p>
@@ -257,7 +261,9 @@ export function AccompanimentCard({ matchId }: { matchId: string }) {
         <>
           <p className="mt-1 text-[12.5px] text-olive-text">
             {es.accompaniment.partnerInvited(
-              current.spouseName ? `${current.mentorName} y ${current.spouseName}` : current.mentorName,
+              current.spouseName
+                ? `${current.mentorName} y ${current.spouseName}`
+                : current.mentorName,
             )}
           </p>
           <p className="mt-1 text-[11px] text-olive-text">{es.accompaniment.neverSeesChat}</p>
@@ -469,7 +475,11 @@ export function OurStoryCard({ matchId }: { matchId: string }) {
             <button type="submit" className="btn btn-sm" disabled={submit.isPending}>
               {es.stories.submit}
             </button>
-            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setWriting(false)}>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setWriting(false)}
+            >
               {es.common.cancel}
             </button>
           </div>
@@ -532,7 +542,7 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
           <p className="mt-1 text-[12.5px] text-body">
             <b>{plan.place}</b>
             <span className="block text-[11.5px] text-muted">
-              {new Date(plan.meetsAt).toLocaleString('es-DO', {
+              {new Date(plan.meetsAt).toLocaleString(intlLocale(), {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
@@ -648,7 +658,11 @@ export function MeetingPlanCard({ matchId }: { matchId: string }) {
             <button type="submit" className="btn btn-sm" disabled={save.isPending}>
               {es.meetingPlan.save}
             </button>
-            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(false)}>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setEditing(false)}
+            >
               {es.common.cancel}
             </button>
           </div>

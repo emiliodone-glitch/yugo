@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { errorMessage } from '@/lib/api';
 import { useAdminChurches, useDecideChurch } from '@/lib/hooks';
 import { BarTop, DataTable, Td } from '@/components/admin';
@@ -77,7 +77,7 @@ export default function OrganizationsPage() {
               <Td>
                 <b>{org.name}</b>
                 <div className="text-[11px] text-muted">
-                  Registrada el {new Date(org.createdAt).toLocaleDateString('es-DO')}
+                  Registrada el {new Date(org.createdAt).toLocaleDateString(intlLocale())}
                 </div>
               </Td>
               <Td>{org.denomination ?? '—'}</Td>

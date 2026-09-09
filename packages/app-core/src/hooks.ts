@@ -67,7 +67,7 @@ import {
   type SubscriptionTier,
 } from '@yugo/shared';
 import { useEffect, useRef, useState } from 'react';
-import { api, isDemoMode } from './runtime';
+import { api, isDemoMode, notifyAccountLocale } from './runtime';
 import { emitTyping, joinConversation, subscribeNotifications } from './realtime';
 import { track } from './analytics';
 import type { CheckoutResult, DiscoverResponse, GroupDetail, PaymentReceipt } from '@yugo/shared';
@@ -98,6 +98,7 @@ export function useSession(options: { enabled?: boolean } = {}) {
         };
       }
       const me = await api().auth.me();
+      notifyAccountLocale(me.locale);
       return {
         demo: false as const,
         displayName: me.profile?.displayName ?? 'Miembro',

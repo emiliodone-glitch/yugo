@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { es } from '@yugo/shared';
+import { es, intlLocale } from '@yugo/shared';
 import { DEMO_MODE, errorMessage, hasStoredSession } from '@/lib/api';
 import { useCheckIn, usePublicEvent, useSession } from '@/lib/hooks';
 import { YugoMark, PinIcon } from '@/components/icons';
 import { EventCover } from '@/components/event-cover';
 
-const when = new Intl.DateTimeFormat('es-DO', {
+const when = new Intl.DateTimeFormat(intlLocale(), {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
