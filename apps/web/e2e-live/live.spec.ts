@@ -33,11 +33,21 @@ function watchForErrors(page: Page) {
   return failures;
 }
 
+/**
+ * Dónde debería estar la API según quien corre la prueba (p. ej.
+ * http://localhost:4000 en CI). Sin este dato, solo se comprueba que la web no
+ * cayó en la URL rota (`https:///v1`) ni en el valor de desarrollo por defecto.
+ */
+const LIVE_API_URL = process.env.LIVE_API_URL;
+
 test.describe('Contra la API real', () => {
   test('la API responde y la web sabe dónde está', async ({ page }) => {
     await page.goto('/estado');
-    await expect(page.getByRole('main')).toContainText(/API|servidor/i);
-    await expect(page.getByRole('main')).not.toContainText(/https:\/\/\/v1|localhost:4000/);
+    const main = page.getByRole('main');
+    await expect(main).toContainText(/API|servidor/i);
+    await expect(main).not.toContainText(/https:\/\/\/v1/);
+    if (LIVE_API_URL) await expect(main).toContainText(new URL(LIVE_API_URL).host);
+    else await expect(main).not.toContainText(/localhost:4000/);
   });
 
   test('una persona entra y recorre sus pantallas con datos del servidor', async ({ page }) => {
@@ -78,7 +88,9 @@ test.describe('Contra la API real', () => {
     const text = `Prueba automática ${Date.now()}`;
     await box.fill(text);
     await box.press('Enter');
-    await expect(page.getByText(text)).toBeVisible({ timeout: 15_000 });
+    // En escritorio el texto aparece dos veces: la burbuja y la vista previa
+    // de la lista de conversaciones. Cualquiera prueba que el mensaje entró.
+    await expect(page.getByText(text).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('el portal de iglesias entra con su cuenta y muestra totales', async ({ page }) => {

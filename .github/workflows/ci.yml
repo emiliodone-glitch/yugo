@@ -111,8 +111,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        run: pnpm --filter @yugo/api exec prisma generate
+      # La web importa @yugo/shared y @yugo/app-core desde su dist: en una
+      # instalación limpia hay que construirlos antes que a ella.
+      - name: Paquetes compartidos y cliente de Prisma
+        run: |
+          pnpm --filter @yugo/ui-tokens build
+          pnpm --filter @yugo/shared build
+          pnpm --filter @yugo/app-core build
+          pnpm --filter @yugo/api exec prisma generate
 
       - name: Build web
         run: pnpm --filter @yugo/web build
@@ -280,6 +286,8 @@ jobs:
       - name: E2E contra la API real
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3211
+          # La página /estado debe mostrar esta API, no la de desarrollo.
+          LIVE_API_URL: http://localhost:4000
         run: pnpm --filter @yugo/web e2e:live
 
       - name: Logs de la API y la web si algo falló

@@ -378,7 +378,9 @@ PLAYWRIGHT_BASE_URL=http://localhost:3211 pnpm e2e:live
 
 En CI corre solo como trabajo `e2e-live` (PostGIS de servicio, migraciones,
 semilla, API compilada, web sin demo). Contra un despliegue: `PLAYWRIGHT_BASE_URL`
-a la web y `E2E_LIVE_EMAIL`/`E2E_LIVE_PASSWORD` a una cuenta de prueba.
+a la web y `E2E_LIVE_EMAIL`/`E2E_LIVE_PASSWORD` a una cuenta de prueba. Con
+`LIVE_API_URL` (la API que la web debería estar usando) la prueba de `/estado`
+exige que aparezca ese host; sin él, solo rechaza la URL rota y la de desarrollo.
 
 ### Mensajes sin señal (RNF-06)
 
