@@ -99,11 +99,11 @@ export class RelationshipService {
       data: { proposedStage: stage, proposedById: userId, proposedAt: new Date() },
     });
 
-    await this.notifications.notify(
+    await this.notifications.send(
       otherId,
       'RELATIONSHIP',
-      'Una propuesta sobre su vínculo',
-      `${otherName === 'tu conexión' ? 'Tu conexión' : otherName} propone avanzar de etapa.`,
+      'stage.proposed',
+      { name: otherName === 'tu conexión' ? '' : otherName },
       match.conversation ? { conversationId: match.conversation.id } : undefined,
     );
 
@@ -153,12 +153,10 @@ export class RelationshipService {
       });
     }
 
-    const body = isExclusive(stage)
-      ? 'Ninguno de los dos aparece ya en Descubrir.'
-      : 'Lo declararon los dos.';
+    const params = { exclusive: isExclusive(stage) };
     await Promise.all([
-      this.notifications.notify(userId, 'RELATIONSHIP', 'Avanzaron de etapa', body),
-      this.notifications.notify(otherId, 'RELATIONSHIP', 'Avanzaron de etapa', body),
+      this.notifications.send(userId, 'RELATIONSHIP', 'stage.advanced', params),
+      this.notifications.send(otherId, 'RELATIONSHIP', 'stage.advanced', params),
       // Quien los acompaña se entera por la app, no por terceros.
       this.accompaniment.notifyStageAdvance(matchId, es.relationship.stages[stage]),
     ]);
@@ -180,12 +178,7 @@ export class RelationshipService {
       data: { proposedStage: null, proposedById: null, proposedAt: null },
     });
 
-    await this.notifications.notify(
-      otherId,
-      'RELATIONSHIP',
-      'Sobre la etapa que propusiste',
-      'Prefiere esperar. Pueden volver a hablarlo cuando quieran.',
-    );
+    await this.notifications.send(otherId, 'RELATIONSHIP', 'stage.declined');
 
     return { declined: true };
   }

@@ -1,4 +1,4 @@
-import { AUTO_APPROVE_SIMILARITY, shouldAutoApprove } from './verification.service';
+import { AUTO_APPROVE_SIMILARITY, shouldAutoApprove } from './face-match';
 
 /**
  * RF-VER-01. The dangerous failure here is silent: a deployment without a face

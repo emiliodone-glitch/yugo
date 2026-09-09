@@ -1,6 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Notification, NotificationCategory } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
+import {
+  serverLocale,
+  serverMessage,
+  type ServerMessageKey,
+  type ServerMessageParams,
+} from '../../common/i18n/server-messages';
 import { QueueService } from '../queues/queue.service';
 import { MailerService } from '../queues/mailer.service';
 
@@ -94,12 +100,41 @@ export class NotificationsService implements OnModuleInit {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * Sends a catalogued message in the recipient's account language (RNF-06).
+   * Prefer this over `notify` for anything a person reads: the same key gives
+   * Spanish or English depending on `User.locale`, and the push, the bell
+   * and the email all carry the same text.
+   */
+  async send<K extends ServerMessageKey>(
+    userId: string,
+    category: NotificationCategory,
+    key: K,
+    ...rest: ServerMessageParams<K> extends undefined
+      ? [params?: undefined, data?: Record<string, unknown>]
+      : [params: ServerMessageParams<K>, data?: Record<string, unknown>]
+  ) {
+    const [params, data] = rest;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { locale: true },
+    });
+    const locale = serverLocale(user?.locale);
+    const { title, body } = serverMessage(
+      locale,
+      key,
+      ...((params === undefined ? [] : [params]) as never),
+    );
+    return this.notify(userId, category, title, body, data, locale);
+  }
+
   async notify(
     userId: string,
     category: NotificationCategory,
     title: string,
     body: string,
     data?: Record<string, unknown>,
+    locale?: 'es-DO' | 'en-US',
   ) {
     const [preference, quiet] = await Promise.all([
       this.prisma.notificationPreference.findUnique({
@@ -143,14 +178,24 @@ export class NotificationsService implements OnModuleInit {
     if (preference?.email === true) {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { email: true, emailVerifiedAt: true, profile: { select: { displayName: true } } },
+        select: {
+          email: true,
+          emailVerifiedAt: true,
+          locale: true,
+          profile: { select: { displayName: true } },
+        },
       });
       if (user?.email && user.emailVerifiedAt) {
-        await this.mailer.send(user.email, 'NOTIFICATION', {
-          displayName: user.profile?.displayName ?? undefined,
-          title,
-          body,
-        });
+        await this.mailer.send(
+          user.email,
+          'NOTIFICATION',
+          {
+            displayName: user.profile?.displayName ?? undefined,
+            title,
+            body,
+          },
+          locale ?? serverLocale(user.locale),
+        );
       }
     }
     return notification;

@@ -99,7 +99,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             key={href}
             href={href}
             className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-[13px] transition ${
-              isActive(href) ? 'bg-white/10 text-white' : 'hover:text-white'
+              isActive(href)
+                ? 'bg-white/10 text-white'
+                : 'hover:translate-x-0.5 hover:bg-white/5 hover:text-white'
             }`}
           >
             <Icon className="h-[18px] w-[18px]" />
@@ -111,7 +113,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link
             href="/perfil"
             className={`flex items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-[13px] transition ${
-              isActive('/perfil') ? 'bg-white/10 text-white' : 'hover:text-white'
+              isActive('/perfil')
+                ? 'bg-white/10 text-white'
+                : 'hover:translate-x-0.5 hover:bg-white/5 hover:text-white'
             }`}
           >
             <UserIcon className="h-[18px] w-[18px]" />

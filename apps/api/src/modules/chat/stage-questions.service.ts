@@ -109,29 +109,29 @@ export class StageQuestionsService {
     if (theirs) {
       // Se revelaron las dos: es el momento que vale la pena avisar.
       await Promise.all([
-        this.notifications.notify(
+        this.notifications.send(
           userId,
           'RELATIONSHIP',
-          'Ya pueden verse las dos respuestas',
-          `Contestaron «${question.text}».`,
+          'answers.revealed',
+          { question: question.text },
           { matchId },
         ),
-        this.notifications.notify(
+        this.notifications.send(
           otherId,
           'RELATIONSHIP',
-          'Ya pueden verse las dos respuestas',
-          `Contestaron «${question.text}».`,
+          'answers.revealed',
+          { question: question.text },
           { matchId },
         ),
       ]);
       return { revealed: true, theirAnswer: theirs.answer };
     }
 
-    await this.notifications.notify(
+    await this.notifications.send(
       otherId,
       'RELATIONSHIP',
-      'Te dejaron una conversación pendiente',
-      `Contestaron «${question.text}». Cuando contestes tú, se ven las dos.`,
+      'answers.pending',
+      { question: question.text },
       { matchId },
     );
     return { revealed: false, theirAnswer: null };

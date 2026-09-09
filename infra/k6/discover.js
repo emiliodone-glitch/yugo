@@ -9,19 +9,27 @@ import { Trend } from 'k6/metrics';
  *
  * Uso:
  *   k6 run -e BASE_URL=https://staging.yugo.do/v1 -e TOKEN=<jwt> infra/k6/discover.js
+ *
+ * Con SMOKE=1 corre 10 s con 5 usuarios virtuales: sirve para validar que el
+ * guion y el entorno funcionan (CI, un cambio en la API) sin castigar al
+ * servidor. Los umbrales son los mismos; solo cambia la duración.
  */
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000/v1';
 const TOKEN = __ENV.TOKEN || '';
+const SMOKE = __ENV.SMOKE === '1';
 
 const discoverLatency = new Trend('discover_latency', true);
 
+const FULL_STAGES = [
+  { duration: '30s', target: 20 }, // rampa
+  { duration: '2m', target: 100 }, // carga sostenida
+  { duration: '1m', target: 200 }, // pico
+  { duration: '30s', target: 0 }, // enfriamiento
+];
+const SMOKE_STAGES = [{ duration: '10s', target: 5 }];
+
 export const options = {
-  stages: [
-    { duration: '30s', target: 20 }, // rampa
-    { duration: '2m', target: 100 }, // carga sostenida
-    { duration: '1m', target: 200 }, // pico
-    { duration: '30s', target: 0 }, // enfriamiento
-  ],
+  stages: SMOKE ? SMOKE_STAGES : FULL_STAGES,
   thresholds: {
     // RNF-02: percentil 95 por debajo de 400 ms en lectura de Descubrir.
     'http_req_duration{endpoint:discover}': ['p(95)<400'],
@@ -35,6 +43,12 @@ const headers = {
   Authorization: `Bearer ${TOKEN}`,
   'Content-Type': 'application/json',
 };
+
+// Sin token, cada petición sería un 401 y los umbrales fallarían sin decir
+// por qué. Mejor cortar antes de arrancar.
+export function setup() {
+  if (!TOKEN) throw new Error('Falta TOKEN (-e TOKEN=<jwt>).');
+}
 
 export default function () {
   // La primera lectura del día genera la lista; las siguientes vienen de la

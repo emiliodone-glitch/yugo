@@ -270,7 +270,7 @@ export class AdminService {
         break;
     }
 
-    await this.notifications.notify(userId, 'MODERATION', 'Actualización de tu cuenta', reason);
+    await this.notifications.send(userId, 'MODERATION', 'account.update', { reason });
     await this.audit.log({
       actorId,
       action: `MEMBER_${action}`,
@@ -369,13 +369,10 @@ export class AdminService {
           resolvedAt: new Date(),
         },
       });
-      await this.notifications.notify(
+      await this.notifications.send(
         verification.userId,
         'VERIFICATION',
-        decision === 'APPROVE' ? 'Identidad verificada' : 'Selfie rechazada',
-        decision === 'APPROVE'
-          ? 'Tu selfie fue aprobada. Tu perfil ahora muestra la insignia de identidad.'
-          : 'Tu selfie no pudo validarse. Intenta de nuevo con buena luz y sin lentes.',
+        decision === 'APPROVE' ? 'identity.approved' : 'identity.rejected',
       );
     }
 
@@ -395,12 +392,9 @@ export class AdminService {
       where: { id: verificationId },
       data: { status: 'REVOKED', revokeReason: reason, reviewedById: actorId },
     });
-    await this.notifications.notify(
-      verification.userId,
-      'VERIFICATION',
-      'Verificación revocada',
-      `Tu verificación fue revocada: ${reason}`,
-    );
+    await this.notifications.send(verification.userId, 'VERIFICATION', 'identity.revoked', {
+      reason,
+    });
     await this.audit.log({
       actorId,
       action: 'VERIFICATION_REVOKED',
@@ -543,14 +537,9 @@ export class AdminService {
     // sanción se aplicó ni contra quién (RF-ADM-04, privacidad de la otra parte).
     const reporterId = moderationCase.report?.reporterId;
     if (decision !== 'ESCALATE' && reporterId && reporterId !== subjectId) {
-      await this.notifications.notify(
-        reporterId,
-        'MODERATION',
-        'Revisamos tu reporte',
-        decision === 'NO_ACTION'
-          ? 'Una persona del equipo lo revisó. No encontramos una falta al Pacto, pero tu aviso queda registrado y nos ayuda a cuidar la comunidad.'
-          : 'Una persona del equipo lo revisó y tomó medidas. Gracias por avisar: así cuidamos la comunidad entre todos.',
-      );
+      await this.notifications.send(reporterId, 'MODERATION', 'report.reviewed', {
+        actionTaken: decision !== 'NO_ACTION',
+      });
     }
     return { done: true };
   }
@@ -873,13 +862,11 @@ export class AdminService {
     // la persona esperaba una respuesta y hay que dársela en los dos sentidos:
     // «se publicó» es tan importante como «no se publicó».
     if (!c.messageId && authorId) {
-      await this.notifications.notify(
+      await this.notifications.send(
         authorId,
         'MODERATION',
-        approve ? `Tu ${what} ya está publicada` : `Tu ${what} no se publicó`,
-        approve
-          ? 'Una persona del equipo la revisó y ya la puede ver la comunidad.'
-          : 'Una persona del equipo la revisó y no cumple el Pacto de conducta.',
+        approve ? 'content.published' : 'content.rejected',
+        { what },
       );
     }
 
@@ -902,12 +889,7 @@ export class AdminService {
       targetId: messageId,
     });
     if (!approve) {
-      await this.notifications.notify(
-        message.senderId,
-        'MODERATION',
-        'Mensaje no entregado',
-        'Tu mensaje no se entregó porque incumple el Pacto de conducta.',
-      );
+      await this.notifications.send(message.senderId, 'MODERATION', 'message.rejected');
     }
     return { done: true };
   }
@@ -929,14 +911,16 @@ export class AdminService {
       include: { users: { select: { userId: true } } },
     });
     for (const portalUser of church.users) {
-      await this.notifications.notify(
-        portalUser.userId,
-        'GROUP',
-        approve ? `${church.name} ya está en Yugo` : `Revisamos la solicitud de ${church.name}`,
-        approve
-          ? 'El equipo de Yugo aprobó la iglesia. Ya tienen grupo oficial y pueden publicar eventos y entregar códigos de respaldo.'
-          : `No pudimos aprobarla por ahora.${note ? ` Nota del equipo: ${note}` : ''} Puedes escribirnos para revisarlo.`,
-      );
+      if (approve) {
+        await this.notifications.send(portalUser.userId, 'GROUP', 'church.approved', {
+          church: church.name,
+        });
+      } else {
+        await this.notifications.send(portalUser.userId, 'GROUP', 'church.rejected', {
+          church: church.name,
+          note,
+        });
+      }
     }
     if (approve) {
       // Official group is created with the church (RF-COM-03).
@@ -995,15 +979,23 @@ export class AdminService {
     });
     // Quien publicó desde el portal se entera sin tener que volver a mirar.
     for (const portalUser of event.church?.users ?? []) {
-      await this.notifications.notify(
-        portalUser.userId,
-        'EVENT',
-        approve ? `«${event.title}» ya está publicado` : `«${event.title}» necesita cambios`,
-        approve
-          ? 'Ya aparece en la agenda de la app. Imprime el QR desde el portal para el check-in.'
-          : `El equipo lo devolvió${note ? `: ${note}` : ' con una nota'}. Corrígelo y vuelve a enviarlo.`,
-        { eventId },
-      );
+      if (approve) {
+        await this.notifications.send(
+          portalUser.userId,
+          'EVENT',
+          'event.approved',
+          { title: event.title },
+          { eventId },
+        );
+      } else {
+        await this.notifications.send(
+          portalUser.userId,
+          'EVENT',
+          'event.returned',
+          { title: event.title, note },
+          { eventId },
+        );
+      }
     }
     return { done: true };
   }
@@ -1040,13 +1032,11 @@ export class AdminService {
       targetId: groupId,
     });
     if (group.ownerId) {
-      await this.notifications.notify(
+      await this.notifications.send(
         group.ownerId,
         'GROUP',
-        approve ? `«${group.name}» ya está abierto` : `Revisamos «${group.name}»`,
-        approve
-          ? 'El equipo aprobó tu grupo. Ya aparece en Comunidad y puedes invitar a otras personas.'
-          : 'No pudimos aprobarlo tal como está. Revisa el nombre y la descripción y vuelve a proponerlo.',
+        approve ? 'group.approved' : 'group.rejected',
+        { name: group.name },
         approve ? { groupId } : undefined,
       );
     }

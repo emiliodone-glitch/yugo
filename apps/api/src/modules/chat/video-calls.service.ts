@@ -179,11 +179,11 @@ export class VideoCallsService {
     const row = await this.prisma.videoCall.create({
       data: { matchId, createdById: userId, scheduledAt, provider: this.provider.name },
     });
-    await this.notifications.notify(
+    await this.notifications.send(
       other.id,
       'CONNECTION',
-      `${me.profile?.displayName ?? 'Tu conexión'} propuso una videollamada`,
-      `${formatWhen(scheduledAt)} · 15 minutos, dentro de Yugo.`,
+      'video.proposed',
+      { name: me.profile?.displayName ?? '', when: scheduledAt },
       { matchId, callId: row.id },
     );
     return this.describe(row, userId);
@@ -225,11 +225,11 @@ export class VideoCallsService {
     if (!row || row.status !== 'SCHEDULED') throw new NotFoundException('call_not_found');
     const { other, me } = await this.assertMember(row.matchId, userId);
     await this.prisma.videoCall.update({ where: { id: callId }, data: { status: 'CANCELLED' } });
-    await this.notifications.notify(
+    await this.notifications.send(
       other.id,
       'CONNECTION',
-      'Videollamada cancelada',
-      `${me.profile?.displayName ?? 'Tu conexión'} canceló la videollamada de ${formatWhen(row.scheduledAt)}.`,
+      'video.cancelled',
+      { name: me.profile?.displayName ?? '', when: row.scheduledAt },
       { matchId: row.matchId },
     );
     return { cancelled: true };
@@ -256,15 +256,4 @@ export class VideoCallsService {
       joinable: isJoinable(row.scheduledAt, row.durationMin),
     };
   }
-}
-
-function formatWhen(date: Date) {
-  return new Intl.DateTimeFormat('es-DO', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: process.env.APP_TIMEZONE ?? 'America/Santo_Domingo',
-  }).format(date);
 }

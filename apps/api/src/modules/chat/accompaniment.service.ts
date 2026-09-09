@@ -8,6 +8,7 @@ import {
 import { hasAdvanced, type RelationshipStage } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
+import type { ServerMessageKey, ServerMessageParams } from '../../common/i18n/server-messages';
 import { NotificationsService } from '../notifications/notifications.service';
 
 /**
@@ -178,19 +179,21 @@ export class AccompanimentService {
 
     const otherId = match.userAId === userId ? match.userBId : match.userAId;
     await Promise.all([
-      this.notifications.notify(
+      this.notifications.send(
         otherId,
         'ACCOMPANIMENT',
-        'Los quieren acompañar',
-        `Tu conexión invitó a ${mentorProfile.user.profile?.displayName ?? 'un matrimonio'} a acompañarlos. Hace falta que tú también estés de acuerdo.`,
+        'accomp.partnerInvited',
+        { mentor: mentorProfile.user.profile?.displayName ?? '' },
         { matchId },
       ),
-      this.notifications.notify(
+      this.notifications.send(
         mentorProfile.userId,
         'ACCOMPANIMENT',
-        'Una pareja pide acompañamiento',
-        'Te invitaron a acompañar un vínculo. Verás su etapa, nunca sus conversaciones.',
-        { accompanimentId: accompaniment.id },
+        'accomp.mentorInvited',
+        undefined,
+        {
+          accompanimentId: accompaniment.id,
+        },
       ),
     ]);
 
@@ -332,7 +335,10 @@ export class AccompanimentService {
   private async activateIfReady(accompanimentId: string) {
     const row = await this.prisma.accompaniment.findUniqueOrThrow({
       where: { id: accompanimentId },
-      include: { match: true },
+      include: {
+        match: true,
+        mentor: { select: { profile: { select: { displayName: true } } } },
+      },
     });
     if (row.status !== 'INVITED') return { id: row.id, status: row.status };
     if (!row.consentAId || !row.consentBId || !row.mentorAcceptedAt) {
@@ -350,18 +356,12 @@ export class AccompanimentService {
       after: { mentorId: row.mentorId },
     });
     await Promise.all([
-      this.notifyCouple(
-        row.matchId,
-        'Ya los acompañan',
-        'El matrimonio aceptó. Verá en qué etapa están, nunca lo que se escriben.',
-      ),
-      this.notifications.notify(
-        row.mentorId,
-        'ACCOMPANIMENT',
-        'Empezaste a acompañar',
-        'Verás en qué etapa está el vínculo. Las conversaciones son solo de ellos.',
-        { accompanimentId: row.id },
-      ),
+      this.notifyCouple(row.matchId, 'accomp.active', {
+        mentor: row.mentor?.profile?.displayName ?? '',
+      }),
+      this.notifications.send(row.mentorId, 'ACCOMPANIMENT', 'accomp.mentorStarted', undefined, {
+        accompanimentId: row.id,
+      }),
     ]);
     return { id: active.id, status: active.status };
   }
@@ -410,25 +410,35 @@ export class AccompanimentService {
     });
     await Promise.all(
       rows.map((row) =>
-        this.notifications.notify(
+        this.notifications.send(
           row.mentorId,
           'ACCOMPANIMENT',
-          'La pareja que acompañas avanzó',
-          `Ahora están en «${stageLabel}».`,
+          'accomp.advanced',
+          { stage: stageLabel },
           { accompanimentId: row.id },
         ),
       ),
     );
   }
 
-  private async notifyCouple(matchId: string, title: string, body: string) {
+  private async notifyCouple<K extends ServerMessageKey>(
+    matchId: string,
+    key: K,
+    params: ServerMessageParams<K>,
+  ) {
     const match = await this.prisma.match.findUniqueOrThrow({
       where: { id: matchId },
       select: { userAId: true, userBId: true },
     });
-    await Promise.all([
-      this.notifications.notify(match.userAId, 'ACCOMPANIMENT', title, body, { matchId }),
-      this.notifications.notify(match.userBId, 'ACCOMPANIMENT', title, body, { matchId }),
-    ]);
+    await Promise.all(
+      [match.userAId, match.userBId].map((memberId) =>
+        this.notifications.send(
+          memberId,
+          'ACCOMPANIMENT',
+          key,
+          ...([params, { matchId }] as never),
+        ),
+      ),
+    );
   }
 }

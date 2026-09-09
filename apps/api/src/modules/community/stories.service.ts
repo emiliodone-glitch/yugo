@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { AuditService } from '../../common/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -128,13 +133,7 @@ export class StoriesService {
     });
 
     const otherId = match.userAId === userId ? match.userBId : match.userAId;
-    await this.notifications.notify(
-      otherId,
-      'RELATIONSHIP',
-      'Escribieron la historia de ustedes',
-      'Léela y dinos si estás de acuerdo en que se publique. Sin tu sí no se publica.',
-      { matchId },
-    );
+    await this.notifications.send(otherId, 'RELATIONSHIP', 'story.written', undefined, { matchId });
     return { id: story.id, status: story.status };
   }
 
@@ -214,14 +213,13 @@ export class StoriesService {
         select: { userAId: true, userBId: true },
       });
       if (match) {
-        const title = approve ? 'Su historia ya está publicada' : 'Sobre su historia';
-        const body = approve
-          ? 'Gracias por contarla. Puede ser justo lo que alguien necesita leer hoy.'
-          : note ?? 'No pudimos publicarla por ahora.';
-        await Promise.all([
-          this.notifications.notify(match.userAId, 'RELATIONSHIP', title, body),
-          this.notifications.notify(match.userBId, 'RELATIONSHIP', title, body),
-        ]);
+        await Promise.all(
+          [match.userAId, match.userBId].map((memberId) =>
+            approve
+              ? this.notifications.send(memberId, 'RELATIONSHIP', 'story.published')
+              : this.notifications.send(memberId, 'RELATIONSHIP', 'story.rejected', { note }),
+          ),
+        );
       }
     }
 

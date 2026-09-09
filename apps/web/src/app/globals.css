@@ -10,12 +10,90 @@ body {
   @apply bg-linen text-body font-sans antialiased;
 }
 
+/*
+ * Movimiento con sentido: la web responde a la mano. Cada superficie con la
+ * que se puede hacer algo lo dice al pasar el mouse (se levanta, se ilumina,
+ * el borde toma color) y lo que aparece en pantalla entra suave en vez de
+ * saltar. Son transiciones cortas (150–350 ms) y decorativas: con «reducir
+ * movimiento» se apagan todas (bloque de abajo).
+ */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @layer components {
   .card {
     @apply rounded-card border border-line bg-white p-3.5;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+    /* Entra suave. `backwards` deja libre el transform al terminar, para que
+       el hover pueda levantarla. */
+    animation: rise 0.35s ease-out backwards;
+  }
+  .card:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .card:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .card:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .card:nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .card:nth-child(6) {
+    animation-delay: 200ms;
+  }
+  .card:nth-child(n + 7) {
+    animation-delay: 240ms;
+  }
+  @media (hover: hover) {
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(34, 49, 92, 0.22);
+      box-shadow: 0 14px 30px -18px rgba(34, 49, 92, 0.35);
+    }
+    /* La foto de una tarjeta se acerca un poco al pasar: invita a mirar. */
+    .card img.object-cover {
+      transition: transform 0.45s ease;
+    }
+    .card:hover img.object-cover {
+      transform: scale(1.03);
+    }
   }
   .chip {
     @apply inline-flex items-center gap-1 rounded-full bg-linen-2 px-2.5 py-1 text-[11px] font-medium text-ink;
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  /* Solo los chips que hacen algo reaccionan. */
+  button.chip:hover,
+  a.chip:hover {
+    transform: translateY(-1px) scale(1.03);
+  }
+  button.chip:active,
+  a.chip:active {
+    transform: scale(0.97);
   }
   .chip-olive {
     @apply bg-olive-soft text-olive-text;
@@ -27,7 +105,26 @@ body {
     @apply bg-wine-soft text-wine;
   }
   .btn {
-    @apply inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-btn border-0 bg-ink px-3.5 py-3.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-btn border-0 bg-ink px-3.5 py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      opacity 0.15s ease,
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .btn:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -14px rgba(34, 49, 92, 0.6);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+    box-shadow: none;
+  }
+  .btn:focus-visible {
+    outline: 2px solid theme('colors.wheat');
+    outline-offset: 2px;
   }
   .btn-olive {
     @apply bg-olive;
@@ -41,17 +138,61 @@ body {
   .btn-ghost {
     @apply border-[1.5px] border-ink bg-transparent text-ink;
   }
+  .btn-ghost:hover:not(:disabled) {
+    @apply bg-linen-2;
+    opacity: 1;
+  }
   .btn-sm {
     @apply w-auto rounded-[10px] px-3 py-2 text-xs;
   }
   .field {
     @apply w-full rounded-field border border-line bg-white px-3.5 py-3 text-[13px] text-body placeholder:text-muted focus:border-ink focus:outline-none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .field:hover:not(:disabled) {
+    border-color: rgba(34, 49, 92, 0.35);
+  }
+  .field:focus {
+    box-shadow: 0 0 0 4px rgba(34, 49, 92, 0.08);
   }
   .h-display {
     @apply font-display font-semibold tracking-[-0.2px] text-ink;
   }
   .list-row {
     @apply flex items-center gap-2.5 border-b border-line py-2 last:border-b-0;
+    transition:
+      background-color 0.15s ease,
+      padding-left 0.15s ease;
+  }
+  /* Una fila que lleva a algún sitio se desliza un poco y su flecha la sigue. */
+  a.list-row:hover,
+  button.list-row:hover {
+    @apply bg-linen;
+    padding-left: 6px;
+    border-radius: 10px;
+  }
+  a.list-row > .ml-auto,
+  button.list-row > .ml-auto {
+    transition: transform 0.15s ease;
+  }
+  a.list-row:hover > .ml-auto,
+  button.list-row:hover > .ml-auto {
+    transform: translateX(3px);
+  }
+  /* Enlaces de texto: el subrayado aparece, no salta. */
+  main a:not(.btn):not(.card):not(.chip):not(.list-row):not([class*='block']) {
+    transition:
+      color 0.15s ease,
+      opacity 0.15s ease;
+  }
+  main a:not(.btn):not(.card):not(.chip):not(.list-row):hover {
+    opacity: 0.85;
+  }
+  /* Cada pantalla entra con un fundido corto. */
+  main {
+    animation: fade-in 0.25s ease-out backwards;
   }
   .bar {
     @apply h-1.5 overflow-hidden rounded-md bg-linen-2;

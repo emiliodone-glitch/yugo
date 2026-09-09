@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { serverMessage, type ServerMessageKey } from '../../common/i18n/server-messages';
 
 /**
  * La cola de retenidos con el contenido delante.
@@ -127,8 +128,13 @@ function buildService(options: {
     },
   };
   const notifier = {
-    notify: async (userId: string, _c: string, title: string) => {
-      notifications.push({ userId, title });
+    send: async (userId: string, _c: string, key: ServerMessageKey, params?: unknown) => {
+      const resolve = serverMessage as (
+        l: 'es-DO',
+        k: ServerMessageKey,
+        p?: unknown,
+      ) => { title: string };
+      notifications.push({ userId, title: resolve('es-DO', key, params).title });
     },
   };
 

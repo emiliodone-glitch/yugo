@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { RelationshipService } from './relationship.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * The rules that only exist at the service level: who may accept, what a
@@ -62,9 +63,7 @@ function buildService(overrides: Partial<FakeMatch> = {}) {
     $transaction: jest.fn(async (operations: Promise<unknown>[]) => Promise.all(operations)),
   };
 
-  const notifications = {
-    notify: jest.fn(async (..._args: unknown[]) => undefined),
-  };
+  const notifications = notificationsMock();
   const audit = { log: jest.fn(async () => undefined) };
   const accompaniment = {
     notifyStageAdvance: jest.fn(async (..._args: unknown[]) => undefined),

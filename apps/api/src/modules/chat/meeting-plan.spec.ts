@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MeetingPlanService } from './meeting-plan.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * The two rules that make a safety plan trustworthy: it belongs to the person
@@ -50,7 +51,7 @@ function buildService(plans: Array<Record<string, unknown>> = []) {
     },
   };
 
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const service = new MeetingPlanService(prisma as never, notifications as never);
   return { service, plans, prisma, notifications };
 }

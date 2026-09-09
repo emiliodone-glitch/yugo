@@ -49,7 +49,12 @@ export class DigestService {
         emailVerifiedAt: { not: null },
         weeklyDigestOptOutAt: null,
       },
-      select: { id: true, email: true, profile: { select: { displayName: true, city: true } } },
+      select: {
+        id: true,
+        email: true,
+        locale: true,
+        profile: { select: { displayName: true, city: true } },
+      },
     });
 
     let sent = 0;
@@ -62,10 +67,12 @@ export class DigestService {
         data.upcomingEvents +
         data.prayersReceived;
       if (total === 0 && !data.devotionalTitle) continue;
-      await this.mailer.send(user.email as string, 'WEEKLY_DIGEST', {
-        displayName: user.profile?.displayName ?? undefined,
-        ...data,
-      });
+      await this.mailer.send(
+        user.email as string,
+        'WEEKLY_DIGEST',
+        { displayName: user.profile?.displayName ?? undefined, ...data },
+        user.locale,
+      );
       sent += 1;
     }
     return sent;

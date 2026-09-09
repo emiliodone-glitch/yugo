@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { StageQuestionsService } from './stage-questions.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * La invariante del módulo: una respuesta no sale del servidor mientras falte
@@ -49,7 +50,7 @@ function buildService(options: { stage?: string; answers?: Array<Record<string, 
     },
   };
 
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const service = new StageQuestionsService(prisma as never, notifications as never);
   return { service, answers, notifications };
 }

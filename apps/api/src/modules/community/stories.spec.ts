@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { StoriesService } from './stories.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * The rules that keep a story worth reading: only a couple who declared they
@@ -52,19 +53,22 @@ function buildService(options: { stage?: string; story?: Record<string, unknown>
     match: { findUnique: jest.fn(async () => match) },
     story: {
       findMany: jest.fn(async () => stories),
-      findUnique: jest.fn(async ({ where }: { where: { id: string } }) =>
-        stories.find((row) => row.id === where.id) ?? null,
+      findUnique: jest.fn(
+        async ({ where }: { where: { id: string } }) =>
+          stories.find((row) => row.id === where.id) ?? null,
       ),
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const row = { id: 'st-new', status: 'DRAFT', ...data };
         stories.push(row);
         return row;
       }),
-      update: jest.fn(async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
-        const row = stories.find((r) => r.id === where.id)!;
-        Object.assign(row, data);
-        return row;
-      }),
+      update: jest.fn(
+        async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+          const row = stories.find((r) => r.id === where.id)!;
+          Object.assign(row, data);
+          return row;
+        },
+      ),
       delete: jest.fn(async ({ where }: { where: { id: string } }) => {
         const index = stories.findIndex((r) => r.id === where.id);
         return stories.splice(index, 1)[0];
@@ -72,7 +76,7 @@ function buildService(options: { stage?: string; story?: Record<string, unknown>
     },
   };
 
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const audit = { log: jest.fn(async (..._args: unknown[]) => undefined) };
 
   const service = new StoriesService(prisma as never, notifications as never, audit as never);

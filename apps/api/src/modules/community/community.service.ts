@@ -47,7 +47,11 @@ export class CommunityService {
   async publicGroups() {
     const groups = await this.prisma.group.findMany({
       where: { status: 'ACTIVE' },
-      include: { category: true, church: { select: { name: true } }, _count: { select: { members: true } } },
+      include: {
+        category: true,
+        church: { select: { name: true } },
+        _count: { select: { members: true } },
+      },
       orderBy: { members: { _count: 'desc' } },
       take: 24,
     });
@@ -76,8 +80,10 @@ export class CommunityService {
     const scored = groups
       .map((g) => {
         let score = 0;
-        if (g.city && profile?.city && g.city.toLowerCase().includes(profile.city.toLowerCase())) score += 2;
-        if (g.church?.denominationId && g.church.denominationId === profile?.denominationId) score += 2;
+        if (g.city && profile?.city && g.city.toLowerCase().includes(profile.city.toLowerCase()))
+          score += 2;
+        if (g.church?.denominationId && g.church.denominationId === profile?.denominationId)
+          score += 2;
         if (g.category && areaNames.has(g.category.name.toLowerCase())) score += 3;
         return { g, score };
       })
@@ -217,13 +223,9 @@ export class CommunityService {
         update: {},
         create: { groupId: request.groupId, userId: request.userId },
       });
-      await this.notifications.notify(
-        request.userId,
-        'GROUP',
-        'Solicitud aprobada',
-        'Ya eres parte del grupo. ¡Bienvenido!',
-        { groupId: request.groupId },
-      );
+      await this.notifications.send(request.userId, 'GROUP', 'group.requestApproved', undefined, {
+        groupId: request.groupId,
+      });
     }
     return { resolved: true, accepted: accept };
   }
@@ -286,7 +288,13 @@ export class CommunityService {
   }
 
   /** RF-COM-04/08: posts are moderated before publishing. */
-  async createPost(userId: string, groupId: string, body: string, isPrayerRequest: boolean, imageKey?: string) {
+  async createPost(
+    userId: string,
+    groupId: string,
+    body: string,
+    isPrayerRequest: boolean,
+    imageKey?: string,
+  ) {
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
     });
@@ -297,7 +305,11 @@ export class CommunityService {
 
     const verdict = await this.moderation.moderate(body, 'community group post');
     const status =
-      verdict.decision === 'APPROVE' ? 'APPROVED' : verdict.decision === 'HOLD' ? 'HELD' : 'REJECTED';
+      verdict.decision === 'APPROVE'
+        ? 'APPROVED'
+        : verdict.decision === 'HOLD'
+          ? 'HELD'
+          : 'REJECTED';
 
     const post = await this.prisma.post.create({
       data: {
@@ -325,7 +337,9 @@ export class CommunityService {
       where: { postId_userId_type: { postId, userId, type } },
     });
     if (existing) {
-      await this.prisma.reaction.delete({ where: { postId_userId_type: { postId, userId, type } } });
+      await this.prisma.reaction.delete({
+        where: { postId_userId_type: { postId, userId, type } },
+      });
       return { reacted: false };
     }
     await this.prisma.reaction.create({ data: { postId, userId, type } });
@@ -354,7 +368,10 @@ export class CommunityService {
   }
 
   /** RF-COM-06: light group activities with attendance. */
-  async createActivity(userId: string, input: { groupId: string; title: string; startsAt: Date; place?: string }) {
+  async createActivity(
+    userId: string,
+    input: { groupId: string; title: string; startsAt: Date; place?: string },
+  ) {
     const membership = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId: input.groupId, userId } },
     });

@@ -33,7 +33,8 @@ export class InterestsService {
 
     if (message) {
       if (tier === 'FREE') throw new ForbiddenException('interest_message_requires_plus');
-      const max = tier === 'ORO' ? LIMITS.INTEREST_MESSAGE_MAX_ORO : LIMITS.INTEREST_MESSAGE_MAX_PLUS;
+      const max =
+        tier === 'ORO' ? LIMITS.INTEREST_MESSAGE_MAX_ORO : LIMITS.INTEREST_MESSAGE_MAX_PLUS;
       if (message.length > max) throw new BadRequestException('interest_message_too_long');
     }
 
@@ -59,7 +60,8 @@ export class InterestsService {
       });
 
       if (reciprocal) {
-        const [userAId, userBId] = fromUserId < toUserId ? [fromUserId, toUserId] : [toUserId, fromUserId];
+        const [userAId, userBId] =
+          fromUserId < toUserId ? [fromUserId, toUserId] : [toUserId, fromUserId];
         const match = await this.prisma.match.upsert({
           where: { userAId_userBId: { userAId, userBId } },
           update: { status: 'ACTIVE', endedAt: null, endedById: null },
@@ -71,31 +73,34 @@ export class InterestsService {
           ? { conversationId: match.conversation.id }
           : undefined;
         await Promise.all([
-          this.notifications.notify(
+          this.notifications.send(
             fromUserId,
             'CONNECTION',
-            'Nueva conexión',
-            'Se marcaron interés mutuamente. ¡Ya pueden conversar!',
+            'connection.new',
+            undefined,
             conversationData,
           ),
-          this.notifications.notify(
+          this.notifications.send(
             toUserId,
             'CONNECTION',
-            'Nueva conexión',
-            'Se marcaron interés mutuamente. ¡Ya pueden conversar!',
+            'connection.new',
+            undefined,
             conversationData,
           ),
         ]);
-        return { interest, match, remaining: quota.limit === null ? null : quota.limit - quota.used };
+        return {
+          interest,
+          match,
+          remaining: quota.limit === null ? null : quota.limit - quota.used,
+        };
       }
 
-      await this.notifications.notify(
-        toUserId,
-        'INTEREST',
-        'Alguien te marcó interés',
-        'Descubre quién en Yugo Plus, o sigue marcando interés para coincidir.',
-      );
-      return { interest, match: null, remaining: quota.limit === null ? null : quota.limit - quota.used };
+      await this.notifications.send(toUserId, 'INTEREST', 'interest.received');
+      return {
+        interest,
+        match: null,
+        remaining: quota.limit === null ? null : quota.limit - quota.used,
+      };
     } catch (error) {
       await this.limits.refundInterest(fromUserId);
       throw error;

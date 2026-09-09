@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   localDay,
   PRAYER_BODY_MAX,
@@ -194,13 +199,11 @@ export class PrayerService {
     // saber que alguien ora es lo que consuela; saber quién no añade nada y
     // convertiría el muro en una cuenta de quién le devolvió el gesto a quién.
     if (userId !== request.userId) {
-      await this.notifications.notify(
+      await this.notifications.send(
         request.userId,
         'GROUP',
-        'Alguien está orando por ti',
-        count === 1
-          ? 'Una persona de la comunidad está orando por tu petición.'
-          : `${count} personas están orando por tu petición.`,
+        'prayer.praying',
+        { count },
         { prayerRequestId: requestId },
       );
     }
@@ -260,11 +263,11 @@ export class PrayerService {
       request.intercessions
         .filter((i) => i.userId !== userId)
         .map((i) =>
-          this.notifications.notify(
+          this.notifications.send(
             i.userId,
             'GROUP',
-            'Una petición por la que oraste fue contestada',
-            text && status === 'APPROVED' ? text : 'Gracias por acompañar.',
+            'prayer.answered',
+            { text: text && status === 'APPROVED' ? text : null },
             { prayerRequestId: requestId },
           ),
         ),

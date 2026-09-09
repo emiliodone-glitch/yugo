@@ -157,8 +157,12 @@ jobs:
 
       # La semilla importa @yugo/shared desde su dist: sin construirlo antes,
       # tsx no lo encuentra en una instalación limpia.
-      - name: Paquetes compartidos
-        run: pnpm turbo run build --filter=@yugo/shared
+      # La semilla importa @yugo/shared desde su dist y el cliente de Prisma
+      # generado; sin los dos, falla antes de tocar la base.
+      - name: Paquetes compartidos y cliente de Prisma
+        run: |
+          pnpm turbo run build --filter=@yugo/shared
+          pnpm --filter @yugo/api exec prisma generate
 
       - name: Apply migrations and seed
         env:

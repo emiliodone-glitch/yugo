@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   COUPLE_MILESTONES,
-  es,
   journeyUnlocked,
   JOURNEY_FROM,
   milestonesFor,
@@ -144,11 +143,11 @@ export class JourneyService {
       create: { matchId, key, doneAt: when, doneById: userId },
       update: { doneAt: when, doneById: userId },
     });
-    await this.notifications.notify(
+    await this.notifications.send(
       other.id,
       'RELATIONSHIP',
-      'Un paso de su ruta',
-      `${myName} marcó «${def.title}».`,
+      'journey.milestone',
+      { name: myName, title: def.title },
       conversationId ? { conversationId } : undefined,
     );
     return { key, doneAt: row.doneAt.toISOString() };
@@ -186,11 +185,11 @@ export class JourneyService {
     const created = await this.prisma.counselingRequest.create({
       data: { matchId, churchId: church.id, requestedById: userId, note },
     });
-    await this.notifications.notify(
+    await this.notifications.send(
       other.id,
       'RELATIONSHIP',
-      es.journey.counselingTitle,
-      `${myName} quiere pedirle consejería a ${church.name}. Falta tu confirmación.`,
+      'counseling.requestedPartner',
+      { name: myName, church: church.name },
       conversationId ? { conversationId } : undefined,
     );
     return { id: created.id, status: created.status };
@@ -216,11 +215,11 @@ export class JourneyService {
         where: { id: request.id },
         data: { status: 'DECLINED', respondedAt: new Date(), respondedById: userId },
       });
-      await this.notifications.notify(
+      await this.notifications.send(
         other.id,
         'RELATIONSHIP',
-        es.journey.counselingTitle,
-        es.journey.declinedByPartner,
+        'counseling.partnerDeclined',
+        undefined,
         conversationId ? { conversationId } : undefined,
       );
       return { id: request.id, status: 'DECLINED' as const };
@@ -231,25 +230,32 @@ export class JourneyService {
       data: { status: 'REQUESTED', partnerConsentAt: new Date() },
     });
 
-    const body = es.journey.waitingChurch(request.church.name);
     const seats = await this.prisma.churchUser.findMany({
       where: { churchId: request.church.id },
       select: { userId: true },
     });
     const names = [me, other].map((p) => p.profile?.displayName ?? 'Miembro');
     await Promise.all([
-      this.notifications.notify(me.id, 'RELATIONSHIP', es.journey.counselingTitle, body, {
-        conversationId,
-      }),
-      this.notifications.notify(other.id, 'RELATIONSHIP', es.journey.counselingTitle, body, {
-        conversationId,
-      }),
+      this.notifications.send(
+        me.id,
+        'RELATIONSHIP',
+        'counseling.waitingChurch',
+        { church: request.church.name },
+        { conversationId },
+      ),
+      this.notifications.send(
+        other.id,
+        'RELATIONSHIP',
+        'counseling.waitingChurch',
+        { church: request.church.name },
+        { conversationId },
+      ),
       ...seats.map((seat) =>
-        this.notifications.notify(
+        this.notifications.send(
           seat.userId,
           'ACCOMPANIMENT',
-          'Una pareja pide consejería',
-          `${names[0]} y ${names[1]} piden consejería prematrimonial a ${request.church.name}.`,
+          'counseling.churchNotice',
+          { names: [names[0], names[1]], church: request.church.name },
           { counselingRequestId: request.id },
         ),
       ),

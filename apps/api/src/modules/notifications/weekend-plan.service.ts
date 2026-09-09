@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../common/prisma.service';
+import { formatWhen, serverLocale, serverMessage } from '../../common/i18n/server-messages';
 import { MailerService } from '../queues/mailer.service';
 import { NotificationsService } from './notifications.service';
 
@@ -52,6 +53,7 @@ export class WeekendPlanService {
         id: true,
         email: true,
         emailVerifiedAt: true,
+        locale: true,
         profile: { select: { displayName: true, city: true, churchId: true } },
       },
     });
@@ -62,30 +64,43 @@ export class WeekendPlanService {
       const plan = await this.collect(user.id, user.profile.city, user.profile.churchId, now);
       if (!plan.event && !plan.devotional && !plan.quietConnection) continue;
 
-      const lines = this.lines(plan);
+      // En el idioma de la cuenta (RNF-06): mismas frases en la campana y el correo.
+      const locale = serverLocale(user.locale);
+      const lines = this.lines(plan, locale);
+      const { title, body } = serverMessage(locale, 'weekend.plan', {
+        event: plan.event,
+        devotional: plan.devotional,
+        quiet: plan.quietConnection,
+      });
       await this.notifications.notify(
         user.id,
         'EVENT',
-        'Tu plan de domingo',
-        lines.join(' · '),
+        title,
+        body,
         plan.event
           ? { eventId: plan.event.id }
           : plan.quietConnection
             ? { conversationId: plan.quietConnection.conversationId }
             : undefined,
+        locale,
       );
       if (user.email && user.emailVerifiedAt) {
-        await this.mailer.send(user.email, 'WEEKEND_PLAN', {
-          displayName: user.profile.displayName,
-          lines,
-          eventTitle: plan.event?.title,
-          eventChurch: plan.event?.churchName,
-          eventWhen: plan.event ? formatWhen(plan.event.startsAt) : undefined,
-          devotionalReference: plan.devotional?.reference,
-          devotionalTitle: plan.devotional?.title,
-          quietName: plan.quietConnection?.displayName,
-          quietDays: plan.quietConnection?.days,
-        });
+        await this.mailer.send(
+          user.email,
+          'WEEKEND_PLAN',
+          {
+            displayName: user.profile.displayName,
+            lines,
+            eventTitle: plan.event?.title,
+            eventChurch: plan.event?.churchName,
+            eventWhen: plan.event ? formatWhen(plan.event.startsAt, locale) : undefined,
+            devotionalReference: plan.devotional?.reference,
+            devotionalTitle: plan.devotional?.title,
+            quietName: plan.quietConnection?.displayName,
+            quietDays: plan.quietConnection?.days,
+          },
+          locale,
+        );
       }
       sent += 1;
     }
@@ -167,30 +182,12 @@ export class WeekendPlanService {
   }
 
   /** Frases cortas, en el orden en que ayudan: el plan, la Palabra, la persona. */
-  lines(plan: WeekendPlanData): string[] {
-    const lines: string[] = [];
-    if (plan.event) {
-      lines.push(
-        `${plan.event.title} (${plan.event.churchName}) ${formatWhen(plan.event.startsAt)}`,
-      );
-    }
-    if (plan.devotional) {
-      lines.push(`Mañana: ${plan.devotional.reference}, «${plan.devotional.title}»`);
-    }
-    if (plan.quietConnection) {
-      lines.push(
-        `${plan.quietConnection.displayName} lleva ${plan.quietConnection.days} días sin saber de ti`,
-      );
-    }
-    return lines;
+  lines(plan: WeekendPlanData, locale: 'es-DO' | 'en-US' = 'es-DO'): string[] {
+    const { body } = serverMessage(locale, 'weekend.plan', {
+      event: plan.event,
+      devotional: plan.devotional,
+      quiet: plan.quietConnection,
+    });
+    return body ? body.split(' · ') : [];
   }
-}
-
-function formatWhen(date: Date) {
-  return new Intl.DateTimeFormat('es-DO', {
-    weekday: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: process.env.APP_TIMEZONE ?? 'America/Santo_Domingo',
-  }).format(date);
 }

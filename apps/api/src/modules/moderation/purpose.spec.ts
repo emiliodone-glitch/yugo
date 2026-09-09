@@ -1,4 +1,5 @@
 import { PurposeService } from './purpose.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * Lo que se prueba aquí no son los umbrales — eso vive en `@yugo/shared` con
@@ -9,19 +10,21 @@ import { PurposeService } from './purpose.service';
 const NOW = Date.now();
 const daysAgo = (n: number) => new Date(NOW - n * 86400_000);
 
-function buildService(options: {
-  interests?: number;
-  connections?: number;
-  conversationsStarted?: number;
-  conversationsWithReplies?: number;
-  stageChanges?: number;
-  flagged?: number;
-  reports?: number;
-  accountAgeDays?: number;
-  badge?: boolean;
-  openCase?: boolean;
-  recentNudge?: boolean;
-} = {}) {
+function buildService(
+  options: {
+    interests?: number;
+    connections?: number;
+    conversationsStarted?: number;
+    conversationsWithReplies?: number;
+    stageChanges?: number;
+    flagged?: number;
+    reports?: number;
+    accountAgeDays?: number;
+    badge?: boolean;
+    openCase?: boolean;
+    recentNudge?: boolean;
+  } = {},
+) {
   const cases: Array<Record<string, unknown>> = options.openCase
     ? [{ id: 'c1', kind: 'PURPOSE', subjectUserId: 'u1', status: 'OPEN' }]
     : [];
@@ -70,7 +73,7 @@ function buildService(options: {
     $queryRaw: jest.fn(async () => [{ count: BigInt(options.conversationsWithReplies ?? 4) }]),
   };
 
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const audit = { log: jest.fn(async (..._args: unknown[]) => undefined) };
 
   const service = new PurposeService(prisma as never, notifications as never, audit as never);
@@ -94,7 +97,9 @@ describe('PurposeService', () => {
 
       expect(prisma.user).not.toHaveProperty('update');
       expect(
-        notifications.notify.mock.calls.some((call) => /suspend|expuls|banne/i.test(String(call[3]))),
+        notifications.notify.mock.calls.some((call) =>
+          /suspend|expuls|banne/i.test(String(call[3])),
+        ),
       ).toBe(false);
     });
 

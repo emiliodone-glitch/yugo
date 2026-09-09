@@ -170,12 +170,7 @@ export class DiscoverService {
       if (count < CITY_READY_THRESHOLD) continue;
       const rows = pending.filter((row) => row.city === city);
       for (const row of rows) {
-        await this.notifications.notify(
-          row.userId,
-          'CONNECTION',
-          `${city} ya se está llenando`,
-          `Ya hay ${count} personas con perfil completo en tu ciudad. Tu lista de Descubrir de hoy tiene caras nuevas.`,
-        );
+        await this.notifications.send(row.userId, 'CONNECTION', 'city.filling', { city, count });
         await this.prisma.cityWaitlist.update({
           where: { id: row.id },
           data: { notifiedAt: new Date() },

@@ -1,4 +1,5 @@
 import { JourneyService } from './journey.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * Ruta de pareja (RF-REL-05). Lo que protege: nada existe antes del noviazgo;
@@ -84,7 +85,7 @@ function build(options: { stage?: string; churchB?: boolean; pending?: boolean }
     },
     churchUser: { findMany: jest.fn(async () => [{ userId: 'pastor-1' }]) },
   };
-  const notifications = { notify: jest.fn(async () => undefined) };
+  const notifications = notificationsMock();
   const moderation = { moderate: jest.fn(async () => ({ decision: 'APPROVE' })) };
   const service = new JourneyService(prisma as never, notifications as never, moderation as never);
   return { service, prisma, notifications, moderation, requests, milestones };

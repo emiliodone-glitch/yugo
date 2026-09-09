@@ -69,10 +69,7 @@ export class PurposeService {
       this.prisma.relationshipStageChange
         .findMany({
           where: {
-            OR: [
-              { match: { userAId: userId } },
-              { match: { userBId: userId } },
-            ],
+            OR: [{ match: { userAId: userId } }, { match: { userBId: userId } }],
           },
           select: { matchId: true },
           distinct: ['matchId'],
@@ -207,7 +204,11 @@ export class PurposeService {
    */
   private async openCase(userId: string, assessment: PurposeAssessment) {
     const open = await this.prisma.moderationCase.findFirst({
-      where: { subjectUserId: userId, kind: 'PURPOSE', status: { in: ['OPEN', 'IN_REVIEW', 'ESCALATED'] } },
+      where: {
+        subjectUserId: userId,
+        kind: 'PURPOSE',
+        status: { in: ['OPEN', 'IN_REVIEW', 'ESCALATED'] },
+      },
     });
     if (open) return;
 
@@ -247,18 +248,21 @@ export class PurposeService {
   private async nudge(userId: string, assessment: PurposeAssessment) {
     const since = new Date(Date.now() - 30 * 86400_000);
     const recent = await this.prisma.notification.findFirst({
-      where: { userId, category: 'MODERATION', title: NUDGE_TITLE, createdAt: { gte: since } },
+      where: {
+        userId,
+        category: 'MODERATION',
+        data: { path: ['nudge'], equals: NUDGE_KIND },
+        createdAt: { gte: since },
+      },
     });
     if (recent) return;
 
-    await this.notifications.notify(
-      userId,
-      'MODERATION',
-      NUDGE_TITLE,
-      'Notamos que marcas interés en mucha gente y conversas con pocas. No hay problema en tomarse su tiempo — solo queremos recordarte lo que aceptaste al entrar: aquí se busca conocer a alguien de verdad, no acumular conexiones.',
-      { purposeScore: assessment.score },
-    );
+    await this.notifications.send(userId, 'MODERATION', 'purpose.nudge', undefined, {
+      purposeScore: assessment.score,
+      nudge: NUDGE_KIND,
+    });
   }
 }
 
-const NUDGE_TITLE = 'Sobre cómo estás usando Yugo';
+/** Marca en `data` que identifica el recordatorio, sea cual sea el idioma del título. */
+const NUDGE_KIND = 'purpose';

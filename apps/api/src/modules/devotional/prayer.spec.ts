@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrayerService } from './prayer.service';
+import { serverMessage, type ServerMessageKey } from '../../common/i18n/server-messages';
 
 /**
  * Las reglas del muro que no pueden fallar: el anonimato es real (no viaja ni
@@ -68,16 +69,18 @@ function buildService(options: { rows?: Row[]; decision?: 'APPROVE' | 'HOLD' | '
     moderate: async () => ({ decision: options.decision ?? 'APPROVE', risk: 0.1, categories: [] }),
   };
   const notifier = {
-    notify: async (userId: string, _c: string, title: string, body: string) => {
+    send: async (userId: string, _c: string, key: ServerMessageKey, params?: unknown) => {
+      const resolve = serverMessage as (
+        l: 'es-DO',
+        k: ServerMessageKey,
+        p?: unknown,
+      ) => { title: string; body: string };
+      const { title, body } = resolve('es-DO', key, params);
       notifications.push({ userId, title, body });
     },
   };
 
-  const service = new PrayerService(
-    prisma as never,
-    moderation as never,
-    notifier as never,
-  );
+  const service = new PrayerService(prisma as never, moderation as never, notifier as never);
   return { service, created, cases, notifications };
 }
 
@@ -128,7 +131,14 @@ describe('PrayerService — anonimato', () => {
 
   it('quien la escribió sí la reconoce como suya', async () => {
     const { service } = buildService({
-      rows: [row({ id: 'p1', anonymous: true, userId: ME, user: { id: ME, profile: { displayName: 'Yo' } } })],
+      rows: [
+        row({
+          id: 'p1',
+          anonymous: true,
+          userId: ME,
+          user: { id: ME, profile: { displayName: 'Yo' } },
+        }),
+      ],
     });
 
     const [item] = await service.wall(ME);
@@ -170,7 +180,11 @@ describe('PrayerService — moderación previa', () => {
     // automático dejaría esa promesa sin nadie detrás.
     const { service, created, cases } = buildService({ decision: 'REJECT' });
 
-    const result = await service.create(ME, 'Deposita el dinero en esta cuenta y oro por ti.', false);
+    const result = await service.create(
+      ME,
+      'Deposita el dinero en esta cuenta y oro por ti.',
+      false,
+    );
 
     expect(result.moderationStatus).toBe('HELD');
     expect(created[0].moderationStatus).toBe('HELD');

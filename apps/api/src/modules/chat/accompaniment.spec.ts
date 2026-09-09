@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AccompanimentService } from './accompaniment.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * The rules that make acompañamiento defensible: consent from all three,
@@ -141,7 +142,7 @@ function buildService(
     },
   };
 
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const audit = { log: jest.fn(async (..._args: unknown[]) => undefined) };
 
   const service = new AccompanimentService(prisma as never, notifications as never, audit as never);

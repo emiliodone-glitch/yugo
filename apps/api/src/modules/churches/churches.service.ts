@@ -245,12 +245,9 @@ export class ChurchesService {
           resolvedAt: new Date(),
         },
       });
-      await this.notifications.notify(
-        request.userId,
-        'VERIFICATION',
-        'Respaldo de iglesia confirmado',
-        `Tu perfil ahora muestra "Respaldado por ${membership.church.name}".`,
-      );
+      await this.notifications.send(request.userId, 'VERIFICATION', 'endorsement.confirmed', {
+        church: membership.church.name,
+      });
     }
     return { resolved: true, confirmed: confirm };
   }
@@ -262,12 +259,7 @@ export class ChurchesService {
       where: { userId: memberUserId, churchId: membership.churchId, level: 3, status: 'APPROVED' },
       data: { status: 'REVOKED', revokeReason: reason },
     });
-    await this.notifications.notify(
-      memberUserId,
-      'VERIFICATION',
-      'Respaldo de iglesia retirado',
-      'Tu congregación retiró el respaldo de tu perfil.',
-    );
+    await this.notifications.send(memberUserId, 'VERIFICATION', 'endorsement.revoked');
     return { revoked: true };
   }
 
@@ -443,11 +435,17 @@ export class ChurchesService {
       },
     });
     const inviteUrl = this.invitationUrl(token);
-    await this.mailer.send(normalized, 'CHURCH_INVITE', {
-      churchName: membership.church.name,
-      role,
-      inviteUrl,
+    // Si ya tiene cuenta, el correo sale en su idioma; si no, en español.
+    const invitee = await this.prisma.user.findFirst({
+      where: { email: normalized },
+      select: { locale: true },
     });
+    await this.mailer.send(
+      normalized,
+      'CHURCH_INVITE',
+      { churchName: membership.church.name, role, inviteUrl },
+      invitee?.locale,
+    );
     await this.audit.log({
       actorId: userId,
       action: 'CHURCH_INVITATION_SENT',
@@ -705,18 +703,18 @@ export class ChurchesService {
     });
 
     const church = membership.church.name;
-    const title = input.accept
-      ? `${church} aceptó acompañarlos`
-      : `Sobre la consejería con ${church}`;
-    const body =
-      message ??
-      (input.accept ? `${church} aceptó acompañarlos.` : `${church} no puede tomarla ahora.`);
     const data = request.match.conversation
       ? { conversationId: request.match.conversation.id }
       : undefined;
     await Promise.all(
       [request.match.userAId, request.match.userBId].map((memberId) =>
-        this.notifications.notify(memberId, 'RELATIONSHIP', title, body, data),
+        this.notifications.send(
+          memberId,
+          'RELATIONSHIP',
+          input.accept ? 'counseling.churchAccepted' : 'counseling.churchDeclined',
+          { church, message },
+          data,
+        ),
       ),
     );
     return { id: requestId, status };

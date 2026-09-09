@@ -1,0 +1,162 @@
+name: Carga (k6)
+
+# Solo a mano: una prueba de carga contra un entorno equivocado (producción,
+# la base de un compañero) hace daño de verdad, así que nunca se dispara sola.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL base de la API, con /v1 (p. ej. https://api.example/v1)'
+        required: true
+        type: string
+      script:
+        description: 'Qué guion correr'
+        type: choice
+        options: [both, discover, chat]
+        default: both
+      smoke:
+        description: 'Modo humo: 10 s con 5 VUs por guion. Desmarcar para la carga completa (~4 min por guion)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Dos cargas a la vez contra el mismo entorno se estorban y ninguna mide nada.
+concurrency:
+  group: carga-${{ inputs.base_url }}
+  cancel-in-progress: false
+
+jobs:
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+      # Fijada a propósito: los guiones se validaron con esta versión y una
+      # nueva puede cambiar el formato del resumen que se sube como artefacto.
+      K6_VERSION: 0.54.0
+      SMOKE: ${{ inputs.smoke && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Va primero: sin cuenta de prueba no hay nada que medir, y es mejor
+      # fallar en un segundo con el nombre del secreto que tras instalar k6.
+      - name: Comprobar secretos
+        env:
+          LOAD_TEST_EMAIL: ${{ secrets.LOAD_TEST_EMAIL }}
+          LOAD_TEST_PASSWORD: ${{ secrets.LOAD_TEST_PASSWORD }}
+        run: |
+          faltan=""
+          [ -z "$LOAD_TEST_EMAIL" ] && faltan="$faltan LOAD_TEST_EMAIL"
+          [ -z "$LOAD_TEST_PASSWORD" ] && faltan="$faltan LOAD_TEST_PASSWORD"
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan los secretos:$faltan. Configúralos en Settings → Secrets and variables → Actions con una cuenta de prueba de la API (nunca la de una persona real)."
+            exit 1
+          fi
+
+      - name: Instalar k6
+        run: |
+          curl -sSL -o /tmp/k6.tgz \
+            "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz"
+          tar -xzf /tmp/k6.tgz -C /tmp
+          sudo install -m 0755 "/tmp/k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+
+      # Si la API no responde, que lo diga este paso y no un 100 % de fallos
+      # en k6 dos minutos después.
+      - name: La API responde
+        run: curl -sSf "$BASE_URL/health"
+
+      # El token no se imprime nunca: se enmascara antes de salir del paso y
+      # viaja a los siguientes como salida, no por la consola.
+      - name: Iniciar sesión con la cuenta de carga
+        id: login
+        env:
+          LOAD_TEST_EMAIL: ${{ secrets.LOAD_TEST_EMAIL }}
+          LOAD_TEST_PASSWORD: ${{ secrets.LOAD_TEST_PASSWORD }}
+        run: |
+          body=$(jq -cn --arg i "$LOAD_TEST_EMAIL" --arg p "$LOAD_TEST_PASSWORD" '{identifier: $i, password: $p}')
+          status=$(curl -sS -o /tmp/login.json -w '%{http_code}' \
+            -X POST "$BASE_URL/auth/login" -H 'Content-Type: application/json' -d "$body")
+          token=$(jq -r '.accessToken // empty' /tmp/login.json)
+          if [ -z "$token" ]; then
+            motivo=$(jq -r '.error // .message // "sin detalle"' /tmp/login.json 2>/dev/null || echo 'respuesta ilegible')
+            echo "::error::No se pudo iniciar sesión en $BASE_URL/auth/login (HTTP $status: $motivo). Revisa LOAD_TEST_EMAIL/LOAD_TEST_PASSWORD y que la cuenta exista en ese entorno."
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      # El guion de chat escribe en una conversación real de la cuenta de
+      # carga: se toma la primera que devuelve /connections (es una lista
+      # plana, sin envoltorio). Sin conversaciones, el chat se omite y se avisa.
+      - name: Elegir la conversación para el chat
+        id: conversacion
+        if: inputs.script != 'discover'
+        env:
+          TOKEN: ${{ steps.login.outputs.token }}
+        run: |
+          id=$(curl -sS "$BASE_URL/connections" -H "Authorization: Bearer $TOKEN" \
+            | jq -r 'if type == "array" then . else (.items // []) end | map(.conversationId // empty) | first // empty')
+          if [ -z "$id" ]; then
+            if [ "${{ inputs.script }}" = "chat" ]; then
+              echo "::warning::La cuenta de carga no tiene conversaciones activas en $BASE_URL: no hay nada que medir en el chat."
+            else
+              echo "::notice::La cuenta de carga no tiene conversaciones activas: se omite el guion de chat."
+            fi
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Carga sobre Descubrir (RNF-02)
+        if: inputs.script != 'chat'
+        env:
+          TOKEN: ${{ steps.login.outputs.token }}
+        run: |
+          k6 run -e BASE_URL="$BASE_URL" -e TOKEN="$TOKEN" -e SMOKE="$SMOKE" \
+            --summary-export k6-summary-discover.json infra/k6/discover.js
+
+      - name: Carga sobre el chat con moderación previa (RNF-02/03)
+        if: inputs.script != 'discover' && steps.conversacion.outputs.id != ''
+        env:
+          TOKEN: ${{ steps.login.outputs.token }}
+          CONVERSATION_ID: ${{ steps.conversacion.outputs.id }}
+        run: |
+          k6 run -e BASE_URL="$BASE_URL" -e TOKEN="$TOKEN" -e SMOKE="$SMOKE" \
+            -e CONVERSATION_ID="$CONVERSATION_ID" \
+            --summary-export k6-summary-chat.json infra/k6/chat.js
+
+      # p95 por endpoint y tasa de checks en la página del run, para no tener
+      # que descargar el artefacto solo para ver si se cumplió el RNF-02.
+      # En el resumen de k6, `thresholds: {"p(95)<400": false}` significa que
+      # el umbral NO se incumplió.
+      - name: Resumen
+        if: always()
+        run: |
+          modo=$([ "$SMOKE" = "1" ] && echo 'humo (10 s, 5 VUs)' || echo 'carga completa')
+          {
+            echo "## Carga k6 · $modo · $BASE_URL"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in k6-summary-*.json; do
+            [ -f "$f" ] || continue
+            {
+              echo "### ${f#k6-summary-}"
+              echo
+              echo '| Métrica | p95 (ms) | Umbral |'
+              echo '|---|---:|---|'
+              jq -r '.metrics | to_entries[]
+                | select(.key | startswith("http_req_duration{endpoint:"))
+                | "| \(.key) | \(.value["p(95)"] | round) | \(if (.value.thresholds // {} | map_values(.) | any) then "incumplido" else "ok" end) |"' "$f"
+              jq -r '.metrics.checks | "| checks | \((.value * 100) | round)% (\(.passes)/\(.passes + .fails)) | \(if (.thresholds // {} | any) then "incumplido" else "ok" end) |"' "$f"
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-summary-${{ inputs.script }}-${{ github.run_number }}
+          path: k6-summary-*.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -120,6 +120,48 @@ por separado; esta entrada crece con cada una.
 - Migración `0018_ruta_de_pareja`. Pruebas del catálogo (siete reglas), del
   servicio (siete) y E2E `ruta-de-pareja`.
 
+### Web más viva (RNF-05)
+- **Cada componente responde a la mano.** Tarjetas que se levantan y
+  toman sombra y borde al pasar el mouse (y su foto se acerca un poco),
+  botones que suben y se hunden al pulsar, chips accionables que crecen,
+  campos que marcan el borde al acercarse y un anillo suave al enfocar,
+  filas de lista que se deslizan y arrastran su flecha, enlaces del menú
+  lateral que avanzan un paso. Solo reaccionan las superficies que hacen
+  algo: un chip informativo o una tarjeta sin enlace no fingen ser botón.
+- **Las pantallas entran, no saltan.** Cada `main` hace un fundido corto y
+  las tarjetas suben en escalera (40 ms entre una y otra). Duraciones de
+  150 a 350 ms; nada compite con leer.
+- **Reducir movimiento sigue mandando.** El bloque `prefers-reduced-motion`
+  apaga todas las animaciones y transiciones, incluidas las nuevas. Los
+  efectos de mouse solo se aplican con `@media (hover: hover)`, así que en
+  pantallas táctiles no queda nada «pegado» tras tocar.
+
+### Verificación de identidad con proveedor real (RF-VER-01)
+- **Amazon Rekognition detrás de la misma abstracción.** `FaceComparator`
+  con tres implementaciones: stub (desarrollo), servicio externo por URL
+  (`FACE_MATCH_URL`) y `RekognitionFaceComparator`, que compara la selfie
+  con la foto principal leyéndolas del bucket S3 (`CompareFaces`). Se elige
+  por entorno (`FACE_MATCH_PROVIDER=rekognition`, `REKOGNITION_REGION`
+  opcional, `FACE_MATCH_AUTO_APPROVE` para el umbral, 0.93 por defecto).
+- **Regla de auto-aprobación explícita y probada.** `shouldAutoApprove`
+  exige vida (liveness) y similitud sobre el umbral; cualquier fallo del
+  proveedor devuelve la selfie a revisión humana, nunca aprueba. 20
+  pruebas cubren el factory, el umbral y los bordes. No verificado contra
+  la cuenta real de AWS: falta contratar el servicio.
+
+### Pruebas de carga ejecutables contra un despliegue (RNF-02)
+- **Workflow «Carga (k6)» solo a mano** (`workflow_dispatch`): `base_url`,
+  guion (`both`/`discover`/`chat`) y modo humo (por defecto). Inicia sesión
+  con `LOAD_TEST_EMAIL`/`LOAD_TEST_PASSWORD` (token enmascarado), elige la
+  primera conversación de esa cuenta para el chat, escribe el p95 por
+  endpoint en el resumen del run y sube `k6-summary-*.json` como
+  artefacto. Concurrencia por URL: nunca dos cargas a la vez contra el
+  mismo entorno.
+- **`SMOKE=1` en los guiones**: 10 s con 5 usuarios virtuales y los mismos
+  umbrales, para validar guion y entorno sin castigar la API. Sin token, el
+  guion corta antes de arrancar en vez de fallar con 401 en silencio.
+  Corrido en local: 100 % de checks, p95 de 8 a 15 ms.
+
 ### Robustez (RNF-06/07/08/09)
 - **Errores a Sentry, opcional.** API (`SENTRY_DSN`: solo 5xx, con requestId
   y ruta; nunca cuerpos, cookies ni cabeceras), web (`SENTRY_DSN_WEB`, leída
@@ -160,9 +202,19 @@ por separado; esta entrada crece con cada una.
   guardado en la cuenta se aplica solo si en ese navegador o teléfono no se
   eligió ninguno: la elección local, más reciente, manda. En la app,
   cambiar de idioma vuelve a Perfil.
-- **Lo que sigue en español a propósito:** nombres de lugares e iglesias,
-  el texto legal del Pacto (se firma en español) y lo que escribe el
-  servidor (avisos, correos), pendiente de una segunda etapa.
+- **Lo que sigue en español a propósito:** nombres de lugares e iglesias y
+  el texto legal del Pacto (se firma en español).
+- **Lo que escribe el servidor también cambia de idioma.** Avisos (push,
+  campana) y correos salen del catálogo `server-messages` en el idioma de
+  la cuenta (`User.locale`): `NotificationsService.send(userId, categoría,
+  clave, parámetros)` resuelve el texto por persona, así una misma
+  conexión avisa en español a uno y en inglés al otro. Las diez plantillas
+  de correo tienen versión en inglés (`renderTemplate(plantilla, datos,
+  idioma)`); bienvenida, recibo, resumen semanal, plan de domingo e
+  invitación al portal leen el idioma de quien recibe. El inglés está
+  tipado contra el español: una clave sin traducción no compila. Las
+  pruebas usan `notificationsMock()`, que resuelve el catálogo en español
+  para seguir afirmando sobre el texto que lee una persona.
 - CI corre también en la rama por defecto del repositorio (antes solo en
   `main`, que no existe, así que ningún push pasaba por lint, pruebas ni
   E2E).

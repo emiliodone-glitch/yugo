@@ -97,5 +97,8 @@ describe('cada pantalla se monta sin lanzar (modo demo)', () => {
       (e) => !/act\(\.\.\.\)|not wrapped in act|deprecated|Warning: An update to/.test(e),
     );
     expect(real).toEqual([]);
-  });
+    // La primera pantalla de la lista carga en frío medio árbol de módulos
+    // (navegación, consultas, iconos); en un runner de CI eso pasa de los 5 s
+    // por defecto y el fallo arrastra a la siguiente con «overlapping act()».
+  }, 30_000);
 });

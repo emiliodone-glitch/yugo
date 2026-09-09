@@ -189,13 +189,11 @@ export class MeetingPlanService {
     });
 
     for (const plan of due) {
-      await this.notifications.notify(
+      await this.notifications.send(
         plan.userId,
         'MODERATION',
-        '¿Todo bien?',
-        plan.trustedContactLabel
-          ? `Cuéntanos cómo te fue, y no olvides avisarle a ${plan.trustedContactLabel}.`
-          : 'Cuéntanos cómo te fue. Si algo no estuvo bien, puedes reportarlo desde la conversación.',
+        'meeting.checkIn',
+        { contact: plan.trustedContactLabel },
         { matchId: plan.matchId, planId: plan.id },
       );
       await this.prisma.meetingPlan.update({

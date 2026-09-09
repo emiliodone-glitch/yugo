@@ -101,6 +101,7 @@ Variables:
 | `MODERATION_TEXT_MODEL` | `claude-haiku-4-5-20251001` | |
 | `IMAGE_MODERATION_PROVIDER` | `stub` o `external` | |
 | `FACE_MATCH_URL`, `FACE_MATCH_API_KEY` | vacías hasta contratar el proveedor | Vacías → toda selfie va a revisión humana |
+| `FACE_MATCH_PROVIDER`, `REKOGNITION_REGION`, `FACE_MATCH_AUTO_APPROVE` | `rekognition` para usar Amazon Rekognition; región solo si difiere de `S3_REGION`; umbral opcional (0..1, por defecto 0.93) | Rekognition lee la selfie y la foto principal directamente del bucket, así que **exige S3 real de AWS** (no sirve con R2 ni MinIO). Las credenciales `S3_*` necesitan `rekognition:CompareFaces` y `s3:GetObject` sobre el bucket. Si la comparación falla, la selfie va a revisión humana |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | del bucket (R2 o S3) | Fotos y selfies |
 | `PAYMENT_PROVIDER` | `stub` en local; vacío en producción | Con `stub` la web activa Plus/Oro sin cobrar (nunca en producción) |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | del panel de Stripe | La web manda a Stripe Checkout; el webhook `POST /v1/subscriptions/webhooks/stripe` (evento `checkout.session.completed`) activa el período |

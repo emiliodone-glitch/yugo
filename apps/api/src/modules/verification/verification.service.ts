@@ -4,69 +4,27 @@ import { PrismaService } from '../../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { StorageService } from '../media/storage.service';
+import {
+  createFaceComparator,
+  FaceComparator,
+  resolveAutoApproveThreshold,
+  shouldAutoApprove,
+} from './face-match';
 
 /** Random gesture instructions for the guided live selfie (RF-VER-01). */
 const GESTURES = ['SMILE', 'TURN_LEFT', 'TURN_RIGHT', 'BLINK_TWICE', 'LOOK_UP'] as const;
 
-export interface FaceComparator {
-  compare(selfieKey: string, photoKey: string): Promise<number>; // similarity 0..1
-}
-
-/**
- * Vendor behind FACE_MATCH_URL. Receives the two storage keys and answers with
- * a similarity between 0 and 1.
- */
-class ExternalFaceComparator implements FaceComparator {
-  async compare(selfieKey: string, photoKey: string): Promise<number> {
-    const response = await fetch(process.env.FACE_MATCH_URL!, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(process.env.FACE_MATCH_API_KEY
-          ? { authorization: `Bearer ${process.env.FACE_MATCH_API_KEY}` }
-          : {}),
-      },
-      body: JSON.stringify({ selfieKey, photoKey }),
-    });
-    if (!response.ok) throw new Error(`face match ${response.status}`);
-    const data = (await response.json()) as { similarity: number };
-    return data.similarity;
-  }
-}
-
-/**
- * Development stub. Sits below the auto-approval threshold on purpose: a made
- * up score must never approve an identity, so every case lands in the human
- * review queue.
- */
-class StubFaceComparator implements FaceComparator {
-  async compare(): Promise<number> {
-    return 0.5;
-  }
-}
-
-/** Similarity at or above this, with liveness passed, resolves automatically. */
-export const AUTO_APPROVE_SIMILARITY = 0.93;
-
-/**
- * Whether a selfie resolves without a person looking at it. An unknown
- * similarity — no main photo, or the vendor failed — is never a pass.
- */
-export function shouldAutoApprove(livenessPassed: boolean, similarity: number | null): boolean {
-  return livenessPassed && similarity !== null && similarity >= AUTO_APPROVE_SIMILARITY;
-}
-
 @Injectable()
 export class VerificationService {
   /**
-   * Real vendor when one is configured, stub otherwise. The stub never reaches
-   * the auto-approval threshold, so an unconfigured deployment queues every
-   * selfie for a person to review instead of approving identities on a
-   * fabricated score.
+   * Real vendor when one is configured (Rekognition or FACE_MATCH_URL), stub
+   * otherwise. The stub never reaches the auto-approval threshold, so an
+   * unconfigured deployment queues every selfie for a person to review
+   * instead of approving identities on a fabricated score.
    */
-  private readonly comparator: FaceComparator = process.env.FACE_MATCH_URL
-    ? new ExternalFaceComparator()
-    : new StubFaceComparator();
+  private readonly comparator: FaceComparator = createFaceComparator();
+  /** FACE_MATCH_AUTO_APPROVE when valid, 0.93 otherwise. */
+  private readonly autoApproveThreshold = resolveAutoApproveThreshold();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -116,7 +74,7 @@ export class VerificationService {
     }
 
     const tier = await this.subscriptions.tierOf(userId);
-    const autoApprove = shouldAutoApprove(livenessPassed, similarity);
+    const autoApprove = shouldAutoApprove(livenessPassed, similarity, this.autoApproveThreshold);
 
     const verification = await this.prisma.verification.create({
       data: {
@@ -133,12 +91,7 @@ export class VerificationService {
     });
 
     if (autoApprove) {
-      await this.notifications.notify(
-        userId,
-        'VERIFICATION',
-        'Identidad verificada',
-        'Tu selfie fue aprobada. Tu perfil ahora muestra la insignia de identidad.',
-      );
+      await this.notifications.send(userId, 'VERIFICATION', 'identity.approved');
     }
     return verification;
   }
@@ -171,12 +124,9 @@ export class VerificationService {
       }),
     ]);
 
-    await this.notifications.notify(
-      userId,
-      'VERIFICATION',
-      'Respaldo de iglesia confirmado',
-      `Tu perfil ahora muestra "Respaldado por ${record.church.name}".`,
-    );
+    await this.notifications.send(userId, 'VERIFICATION', 'endorsement.confirmed', {
+      church: record.church.name,
+    });
     return { endorsedBy: record.church.name };
   }
 

@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { IntroductionsService } from './introductions.service';
+import { notificationsMock } from '../../common/i18n/notifications.testing';
 
 /**
  * Presentación por padrino (RF-ACO-05). Las reglas que la hacen defendible:
@@ -152,7 +153,7 @@ function build(options: { mentorActive?: boolean; row?: Partial<Row>; matchStatu
       })),
     },
   };
-  const notifications = { notify: jest.fn(async (..._args: unknown[]) => undefined) };
+  const notifications = notificationsMock();
   const moderation = {
     moderate: jest.fn(async () => ({ decision: 'APPROVE', risk: 0, categories: [] })),
   };

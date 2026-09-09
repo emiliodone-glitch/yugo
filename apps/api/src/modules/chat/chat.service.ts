@@ -203,9 +203,13 @@ export class ChatService {
         conversation.match.userAId === senderId
           ? conversation.match.userBId
           : conversation.match.userAId;
-      await this.notifications.notify(recipientId, 'MESSAGE', 'Nuevo mensaje', body.slice(0, 80), {
-        conversationId,
-      });
+      await this.notifications.send(
+        recipientId,
+        'MESSAGE',
+        'message.new',
+        { preview: body.slice(0, 80) },
+        { conversationId },
+      );
     } else if (status === 'HELD') {
       await this.prisma.moderationCase.create({
         data: {
@@ -218,12 +222,7 @@ export class ChatService {
       });
     } else {
       // Educational notice (7.3) + automatic escalation on repeat offenses.
-      await this.notifications.notify(
-        senderId,
-        'MODERATION',
-        'Mensaje no entregado',
-        'Tu mensaje no se entregó porque incumple el Pacto de conducta. Cuida el respeto en la conversación.',
-      );
+      await this.notifications.send(senderId, 'MODERATION', 'message.rejected');
       await this.sanctions.handleMessageRejected(senderId);
     }
 
@@ -330,11 +329,11 @@ export class ChatService {
         closingMessage: text,
       },
     });
-    await this.notifications.notify(
+    await this.notifications.send(
       other.id,
       'CONNECTION',
-      `${me.profile?.displayName ?? 'Tu conexión'} cerró la conexión`,
-      text.slice(0, 140),
+      'connection.closed',
+      { name: me.profile?.displayName ?? '', text: text.slice(0, 140) },
       { matchId },
     );
     return { ended: true };
@@ -452,11 +451,11 @@ export class ChatService {
           },
         });
         if (already) continue;
-        await this.notifications.notify(
+        await this.notifications.send(
           user.id,
           'CONNECTION',
-          'Conexión sin actividad',
-          `Hace un mes que no conversas con ${other.profile?.displayName ?? 'tu conexión'}. Un saludo sencillo basta para retomar.`,
+          'connection.inactive',
+          { name: other.profile?.displayName ?? '' },
           { matchId: match.id },
         );
         sent += 1;

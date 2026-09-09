@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { LIMITS } from '@yugo/shared';
 import { PrismaService } from '../../common/prisma.service';
+import { serverLocale } from '../../common/i18n/server-messages';
 import { SettingsService } from '../../common/settings.service';
 import { AuditService } from '../../common/audit.service';
 import { MailerService } from '../queues/mailer.service';
@@ -191,17 +192,23 @@ export class SubscriptionsService {
 
     const buyer = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, profile: { select: { displayName: true } } },
+      select: { email: true, locale: true, profile: { select: { displayName: true } } },
     });
     if (buyer?.email) {
-      await this.mailer.send(buyer.email, 'PAYMENT_RECEIPT', {
-        displayName: buyer.profile?.displayName,
-        tier,
-        plan,
-        amount: amount.toLocaleString('es-DO'),
-        currency,
-        renewsAt: endsAt.toLocaleDateString('es-DO'),
-      });
+      const locale = serverLocale(buyer.locale);
+      await this.mailer.send(
+        buyer.email,
+        'PAYMENT_RECEIPT',
+        {
+          displayName: buyer.profile?.displayName,
+          tier,
+          plan,
+          amount: amount.toLocaleString(locale),
+          currency,
+          renewsAt: endsAt.toLocaleDateString(locale),
+        },
+        locale,
+      );
     }
     return subscription;
   }

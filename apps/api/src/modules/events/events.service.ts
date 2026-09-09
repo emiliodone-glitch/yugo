@@ -207,11 +207,11 @@ export class EventsService {
       where: { eventId_userId: { eventId, userId: next.userId } },
       data: { status: 'GOING' },
     });
-    await this.notifications.notify(
+    await this.notifications.send(
       next.userId,
       'EVENT',
-      'Se liberó un cupo',
-      `Ya tienes lugar en «${event.title}».`,
+      'event.seatFreed',
+      { title: event.title },
       { eventId },
     );
   }
@@ -241,11 +241,11 @@ export class EventsService {
       include: { event: true },
     });
     for (const attendance of attendances) {
-      await this.notifications.notify(
+      await this.notifications.send(
         attendance.userId,
         'EVENT',
-        'Recordatorio de evento',
-        `${attendance.event.title} es mañana.`,
+        'event.reminder',
+        { title: attendance.event.title },
         { eventId: attendance.eventId },
       );
       await this.prisma.eventAttendance.update({

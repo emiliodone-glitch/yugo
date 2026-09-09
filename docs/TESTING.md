@@ -79,10 +79,23 @@ pnpm --filter @yugo/web e2e
 # registro con pacto, descubrir → chat moderado, perfil → verificación
 maestro test apps/mobile/.maestro
 
-# Carga (requiere k6 y un token válido)
+# Carga (requiere k6 y un token válido; los umbrales están en cada guion: RNF-02 p95 < 400 ms)
 k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> infra/k6/discover.js
 k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<id> infra/k6/chat.js
+# SMOKE=1: 10 s con 5 VUs, mismos umbrales. Para validar guion y entorno sin castigar la API.
+SMOKE=1 k6 run -e BASE_URL=... -e TOKEN=... infra/k6/discover.js
 ```
+
+Desde GitHub, el workflow **Carga (k6)** (`.github/workflows/load.yml`) hace lo
+mismo sin tocar nada a mano: solo se lanza desde Actions → _Run workflow_
+(`base_url` con `/v1`, `script` = both/discover/chat, `smoke` marcado por
+defecto). Inicia sesión con los secretos `LOAD_TEST_EMAIL` y
+`LOAD_TEST_PASSWORD` (una cuenta de prueba de ese entorno, nunca la de una
+persona real; el token se enmascara y no sale en el log), toma la primera
+conversación de esa cuenta para el chat (si no tiene ninguna, lo omite con un
+aviso), escribe el p95 por endpoint en el resumen del run y sube
+`k6-summary-*.json` como artefacto. Sin `smoke`, cada guion dura unos 4 minutos
+y genera carga real: no apuntarlo a producción.
 
 ## Recorridos por hito
 

@@ -100,11 +100,11 @@ export class IntroductionsService {
     const mentorName = await this.nameOf(mentorId);
     await Promise.all(
       [userAId, userBId].map((userId) =>
-        this.notifications.notify(
+        this.notifications.send(
           userId,
           'CONNECTION',
-          `${mentorName} quiere presentarte a alguien`,
-          note.slice(0, 120),
+          'intro.received',
+          { mentor: mentorName, note: note.slice(0, 120) },
           { introductionId: row.id },
         ),
       ),
@@ -170,13 +170,9 @@ export class IntroductionsService {
         data: { [iAmA ? 'statusA' : 'statusB']: mine, status: 'DECLINED', resolvedAt: new Date() },
       });
       // Al padrino no se le dice quién dijo que no.
-      await this.notifications.notify(
-        row.proposerId,
-        'CONNECTION',
-        'La presentación no se concretó',
-        'Una de las dos personas prefirió no seguir. Gracias por intentarlo; a veces el tiempo no es este.',
-        { introductionId: id },
-      );
+      await this.notifications.send(row.proposerId, 'CONNECTION', 'intro.notConcluded', undefined, {
+        introductionId: id,
+      });
       return { status: 'DECLINED' as const, matched: false };
     }
 
@@ -210,21 +206,17 @@ export class IntroductionsService {
     const mentorName = await this.nameOf(row.proposerId);
     await Promise.all([
       ...[row.userAId, row.userBId].map((memberId) =>
-        this.notifications.notify(
+        this.notifications.send(
           memberId,
           'CONNECTION',
-          'Presentación aceptada',
-          `${mentorName} los presentó y los dos dijeron que sí. Ya pueden conversar.`,
+          'intro.matched',
+          { mentor: mentorName },
           conversationData,
         ),
       ),
-      this.notifications.notify(
-        row.proposerId,
-        'CONNECTION',
-        'Se saludaron',
-        'Las dos personas aceptaron la presentación. Lo que hablen es de ellas; tú ya hiciste tu parte.',
-        { introductionId: id },
-      ),
+      this.notifications.send(row.proposerId, 'CONNECTION', 'intro.proposerMatched', undefined, {
+        introductionId: id,
+      }),
     ]);
     return { status: 'MATCHED' as const, matched: true, conversationId: match.conversation?.id };
   }

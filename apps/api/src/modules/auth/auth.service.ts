@@ -119,7 +119,7 @@ export class AuthService {
         resolvedAt: new Date(),
       },
     });
-    if (user.email) await this.mailer.send(user.email, 'WELCOME');
+    if (user.email) await this.mailer.send(user.email, 'WELCOME', {}, user.locale);
     return this.tokens.issuePair(user);
   }
 
