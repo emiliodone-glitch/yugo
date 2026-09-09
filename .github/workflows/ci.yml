@@ -155,6 +155,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # La semilla importa @yugo/shared desde su dist: sin construirlo antes,
+      # tsx no lo encuentra en una instalación limpia.
+      - name: Paquetes compartidos
+        run: pnpm turbo run build --filter=@yugo/shared
+
       - name: Apply migrations and seed
         env:
           DATABASE_URL: postgresql://yugo:yugo@localhost:5432/yugo?schema=public
