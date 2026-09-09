@@ -25,6 +25,7 @@ const counselingResponseSchema = z.object({
   message: z.string().trim().max(600).optional(),
 });
 const createEventBody = createEventSchema.extend({ submit: z.boolean().default(false) });
+const ticketSchema = z.object({ code: z.string().trim().min(4).max(20) });
 const inviteSchema = z.object({
   email: z.string().email(),
   role: z.enum(['ADMIN', 'EVENT_EDITOR']).default('EVENT_EDITOR'),
@@ -70,6 +71,16 @@ export class ChurchesController {
   @Get('events/:id/qr')
   eventQr(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.churches.eventQr(user.id, id);
+  }
+
+  /** Registrar en la puerta la entrada que enseña una persona (RF-EVE-06). */
+  @Post('events/:id/check-in-ticket')
+  checkInTicket(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodPipe(ticketSchema)) body: { code: string },
+  ) {
+    return this.churches.checkInTicket(user.id, id, body.code);
   }
 
   @Get('invitations')

@@ -41,6 +41,9 @@ export const en: Dictionary = {
     members: 'members',
     language: 'Language',
     step: (n, total) => `STEP ${n} OF ${total}`,
+    openInMaps: 'Get directions',
+    saved: 'Saved',
+    undo: 'Undo',
   },
 
   tabs: {
@@ -547,6 +550,10 @@ export const en: Dictionary = {
     typing: 'typing…',
     delivered: 'Delivered',
     read: 'Read',
+    closedConfirmation: (name) =>
+      `You closed the connection with ${name}. Your message reached them.`,
+    emptyTitle: "You don't have any connections yet",
+    emptyBody: 'Mark interest in Discover; when it is mutual, the conversation shows up here.',
   },
 
   devotional: {
@@ -632,6 +639,14 @@ export const en: Dictionary = {
     suggestedEmpty: 'You are already in every active group near you.',
     openGroup: 'Open the group',
     seeSuggested: 'See suggested',
+    requestAccepted: 'Request accepted',
+    requestRejected: 'Request declined',
+    proposeGroup: 'Propose a group',
+    groupName: 'Group name',
+    groupDescription: 'What it is about and who it is for',
+    groupProposed: 'Your group is under review. We will let you know when the team approves it.',
+    categoryLabel: 'Category',
+    inReview: 'Under review',
   },
 
   events: {
@@ -662,6 +677,26 @@ export const en: Dictionary = {
     waitlistExplained: 'If someone cancels, the first on the list gets in and is notified.',
     seatFreed: 'A seat opened up',
     capacityHonest: 'Capacity is what fits in the room. No plan makes it bigger.',
+    notGoing: "I'm no longer going",
+
+    ticketTitle: 'Your ticket',
+    ticketHint: 'Show this code at the door. Whoever is receiving scans it or types it in.',
+    ticketCheckedIn: (when) => `Checked in ${when}`,
+    ticketNotGoing: 'Mark "Going" to get your ticket.',
+    ticketOpen: 'See my ticket',
+    validateTitle: 'Check in tickets',
+    validatePlaceholder: 'Ticket code',
+    validated: (name) => `${name}'s ticket checked in`,
+    alreadyCheckedIn: 'That ticket was already checked in',
+    invalidTicket: "That code doesn't belong to this event",
+
+    filtersTitle: 'Filter events',
+    filterAll: 'All',
+    filterMine: 'My church',
+    filterCity: 'My city',
+    filterWeekend: 'This weekend',
+    mapTitle: 'Where',
+    mapUnavailable: "This event doesn't have a location on the map",
   },
 
   singlesMinistry: {
@@ -725,6 +760,22 @@ export const en: Dictionary = {
       'You already appear in Discover. A more complete profile gets more replies.',
     completeCardCta: 'Complete profile',
     signOut: 'Sign out',
+    deleteScheduled: (date) =>
+      `Your account will be deleted on ${date}. If you sign in before then, you can cancel it.`,
+    deleteCancel: 'Cancel the deletion',
+    deleteConfirmTitle: 'Delete your account?',
+    deleteConfirmBody:
+      'You will have a grace period to change your mind. After that, everything is truly erased.',
+    exportReady: 'Your copy is ready',
+    exportDownload: 'Download my copy (JSON)',
+    exportPreparing: 'Preparing your copy…',
+    leaderRequestSent: (name) => `We wrote to ${name}. We will let you know when they reply.`,
+    leaderRequestPending: 'Request sent; waiting for the leader to reply',
+    takeSelfie: 'Take selfie',
+    retakeSelfie: 'Retake',
+    useThisSelfie: 'Use this selfie',
+    cameraDenied: "We couldn't use the camera. Check the permission in your browser or phone.",
+    cameraStarting: 'Starting the camera…',
     fields: {
       displayName: 'your name',
       city: 'your city',
@@ -1193,5 +1244,6 @@ export const en: Dictionary = {
     ageRangeSpan: 'The range must span at least 3 years.',
     dailyInterestsUsed: 'You used your interests for today.',
     noteRejected: "The note didn't pass moderation. Review it and try again.",
+    offlineBanner: 'No connection. What you do is saved and sent when you are back online.',
   },
 };

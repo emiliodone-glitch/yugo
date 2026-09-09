@@ -219,6 +219,8 @@ export interface GroupSummary {
   isOfficial: boolean;
   churchName?: string;
   joined?: boolean;
+  /** `PENDING` mientras el equipo revisa un grupo propuesto (RF-COM-02). */
+  status?: 'PENDING' | 'ACTIVE' | 'ARCHIVED' | 'CLOSED';
 }
 
 export interface GroupPost {

@@ -43,6 +43,11 @@ export interface MeResponse {
   gender: 'MALE' | 'FEMALE';
   covenantAcceptedAt: string | null;
   covenantVersion: string | null;
+  /**
+   * RF-AUT-08: cuándo pidió eliminar la cuenta; null si no lo pidió. Con
+   * `status === 'DELETION_PENDING'` se borra a los DELETION_GRACE_DAYS.
+   */
+  deletionRequestedAt?: string | null;
   /** Idioma elegido (RNF-06); 'es-DO' si nunca eligió. */
   locale?: string;
   profile: MyProfile | null;
@@ -719,6 +724,38 @@ export interface VerificationStatusResponse {
   level1?: VerificationRecord;
   level2?: VerificationRecord;
   level3?: VerificationRecord;
+  /** Última solicitud de respaldo a un líder (RF-VER-03); null si nunca pidió. */
+  leaderRequest?: LeaderRequestState | null;
+}
+
+export interface LeaderRequestState {
+  id: string;
+  status: 'PENDING' | 'CONFIRMED' | 'DECLINED' | 'EXPIRED';
+  churchName: string;
+  leaderName: string | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+/** Entrada personal de un encuentro (RF-EVE-06): lo que se enseña en la puerta. */
+export interface EventTicket {
+  code: string;
+  eventId: string;
+  title: string;
+  startsAt: string;
+  place: string | null;
+  status: 'GOING';
+  checkedInAt: string | null;
+}
+
+/**
+ * Lo que ve quien recibe en la puerta. Es la única pantalla del portal con un
+ * nombre: la persona está delante enseñando su propia entrada.
+ */
+export interface TicketCheckInResult {
+  checkedIn: boolean;
+  alreadyCheckedIn: boolean;
+  attendee: { displayName: string; verificationLevel: number };
 }
 
 export interface VerificationRecord {
@@ -888,6 +925,8 @@ export class YugoApiClient {
     pause: (paused: boolean) => this.http.post<{ paused: boolean }>('/auth/pause', { paused }),
 
     deleteAccount: () => this.http.delete<{ graceDays: number }>('/auth/account'),
+    /** RF-AUT-08: cancelar la eliminación mientras dura el plazo de gracia. */
+    restoreAccount: () => this.http.post<{ restored: boolean }>('/auth/account/restore'),
   };
 
   // ---- Profile (RF-PER-01..11) --------------------------------------------
@@ -1207,6 +1246,9 @@ export class YugoApiClient {
     suggested: () => this.http.get<GroupSummary[]>('/community/groups/suggested'),
     detail: (groupId: string) => this.http.get<GroupDetail>(`/community/groups/${groupId}`),
     create: (input: CreateGroupInput) => this.http.post<{ id: string }>('/community/groups', input),
+    /** Mismo endpoint que `create`; nombre explícito para los hooks (RF-COM-02). */
+    createGroup: (input: CreateGroupInput) =>
+      this.http.post<{ id: string; status: 'PENDING' | 'ACTIVE' }>('/community/groups', input),
     join: (groupId: string, message?: string) =>
       this.http.post<{ joined: boolean; pending: boolean }>(`/community/groups/${groupId}/join`, {
         message,
@@ -1280,8 +1322,17 @@ export class YugoApiClient {
     featured: () => this.http.get<EventSummary[]>('/events/featured'),
     publicEvent: (eventId: string) =>
       this.http.get<PublicEvent>(`/events/${eventId}/public`, { anonymous: true }),
-    setAttendance: (eventId: string, status: 'GOING' | 'INTERESTED' | null) =>
-      this.http.post<{ status: string | null }>(`/events/${eventId}/attendance`, { status }),
+    /**
+     * `null` quita la asistencia. «WAITLIST» pide una silla igual que
+     * «GOING»: el servidor decide si la hay o si la persona queda en la lista.
+     */
+    setAttendance: (eventId: string, status: 'GOING' | 'INTERESTED' | 'WAITLIST' | null) =>
+      this.http.post<{ status: 'GOING' | 'INTERESTED' | 'WAITLIST' | null; position?: number }>(
+        `/events/${eventId}/attendance`,
+        { status },
+      ),
+    /** RF-EVE-06: la entrada personal; 409 `not_going` si no va a asistir. */
+    ticket: (eventId: string) => this.http.get<EventTicket>(`/events/${eventId}/ticket`),
     checkIn: (qrToken: string) =>
       this.http.post<{ checkedIn: boolean; eventId: string; eventTitle: string }>(
         '/events/check-in',
@@ -1465,6 +1516,11 @@ export class YugoApiClient {
       this.http.get<{ token: string; url: string; title: string }>(
         `/church-portal/events/${eventId}/qr`,
       ),
+    /** Registrar en la puerta la entrada que enseña una persona (RF-EVE-06). */
+    checkInTicket: (eventId: string, code: string) =>
+      this.http.post<TicketCheckInResult>(`/church-portal/events/${eventId}/check-in-ticket`, {
+        code,
+      }),
     /** Ministerio de solteros: totales, nunca nombres. */
     singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
     // Consejería prematrimonial pedida por parejas (RF-REL-05).

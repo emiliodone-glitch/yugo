@@ -36,6 +36,7 @@ import {
   type RelationshipStage,
   type StoryDraftInput,
   intlLocale,
+  type GroupSummary,
 } from '@yugo/shared';
 
 /** Per-connection stage state, mirroring what the API returns. */
@@ -68,6 +69,28 @@ interface DemoState {
   boostUsedThisWeek: number;
   /** Etapas del vínculo, por matchId. */
   relationships: Record<string, DemoRelationship>;
+  /** RF-SEG-07: preferencias de privacidad, como las guarda la API. */
+  privacyPrefs: { hideExactDistance: boolean; allowEventPresenceVisible: boolean };
+  setPrivacyPrefs: (
+    patch: Partial<{ hideExactDistance: boolean; allowEventPresenceVisible: boolean }>,
+  ) => void;
+  /** RF-AUT-08: cuándo pidió eliminar la cuenta; null si no lo pidió. */
+  deletionRequestedAt: string | null;
+  setDeletionRequestedAt: (iso: string | null) => void;
+  /** RF-VER-03: solicitud de respaldo enviada a un líder (null si ninguna). */
+  leaderRequest: { leaderName: string | null; createdAt: string } | null;
+  setLeaderRequest: (leaderName: string | null) => void;
+  /** RF-COM-02: solicitudes de entrada ya resueltas por quien administra. */
+  resolvedJoinRequests: Record<string, 'ACCEPTED' | 'REJECTED'>;
+  resolveJoinRequest: (requestId: string, accept: boolean) => void;
+  /** Grupos propuestos en la demo, que quedan «en revisión». */
+  proposedGroups: GroupSummary[];
+  addProposedGroup: (input: {
+    name: string;
+    categorySlug: string;
+    city?: string;
+    type: 'OPEN' | 'APPROVAL';
+  }) => GroupSummary;
   markInterest: (userId: string) => 'ok' | 'limit';
   passProfile: (userId: string) => void;
   undoPass: () => string | null;
@@ -340,6 +363,11 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   boostActiveUntil: null,
   boostUsedThisWeek: 1,
   relationships: demoRelationships,
+  privacyPrefs: { hideExactDistance: false, allowEventPresenceVisible: true },
+  deletionRequestedAt: null,
+  leaderRequest: null,
+  resolvedJoinRequests: {},
+  proposedGroups: [],
 
   markInterest: (userId) => {
     const { interestsUsed, interestsLimit, sentInterests } = get();
@@ -426,6 +454,33 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   setShowOroBadge: (on) => set({ showOroBadge: on }),
   setTravelMode: (on) => set({ travelModeOn: on }),
   setPausedProfile: (on) => set({ pausedProfile: on }),
+  setPrivacyPrefs: (patch) =>
+    set((state) => ({ privacyPrefs: { ...state.privacyPrefs, ...patch } })),
+  setDeletionRequestedAt: (iso) => set({ deletionRequestedAt: iso }),
+  setLeaderRequest: (leaderName) =>
+    set({ leaderRequest: { leaderName, createdAt: new Date().toISOString() } }),
+  resolveJoinRequest: (requestId, accept) =>
+    set((state) => ({
+      resolvedJoinRequests: {
+        ...state.resolvedJoinRequests,
+        [requestId]: accept ? 'ACCEPTED' : 'REJECTED',
+      },
+    })),
+  addProposedGroup: (input) => {
+    const group: GroupSummary = {
+      id: `g-propuesto-${Date.now()}`,
+      name: input.name,
+      category: input.categorySlug,
+      type: input.type,
+      city: input.city,
+      memberCount: 1,
+      isOfficial: false,
+      joined: true,
+      status: 'PENDING',
+    };
+    set((state) => ({ proposedGroups: [...state.proposedGroups, group] }));
+    return group;
+  },
 
   activateBoost: () => {
     const until = new Date(Date.now() + DAY).toISOString();

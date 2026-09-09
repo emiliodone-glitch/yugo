@@ -14,6 +14,7 @@ export * from './relationship/questions';
 export * from './relationship/journey';
 export * from './events/capacity';
 export * from './events/when';
+export * from './events/calendar';
 export * from './devotional/reading';
 export * from './prayer/wall';
 export * from './affinity/affinity';

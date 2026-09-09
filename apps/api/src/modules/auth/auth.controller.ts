@@ -41,14 +41,13 @@ export class AuthController {
   @Public()
   @RateLimit({ limit: 20, windowSeconds: 3600 })
   @Post('oauth')
-  oauthSignIn(
-    @Body(new ZodPipe(oauthSchema)) body: z.infer<typeof oauthSchema>,
-    @Ip() ip: string,
-  ) {
+  oauthSignIn(@Body(new ZodPipe(oauthSchema)) body: z.infer<typeof oauthSchema>, @Ip() ip: string) {
     return this.oauth.signIn(
       body.provider as OAuthProvider,
       body.idToken,
-      body.birthDate && body.gender ? { birthDate: body.birthDate, gender: body.gender } : undefined,
+      body.birthDate && body.gender
+        ? { birthDate: body.birthDate, gender: body.gender }
+        : undefined,
       ip,
     );
   }
@@ -98,7 +97,9 @@ export class AuthController {
   @Public()
   @RateLimit({ limit: 10, windowSeconds: 3600 })
   @Post('password/reset')
-  reset(@Body(new ZodPipe(resetSchema)) body: { identifier: string; code: string; newPassword: string }) {
+  reset(
+    @Body(new ZodPipe(resetSchema)) body: { identifier: string; code: string; newPassword: string },
+  ) {
     return this.auth.resetPassword(body.identifier, body.code, body.newPassword);
   }
 
@@ -124,6 +125,12 @@ export class AuthController {
   @Delete('account')
   requestDeletion(@CurrentUser() user: AuthUser) {
     return this.auth.requestDeletion(user.id);
+  }
+
+  /** RF-AUT-08: cancelar la eliminación mientras dura el plazo de gracia. */
+  @Post('account/restore')
+  restoreAccount(@CurrentUser() user: AuthUser) {
+    return this.auth.restoreAccount(user.id);
   }
 
   @Get('me')

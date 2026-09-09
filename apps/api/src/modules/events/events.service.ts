@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { EVENT_TYPES, LIMITS, openSeats, seatFor } from '@yugo/shared';
+import { generateTicketCode, isUniqueViolation } from './ticket-code';
 import { PrismaService } from '../../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
@@ -118,7 +119,14 @@ export class EventsService {
    * capacity (see seatFor in @yugo/shared), and when the room is full the
    * person joins a waitlist instead of being told no and forgotten.
    */
-  async setAttendance(userId: string, eventId: string, status: 'GOING' | 'INTERESTED' | null) {
+  async setAttendance(
+    userId: string,
+    eventId: string,
+    requested: 'GOING' | 'INTERESTED' | 'WAITLIST' | null,
+  ) {
+    // Pedir «lista de espera» es pedir una silla: si hay, la persona entra;
+    // si no, queda en la lista. La lista nunca se elige a mano.
+    const status = requested === 'WAITLIST' ? 'GOING' : requested;
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { _count: { select: { attendances: { where: { status: 'GOING' } } } } },
@@ -214,6 +222,50 @@ export class EventsService {
       { title: event.title },
       { eventId },
     );
+  }
+
+  /**
+   * RF-EVE-06: la entrada personal. Solo existe para quien va a asistir; la
+   * lista de espera todavía no tiene silla, así que no tiene entrada (409).
+   * El código se crea la primera vez que se pide y después siempre es el
+   * mismo, para que la persona pueda enseñarlo aunque no tenga señal.
+   */
+  async ticketFor(userId: string, eventId: string) {
+    const attendance = await this.prisma.eventAttendance.findUnique({
+      where: { eventId_userId: { eventId, userId } },
+      include: { event: true },
+    });
+    if (!attendance || attendance.event.status !== 'PUBLISHED') throw new NotFoundException();
+    if (attendance.status !== 'GOING') throw new ConflictException('not_going');
+
+    let code = attendance.ticketCode;
+    if (!code) {
+      // El código es único en toda la tabla: ante una colisión (improbable con
+      // 32^10) se vuelve a intentar en lugar de fallar en la cara de la persona.
+      for (let attempt = 0; attempt < 5 && !code; attempt += 1) {
+        const candidate = generateTicketCode();
+        try {
+          await this.prisma.eventAttendance.update({
+            where: { eventId_userId: { eventId, userId } },
+            data: { ticketCode: candidate },
+          });
+          code = candidate;
+        } catch (error) {
+          if (!isUniqueViolation(error)) throw error;
+        }
+      }
+      if (!code) throw new ConflictException('ticket_unavailable');
+    }
+
+    return {
+      code,
+      eventId,
+      title: attendance.event.title,
+      startsAt: attendance.event.startsAt,
+      place: attendance.event.address ?? null,
+      status: attendance.status,
+      checkedInAt: attendance.checkedInAt,
+    };
   }
 
   /** RF-EVE-06: QR check-in; feeds portal metrics. */

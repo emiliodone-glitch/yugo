@@ -19,7 +19,14 @@ export class CommunityService {
 
   async myGroups(userId: string) {
     const groups = await this.prisma.group.findMany({
-      where: { status: 'ACTIVE', members: { some: { userId } } },
+      where: {
+        OR: [
+          { status: 'ACTIVE', members: { some: { userId } } },
+          // El grupo que uno mismo propuso y sigue en revisión (RF-COM-02):
+          // se enseña con su estado para que no parezca que se perdió.
+          { status: 'PENDING', ownerId: userId },
+        ],
+      },
       include: {
         category: true,
         church: { select: { name: true } },
@@ -97,6 +104,7 @@ export class CommunityService {
     type: string;
     city: string | null;
     churchId: string | null;
+    status?: string;
     category: { name: string } | null;
     church: { name: string } | null;
     _count: { members: number };
@@ -110,6 +118,7 @@ export class CommunityService {
       memberCount: group._count.members,
       isOfficial: group.type === 'OFFICIAL',
       churchName: group.church?.name,
+      status: group.status,
     };
   }
 

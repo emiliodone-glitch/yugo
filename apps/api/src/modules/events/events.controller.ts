@@ -5,7 +5,11 @@ import { EventsService } from './events.service';
 import { CurrentUser, Public, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
-const attendanceSchema = z.object({ status: z.enum(['GOING', 'INTERESTED']).nullable() });
+// «WAITLIST» se acepta como petición de asiento: el servidor decide si hay
+// silla o si la persona queda en la lista (nunca se asigna a mano).
+const attendanceSchema = z.object({
+  status: z.enum(['GOING', 'INTERESTED', 'WAITLIST']).nullable(),
+});
 const checkInSchema = z.object({ qrToken: z.string().min(4) });
 
 @Controller('events')
@@ -56,13 +60,23 @@ export class EventsController {
   attendance(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body(new ZodPipe(attendanceSchema)) body: { status: 'GOING' | 'INTERESTED' | null },
+    @Body(new ZodPipe(attendanceSchema))
+    body: { status: 'GOING' | 'INTERESTED' | 'WAITLIST' | null },
   ) {
     return this.events.setAttendance(user.id, id, body.status);
   }
 
+  /** RF-EVE-06: la entrada personal de quien va a asistir (código para la puerta). */
+  @Get(':id/ticket')
+  ticket(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.events.ticketFor(user.id, id);
+  }
+
   @Post('check-in')
-  checkIn(@CurrentUser() user: AuthUser, @Body(new ZodPipe(checkInSchema)) body: { qrToken: string }) {
+  checkIn(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(checkInSchema)) body: { qrToken: string },
+  ) {
     return this.events.checkIn(user.id, body.qrToken);
   }
 

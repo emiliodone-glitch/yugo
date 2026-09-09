@@ -33,6 +33,9 @@ export const es = {
     members: 'miembros',
     language: 'Idioma',
     step: (n: number, total: number) => `PASO ${n} DE ${total}`,
+    openInMaps: 'Cómo llegar',
+    saved: 'Guardado',
+    undo: 'Deshacer',
   },
 
   tabs: {
@@ -557,6 +560,9 @@ export const es = {
     typing: 'escribiendo…',
     delivered: 'Entregado',
     read: 'Leído',
+    closedConfirmation: (name: string) => `Cerraste la conexión con ${name}. Le llegó tu mensaje.`,
+    emptyTitle: 'Todavía no tienes conexiones',
+    emptyBody: 'Marca interés en Descubrir; cuando sea mutuo, la conversación aparece aquí.',
   },
 
   /**
@@ -655,6 +661,15 @@ export const es = {
     suggestedEmpty: 'Ya estás en todos los grupos activos cerca de ti.',
     openGroup: 'Entrar al grupo',
     seeSuggested: 'Ver sugeridos',
+    /** Solicitudes de entrada y grupos propuestos (RF-COM-02). */
+    requestAccepted: 'Solicitud aceptada',
+    requestRejected: 'Solicitud rechazada',
+    proposeGroup: 'Proponer un grupo',
+    groupName: 'Nombre del grupo',
+    groupDescription: 'De qué va y para quién es',
+    groupProposed: 'Tu grupo quedó en revisión. Te avisamos cuando el equipo lo apruebe.',
+    categoryLabel: 'Categoría',
+    inReview: 'En revisión',
   },
 
   events: {
@@ -687,6 +702,28 @@ export const es = {
     waitlistExplained: 'Si alguien cancela, el primero de la lista entra y recibe un aviso.',
     seatFreed: 'Se liberó un cupo',
     capacityHonest: 'El cupo es el que cabe en el salón. Ningún plan lo agranda.',
+    notGoing: 'Ya no iré',
+
+    /** Entrada personal con código (RF-EVE-06). */
+    ticketTitle: 'Tu entrada',
+    ticketHint: 'Muestra este código en la puerta. Quien recibe lo escanea o lo escribe.',
+    ticketCheckedIn: (when: string) => `Entrada registrada ${when}`,
+    ticketNotGoing: 'Marca «Asistiré» para tener tu entrada.',
+    ticketOpen: 'Ver mi entrada',
+    validateTitle: 'Registrar entradas',
+    validatePlaceholder: 'Código de la entrada',
+    validated: (name: string) => `Entrada de ${name} registrada`,
+    alreadyCheckedIn: 'Esa entrada ya se registró',
+    invalidTicket: 'Ese código no corresponde a este evento',
+
+    /** Filtros y mapa. */
+    filtersTitle: 'Filtrar eventos',
+    filterAll: 'Todos',
+    filterMine: 'Mi iglesia',
+    filterCity: 'Mi ciudad',
+    filterWeekend: 'Este fin de semana',
+    mapTitle: 'Dónde',
+    mapUnavailable: 'Este evento no tiene ubicación en el mapa',
   },
 
   singlesMinistry: {
@@ -750,6 +787,24 @@ export const es = {
     completeCardVisible: 'Ya apareces en Descubrir. Un perfil más completo recibe más respuestas.',
     completeCardCta: 'Completar perfil',
     signOut: 'Cerrar sesión',
+    /** Eliminación con plazo de gracia y copia de datos (RF-AUT-08, Ley 172-13). */
+    deleteScheduled: (date: string) =>
+      `Tu cuenta se eliminará el ${date}. Si entras antes, puedes cancelarlo.`,
+    deleteCancel: 'Cancelar la eliminación',
+    deleteConfirmTitle: '¿Eliminar tu cuenta?',
+    deleteConfirmBody:
+      'Tendrás un plazo de gracia para arrepentirte. Después, todo se borra de verdad.',
+    exportReady: 'Tu copia está lista',
+    exportDownload: 'Descargar mi copia (JSON)',
+    exportPreparing: 'Preparando tu copia…',
+    /** Respaldo del líder y selfie guiada (RF-VER-01/03). */
+    leaderRequestSent: (name: string) => `Le escribimos a ${name}. Te avisamos cuando responda.`,
+    leaderRequestPending: 'Solicitud enviada; esperando respuesta del líder',
+    takeSelfie: 'Tomar selfie',
+    retakeSelfie: 'Repetir',
+    useThisSelfie: 'Usar esta selfie',
+    cameraDenied: 'No pudimos usar la cámara. Revisa el permiso del navegador o del teléfono.',
+    cameraStarting: 'Encendiendo la cámara…',
     /** Qué pide la sugerencia de completitud, en palabras de la persona. */
     fields: {
       displayName: 'tu nombre',
@@ -1223,6 +1278,7 @@ export const es = {
     ageRangeSpan: 'El rango debe tener al menos 3 años de amplitud.',
     dailyInterestsUsed: 'Usaste tus intereses de hoy.',
     noteRejected: 'La nota no pasó la moderación. Revísala y vuelve a intentar.',
+    offlineBanner: 'Sin conexión. Lo que hagas se guarda y se envía al volver.',
   },
 } as const;
 

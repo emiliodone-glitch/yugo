@@ -42,7 +42,28 @@ export class VerificationService {
     const byLevel = (level: number) =>
       verifications.find((v) => v.level === level && v.status === 'APPROVED') ??
       verifications.find((v) => v.level === level);
-    return { level1: byLevel(1), level2: byLevel(2), level3: byLevel(3) };
+    // La última solicitud a un líder (RF-VER-03), para que «solicitud
+    // enviada» sobreviva a recargar la pantalla.
+    const leaderRequest = await this.prisma.endorsementRequest.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: { church: { select: { name: true } } },
+    });
+    return {
+      level1: byLevel(1),
+      level2: byLevel(2),
+      level3: byLevel(3),
+      leaderRequest: leaderRequest
+        ? {
+            id: leaderRequest.id,
+            status: leaderRequest.status,
+            churchName: leaderRequest.church.name,
+            leaderName: leaderRequest.leaderName,
+            createdAt: leaderRequest.createdAt,
+            resolvedAt: leaderRequest.resolvedAt,
+          }
+        : null,
+    };
   }
 
   /** Step 1 of the selfie flow: random gesture challenge + upload URL. */

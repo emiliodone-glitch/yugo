@@ -1295,6 +1295,9 @@ model EventAttendance {
   user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reminderSentAt DateTime?
   checkedInAt DateTime?
+  /// Entrada personal (RF-EVE-06): código corto que la persona enseña en la
+  /// puerta. Se genera la primera vez que la pide y solo si va a asistir.
+  ticketCode  String?               @unique
   createdAt   DateTime              @default(now())
 
   @@id([eventId, userId])

@@ -65,6 +65,10 @@ import {
   type ProfileUpdateInput,
   type SearchPreferencesInput,
   type SubscriptionTier,
+  type CreateGroupInput,
+  type EventTicket,
+  type VerificationStatusResponse,
+  calendarDataUrl,
 } from '@yugo/shared';
 import { useEffect, useRef, useState } from 'react';
 import { api, isDemoMode, notifyAccountLocale } from './runtime';
@@ -769,12 +773,15 @@ export function useRespondToStage(matchId: string) {
 // ---------------------------------------------------------------------------
 
 export function useGroups() {
+  const proposed = useDemoStore((s) => s.proposedGroups);
   return useQuery({
-    queryKey: ['groups'],
+    queryKey: ['groups', isDemoMode() ? proposed.length : null],
     queryFn: async (): Promise<{ mine: GroupSummary[]; suggested: GroupSummary[] }> => {
       if (isDemoMode()) {
+        // Los grupos propuestos en la demo aparecen entre los míos con su
+        // estado «en revisión», igual que los devuelve la API.
         return {
-          mine: demoGroups.filter((g) => g.joined),
+          mine: [...demoGroups.filter((g) => g.joined), ...proposed],
           suggested: demoGroups.filter((g) => !g.joined),
         };
       }
@@ -817,6 +824,29 @@ export function useJoinGroup() {
       return api().community.join(groupId, message);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
+}
+
+/**
+ * RF-COM-02: proponer un grupo. Nace «en revisión» hasta que el equipo lo
+ * aprueba; en la demo se apunta en el almacén para que aparezca entre los
+ * míos con ese estado.
+ */
+export function useCreateGroup() {
+  const queryClient = useQueryClient();
+  const addProposed = useDemoStore((s) => s.addProposedGroup);
+  return useMutation({
+    mutationFn: async (input: CreateGroupInput) => {
+      if (isDemoMode()) {
+        const group = addProposed(input);
+        return { id: group.id, status: 'PENDING' as const };
+      }
+      return api().community.createGroup(input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['home'] });
+    },
   });
 }
 
@@ -880,8 +910,9 @@ export function useReactToPost() {
 }
 
 export function useJoinRequests(groupId: string, enabled: boolean) {
+  const resolved = useDemoStore((s) => s.resolvedJoinRequests);
   return useQuery({
-    queryKey: ['join-requests', groupId],
+    queryKey: ['join-requests', groupId, isDemoMode() ? resolved : null],
     enabled,
     queryFn: async () => {
       if (isDemoMode()) {
@@ -895,9 +926,28 @@ export function useJoinRequests(groupId: string, enabled: boolean) {
             message: 'Toco bajo en mi congregación, me gustaría aportar.',
             createdAt: new Date().toISOString(),
           },
-        ];
+        ].filter((request) => !resolved[request.id]);
       }
       return api().community.joinRequests(groupId);
+    },
+  });
+}
+
+/** RF-COM-02: quien administra acepta o rechaza una solicitud de entrada. */
+export function useResolveJoinRequest(groupId: string) {
+  const queryClient = useQueryClient();
+  const resolveDemo = useDemoStore((s) => s.resolveJoinRequest);
+  return useMutation({
+    mutationFn: async ({ requestId, accept }: { requestId: string; accept: boolean }) => {
+      if (isDemoMode()) {
+        resolveDemo(requestId, accept);
+        return { resolved: true };
+      }
+      return api().community.resolveJoinRequest(requestId, accept);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['join-requests', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] });
     },
   });
 }
@@ -958,12 +1008,14 @@ export function useSetAttendance() {
       status,
     }: {
       eventId: string;
-      status: 'GOING' | 'INTERESTED' | null;
+      /** `null` quita la asistencia; «WAITLIST» pide silla igual que «GOING». */
+      status: 'GOING' | 'INTERESTED' | 'WAITLIST' | null;
     }) => {
       if (isDemoMode()) {
         // Devuelve lo que realmente quedó, no lo que se pidió: un encuentro
         // lleno convierte «Asistiré» en lista de espera.
-        return { status: setDemo(eventId, status ?? undefined) ?? null };
+        const asked = status === 'WAITLIST' ? 'GOING' : (status ?? undefined);
+        return { status: setDemo(eventId, asked) ?? null };
       }
       return api().events.setAttendance(eventId, status);
     },
@@ -1051,9 +1103,45 @@ export function useCheckIn() {
   });
 }
 
-/** RF-EVE-08: direct .ics link the browser downloads. */
+/**
+ * RF-EVE-08: direct .ics link the browser downloads. En demo no hay
+ * servidor: el .ics se arma desde el fixture y viaja como URL `data:`, así
+ * que el botón «Agregar al calendario» funciona igual.
+ */
 export function calendarUrl(eventId: string): string {
-  return isDemoMode() ? '#' : api().events.calendarUrl(eventId);
+  if (!isDemoMode()) return api().events.calendarUrl(eventId);
+  const event = demoEvents.find((e) => e.id === eventId);
+  return event ? calendarDataUrl(event) : '#';
+}
+
+/**
+ * RF-EVE-06: la entrada personal. Solo se pide cuando la persona va a
+ * asistir (`enabled`); la API responde 409 `not_going` en otro caso.
+ */
+export function useEventTicket(eventId: string, enabled: boolean) {
+  const statuses = useDemoStore((s) => s.eventStatus);
+  return useQuery({
+    queryKey: ['event-ticket', eventId, isDemoMode() ? statuses[eventId] : null],
+    enabled: enabled && !!eventId,
+    retry: false,
+    queryFn: async (): Promise<EventTicket> => {
+      if (isDemoMode()) {
+        const event = demoEvents.find((e) => e.id === eventId);
+        const status = statuses[eventId] ?? event?.myStatus;
+        if (status !== 'GOING') throw new Error('not_going');
+        return {
+          code: 'YUGO-DEMO-1',
+          eventId,
+          title: event?.title ?? 'Evento',
+          startsAt: event?.startsAt ?? new Date().toISOString(),
+          place: event?.address ?? null,
+          status: 'GOING',
+          checkedInAt: null,
+        };
+      }
+      return api().events.ticket(eventId);
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1761,18 +1849,58 @@ export function useSetQuietHours() {
 }
 
 export function useVerificationStatus() {
+  const demoLeaderRequest = useDemoStore((s) => s.leaderRequest);
   return useQuery({
-    queryKey: ['verification'],
-    queryFn: async () => {
+    queryKey: ['verification', isDemoMode() ? demoLeaderRequest : null],
+    queryFn: async (): Promise<VerificationStatusResponse> => {
       if (isDemoMode()) {
         return {
-          level1: { status: 'APPROVED' as const, level: 1 },
-          level2: { status: 'APPROVED' as const, level: 2, resolvedAt: '2026-08-12' },
+          level1: { status: 'APPROVED', level: 1 } as VerificationStatusResponse['level1'],
+          level2: {
+            status: 'APPROVED',
+            level: 2,
+            resolvedAt: '2026-08-12',
+          } as VerificationStatusResponse['level2'],
           level3: undefined,
+          leaderRequest: demoLeaderRequest
+            ? {
+                id: 'er-demo',
+                status: 'PENDING',
+                churchName: 'Iglesia Monte de Sion',
+                leaderName: demoLeaderRequest.leaderName,
+                createdAt: demoLeaderRequest.createdAt,
+                resolvedAt: null,
+              }
+            : null,
         };
       }
       return api().verification.status();
     },
+  });
+}
+
+/**
+ * RF-VER-03: pedir a un líder que respalde a la persona. La solicitud queda
+ * en `verification.leaderRequest`, así «solicitud enviada» sobrevive a
+ * recargar la pantalla.
+ */
+export function useRequestLeaderEndorsement() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setLeaderRequest);
+  return useMutation({
+    mutationFn: async (input: {
+      churchId: string;
+      leaderEmail?: string;
+      leaderName?: string;
+      attendsSince?: number;
+    }) => {
+      if (isDemoMode()) {
+        setDemo(input.leaderName ?? null);
+        return { id: 'er-demo', status: 'PENDING' };
+      }
+      return api().verification.requestLeaderEndorsement(input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['verification'] }),
   });
 }
 
@@ -1812,6 +1940,156 @@ export function useExportData() {
         return { exportedAt: new Date().toISOString(), demo: true };
       }
       return api().privacy.exportData();
+    },
+  });
+}
+
+// ---- Cuenta: eliminación con gracia (RF-AUT-08) y privacidad (RF-SEG-07) ----
+
+export interface AccountStatus {
+  status: string;
+  /** Cuándo pidió eliminar la cuenta; null si no lo pidió. */
+  deletionRequestedAt: string | null;
+  /** Fecha en que se borra de verdad; null si no hay eliminación pendiente. */
+  deletesAt: string | null;
+  graceDays: number;
+}
+
+const deletesAtFrom = (requestedAt: string | null): string | null =>
+  requestedAt
+    ? new Date(
+        new Date(requestedAt).getTime() + LIMITS.DELETION_GRACE_DAYS * 86400000,
+      ).toISOString()
+    : null;
+
+/**
+ * Estado de la cuenta para la pantalla de privacidad: si hay una eliminación
+ * pendiente y hasta cuándo se puede cancelar. Clave `['me']`, que las
+ * mutaciones de cuenta invalidan junto con `['session']`.
+ */
+export function useAccountStatus() {
+  const demoDeletion = useDemoStore((s) => s.deletionRequestedAt);
+  return useQuery({
+    queryKey: ['me', isDemoMode() ? demoDeletion : null],
+    queryFn: async (): Promise<AccountStatus> => {
+      if (isDemoMode()) {
+        return {
+          status: demoDeletion ? 'DELETION_PENDING' : 'ACTIVE',
+          deletionRequestedAt: demoDeletion,
+          deletesAt: deletesAtFrom(demoDeletion),
+          graceDays: LIMITS.DELETION_GRACE_DAYS,
+        };
+      }
+      const me = await api().auth.me();
+      const requestedAt =
+        me.status === 'DELETION_PENDING' ? (me.deletionRequestedAt ?? null) : null;
+      return {
+        status: me.status,
+        deletionRequestedAt: requestedAt,
+        deletesAt: deletesAtFrom(requestedAt),
+        graceDays: LIMITS.DELETION_GRACE_DAYS,
+      };
+    },
+  });
+}
+
+/**
+ * Pedir la eliminación. En vivo la API cierra las demás sesiones; el token
+ * de acceso actual sigue valiendo un rato, así que la pantalla puede mostrar
+ * «se eliminará el …» y ofrecer cancelarlo.
+ */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setDeletionRequestedAt);
+  return useMutation({
+    mutationFn: async () => {
+      if (isDemoMode()) {
+        setDemo(new Date().toISOString());
+        return { graceDays: LIMITS.DELETION_GRACE_DAYS };
+      }
+      return api().auth.deleteAccount();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['session'] });
+    },
+  });
+}
+
+/** Arrepentirse dentro del plazo de gracia (RF-AUT-08). */
+export function useRestoreAccount() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setDeletionRequestedAt);
+  return useMutation({
+    mutationFn: async () => {
+      if (isDemoMode()) {
+        setDemo(null);
+        return { restored: true };
+      }
+      return api().auth.restoreAccount();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['session'] });
+    },
+  });
+}
+
+export interface PrivacyPreferences {
+  hideExactDistance: boolean;
+  allowEventPresenceVisible: boolean;
+}
+
+/** RF-SEG-07: distancia en rangos y presencia visible en eventos. */
+export function usePrivacyPreferences() {
+  const demoPrefs = useDemoStore((s) => s.privacyPrefs);
+  return useQuery({
+    queryKey: ['privacy-preferences', isDemoMode() ? demoPrefs : null],
+    queryFn: async (): Promise<PrivacyPreferences> => {
+      if (isDemoMode()) return demoPrefs;
+      const profile = await api().profiles.mine();
+      return {
+        hideExactDistance: profile?.hideExactDistance ?? false,
+        allowEventPresenceVisible: profile?.allowEventPresenceVisible ?? true,
+      };
+    },
+  });
+}
+
+export function useSetPrivacyPreferences() {
+  const queryClient = useQueryClient();
+  const setDemo = useDemoStore((s) => s.setPrivacyPrefs);
+  return useMutation({
+    mutationFn: async (patch: Partial<PrivacyPreferences>) => {
+      if (isDemoMode()) {
+        setDemo(patch);
+        return { saved: true };
+      }
+      return api().privacy.setPreferences(patch);
+    },
+    // El interruptor cambia al instante; si la API falla, vuelve a donde estaba.
+    onMutate: async (patch) => {
+      if (isDemoMode()) return undefined;
+      await queryClient.cancelQueries({ queryKey: ['privacy-preferences'] });
+      const snapshots = queryClient.getQueriesData<PrivacyPreferences>({
+        queryKey: ['privacy-preferences'],
+      });
+      for (const [key, data] of snapshots) {
+        if (data) queryClient.setQueryData<PrivacyPreferences>(key, { ...data, ...patch });
+      }
+      return {
+        rollback: () => {
+          for (const [key, data] of snapshots) queryClient.setQueryData(key, data);
+        },
+      };
+    },
+    onError: (_error, _vars, context) => context?.rollback?.(),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['privacy-preferences'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      // Descubrir y la agenda cambian con estas preferencias.
+      queryClient.invalidateQueries({ queryKey: ['events'] });
     },
   });
 }

@@ -43,6 +43,7 @@ import {
   type ChurchPortalMe,
   type ChurchPortalUser,
   type CreateEventInput,
+  type TicketCheckInResult,
 } from '@yugo/shared';
 import { api, isDemoMode } from './runtime';
 
@@ -1098,6 +1099,36 @@ export function useEventQr(eventId: string) {
       isDemoMode()
         ? { token: 'demo', url: `https://yugo.do/e/${eventId}?ci=demo`, title: 'Evento' }
         : api().church.eventQr(eventId),
+  });
+}
+
+/**
+ * RF-EVE-06: registrar en la puerta la entrada que enseña una persona. Es la
+ * única respuesta del portal con un nombre: la persona está delante con su
+ * propia entrada. En demo vale cualquier código que empiece por «YUGO».
+ */
+export function useCheckInTicket(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (code: string): Promise<TicketCheckInResult> => {
+      if (isDemoMode()) {
+        const normalized = code.replace(/[\s-]/g, '').toUpperCase();
+        if (!normalized.startsWith('YUGO')) throw new Error('invalid_ticket');
+        return {
+          checkedIn: true,
+          alreadyCheckedIn: normalized.endsWith('2'),
+          attendee: {
+            displayName: demoDiscover[0]?.displayName ?? 'Miembro',
+            verificationLevel: 2,
+          },
+        };
+      }
+      return api().church.checkInTicket(eventId, code);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['church', 'events'] });
+      void queryClient.invalidateQueries({ queryKey: ['church', 'metrics'] });
+    },
   });
 }
 

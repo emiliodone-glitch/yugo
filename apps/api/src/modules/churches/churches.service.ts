@@ -11,6 +11,7 @@ import { PrismaService } from '../../common/prisma.service';
 import { MailerService } from '../queues/mailer.service';
 import { AuditService } from '../../common/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { normalizeTicketCode } from '../events/ticket-code';
 
 @Injectable()
 export class ChurchesService {
@@ -549,6 +550,58 @@ export class ChurchesService {
       // web (que registra la asistencia si hay sesión) y la app la entiende.
       url: `${process.env.WEB_URL ?? 'https://yugo.do'}/e/${event.id}?ci=${event.qrToken}`,
       title: event.title,
+    };
+  }
+
+  /**
+   * RF-EVE-06: registrar la entrada de una persona por su código.
+   *
+   * Es LA excepción documentada a «el portal ve totales, nunca nombres»: la
+   * persona está físicamente en la puerta enseñando su propia entrada, así
+   * que quien recibe ve su nombre y su nivel de verificación para saber que
+   * es quien dice ser. Nada más: ni ciudad, ni correo, ni foto.
+   *
+   * Idempotente: la segunda vez responde `alreadyCheckedIn: true` y no
+   * mueve la hora original. Un código de otro evento o inventado es 404
+   * `invalid_ticket`, sin distinguir cuál (no se confirma que exista).
+   */
+  async checkInTicket(userId: string, eventId: string, rawCode: string) {
+    const membership = await this.requireMembership(userId);
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, churchId: membership.churchId },
+      select: { id: true },
+    });
+    if (!event) throw new NotFoundException();
+
+    const code = normalizeTicketCode(rawCode);
+    const attendance = await this.prisma.eventAttendance.findUnique({
+      where: { ticketCode: code },
+      include: { user: { select: { profile: { select: { displayName: true } } } } },
+    });
+    if (!attendance || attendance.eventId !== event.id) {
+      throw new NotFoundException('invalid_ticket');
+    }
+
+    const alreadyCheckedIn = attendance.checkedInAt !== null;
+    if (!alreadyCheckedIn) {
+      await this.prisma.eventAttendance.update({
+        where: { ticketCode: code },
+        data: { checkedInAt: new Date() },
+      });
+    }
+    const verified = await this.prisma.verification.findFirst({
+      where: { userId: attendance.userId, status: 'APPROVED' },
+      orderBy: { level: 'desc' },
+      select: { level: true },
+    });
+
+    return {
+      checkedIn: true,
+      alreadyCheckedIn,
+      attendee: {
+        displayName: attendance.user.profile?.displayName ?? 'Miembro',
+        verificationLevel: verified?.level ?? 0,
+      },
     };
   }
 

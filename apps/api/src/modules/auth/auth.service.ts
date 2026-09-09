@@ -223,6 +223,36 @@ export class AuthService {
     return { graceDays: LIMITS.DELETION_GRACE_DAYS };
   }
 
+  /**
+   * RF-AUT-08: arrepentirse dentro del plazo de gracia. Volver a entrar ya lo
+   * cancela (ver `login`); esto es para quien sigue dentro con la sesión
+   * abierta y quiere deshacerlo sin salir. Pasado el plazo no hay vuelta:
+   * la purga nocturna ya pudo haber borrado los datos de verdad.
+   */
+  async restoreAccount(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, deletionRequestedAt: true },
+    });
+    if (!user || user.status !== 'DELETION_PENDING' || !user.deletionRequestedAt) {
+      throw new ConflictException('not_pending_deletion');
+    }
+    const graceEndsAt = user.deletionRequestedAt.getTime() + LIMITS.DELETION_GRACE_DAYS * 86400000;
+    if (graceEndsAt <= Date.now()) throw new ConflictException('grace_period_over');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: 'ACTIVE', deletionRequestedAt: null },
+    });
+    await this.audit.log({
+      actorId: userId,
+      action: 'ACCOUNT_DELETION_CANCELLED',
+      targetType: 'USER',
+      targetId: userId,
+    });
+    return { restored: true };
+  }
+
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
