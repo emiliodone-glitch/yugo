@@ -1204,3 +1204,29 @@ export const demoDevotionalSchedule: DevotionalSchedule = {
     },
   ],
 };
+
+/** Lo que ve el portal: parejas que pidieron consejería con el sí de los dos (RF-REL-05). */
+export const demoCounselingRequests = [
+  {
+    id: 'cr-1',
+    status: 'REQUESTED' as const,
+    names: ['Abigail', 'Caleb'] as [string, string],
+    emails: ['abigail@ejemplo.do', 'caleb@ejemplo.do'] as [string | null, string | null],
+    stage: 'ENGAGED' as const,
+    note: 'Nos casamos en marzo y queremos empezar la consejería antes de fin de año. Podemos los sábados en la tarde.',
+    createdAt: '2026-09-06T15:20:00-04:00',
+    respondedAt: null,
+    responseNote: null,
+  },
+  {
+    id: 'cr-2',
+    status: 'ACCEPTED' as const,
+    names: ['Rebeca', 'Josué'] as [string, string],
+    emails: ['rebeca@ejemplo.do', 'josue@ejemplo.do'] as [string | null, string | null],
+    stage: 'COURTSHIP' as const,
+    note: 'Llevamos cuatro meses de novios y queremos hacerlo bien desde el principio.',
+    createdAt: '2026-08-20T10:00:00-04:00',
+    respondedAt: '2026-08-22T09:30:00-04:00',
+    responseNote: 'Los esperamos el sábado 29 a las 4 pm en la oficina pastoral.',
+  },
+];

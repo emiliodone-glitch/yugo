@@ -31,6 +31,7 @@ const NAV = [
   { href: '/iglesias/arranque', label: 'Arranque' },
   { href: '/iglesias/eventos', label: es.church.events },
   { href: '/iglesias/solteros', label: es.singlesMinistry.title },
+  { href: '/iglesias/consejeria', label: es.church.counseling },
   { href: '/iglesias/grupo', label: es.church.officialGroup },
   { href: '/iglesias/codigos', label: es.church.endorsementCodes },
   { href: '/iglesias/metricas', label: es.church.metrics },

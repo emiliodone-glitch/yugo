@@ -15,6 +15,7 @@ import { AccompanimentService } from './accompaniment.service';
 import { MeetingPlanService } from './meeting-plan.service';
 import { StageQuestionsService } from './stage-questions.service';
 import { VideoCallsService } from './video-calls.service';
+import { JourneyService } from './journey.service';
 import { CurrentUser, type AuthUser } from '../../common/decorators';
 import { ZodPipe } from '../../common/zod.pipe';
 
@@ -39,6 +40,12 @@ const meetingPlanSchema = z.object({
   notes: z.string().trim().max(300).optional(),
   trustedContactLabel: z.string().trim().max(80).optional(),
 });
+const milestoneSchema = z.object({ done: z.boolean(), doneAt: z.coerce.date().optional() });
+const counselingSchema = z.object({
+  churchId: z.string().min(1),
+  note: z.string().trim().min(10).max(600),
+});
+const respondCounselingSchema = z.object({ accept: z.boolean() });
 
 @Controller('connections')
 export class ChatController {
@@ -50,6 +57,7 @@ export class ChatController {
     private readonly meetingPlan: MeetingPlanService,
     private readonly questions: StageQuestionsService,
     private readonly videoCalls: VideoCallsService,
+    private readonly journey: JourneyService,
   ) {}
 
   @Get()
@@ -176,6 +184,43 @@ export class ChatController {
   @Post(':matchId/stage/decline')
   declineStage(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
     return this.relationship.decline(matchId, user.id);
+  }
+
+  // --- Ruta de pareja después del sí (RF-REL-05) --------------------------
+  // Pasos con fecha, recursos y consejería con la iglesia. Se abre con el
+  // noviazgo; la iglesia solo ve la consejería cuando la firman los dos.
+
+  @Get(':matchId/journey')
+  journeyState(@CurrentUser() user: AuthUser, @Param('matchId') matchId: string) {
+    return this.journey.state(matchId, user.id);
+  }
+
+  @Put(':matchId/journey/milestones/:key')
+  setMilestone(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Param('key') key: string,
+    @Body(new ZodPipe(milestoneSchema)) body: { done: boolean; doneAt?: Date },
+  ) {
+    return this.journey.setMilestone(matchId, user.id, key, body.done, body.doneAt);
+  }
+
+  @Post(':matchId/journey/counseling')
+  requestCounseling(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(counselingSchema)) body: { churchId: string; note: string },
+  ) {
+    return this.journey.requestCounseling(matchId, user.id, body);
+  }
+
+  @Post(':matchId/journey/counseling/respond')
+  respondCounseling(
+    @CurrentUser() user: AuthUser,
+    @Param('matchId') matchId: string,
+    @Body(new ZodPipe(respondCounselingSchema)) body: { accept: boolean },
+  ) {
+    return this.journey.respondCounseling(matchId, user.id, body.accept);
   }
 
   // --- Acompañamiento ----------------------------------------------------

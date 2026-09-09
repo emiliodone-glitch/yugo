@@ -13,6 +13,7 @@ export type PushDestination =
   | { screen: 'verification' }
   | { screen: 'accompaniment'; id: string }
   | { screen: 'introductions' }
+  | { screen: 'church-counseling' }
   | { screen: 'notifications' };
 
 export function destinationFor(data: Record<string, unknown> | undefined): PushDestination {
@@ -33,6 +34,9 @@ export function destinationFor(data: Record<string, unknown> | undefined): PushD
 
   // Una presentación por padrino se responde desde Conexiones (RF-ACO-05).
   if (text('introductionId')) return { screen: 'introductions' };
+
+  // Una petición de consejería le llega al portal de la iglesia (RF-REL-05).
+  if (text('counselingRequestId')) return { screen: 'church-counseling' };
 
   const category = text('category');
   if (category === 'INTEREST') return { screen: 'interested-in-you' };

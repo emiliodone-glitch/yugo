@@ -639,4 +639,86 @@ export class ChurchesService {
         'Este panel muestra totales de los encuentros que convoca tu congregación. Nunca muestra quién asiste, con quién conversa ni con quién conecta.',
     };
   }
+
+  // --- Consejería prematrimonial (RF-REL-05) ----------------------------------
+
+  /**
+   * Las peticiones de consejería que firmaron los dos miembros de una pareja.
+   * `PENDING_PARTNER` no aparece por consulta: la iglesia no sabe que existe
+   * una petición hasta que la pareja completa la decide.
+   */
+  async counselingRequests(userId: string) {
+    const membership = await this.requireMembership(userId);
+    const rows = await this.prisma.counselingRequest.findMany({
+      where: {
+        churchId: membership.churchId,
+        status: { in: ['REQUESTED', 'ACCEPTED', 'DECLINED'] },
+      },
+      include: {
+        match: {
+          select: {
+            stage: true,
+            userA: { select: { email: true, profile: { select: { displayName: true } } } },
+            userB: { select: { email: true, profile: { select: { displayName: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      names: [
+        row.match.userA.profile?.displayName ?? 'Miembro',
+        row.match.userB.profile?.displayName ?? 'Miembro',
+      ] as [string, string],
+      emails: [row.match.userA.email, row.match.userB.email] as [string | null, string | null],
+      stage: row.match.stage,
+      note: row.note,
+      createdAt: row.createdAt.toISOString(),
+      respondedAt: row.respondedAt ? row.respondedAt.toISOString() : null,
+      responseNote: row.responseNote,
+    }));
+  }
+
+  /** La iglesia acepta o no, con un mensaje que les llega a los dos. */
+  async respondCounseling(
+    userId: string,
+    requestId: string,
+    input: { accept: boolean; message?: string },
+  ) {
+    const membership = await this.requireMembership(userId);
+    const request = await this.prisma.counselingRequest.findFirst({
+      where: { id: requestId, churchId: membership.churchId, status: 'REQUESTED' },
+      include: {
+        match: { select: { userAId: true, userBId: true, conversation: { select: { id: true } } } },
+      },
+    });
+    if (!request) throw new NotFoundException('counseling_request_not_found');
+
+    const message = input.message?.trim() || null;
+    const status = input.accept ? 'ACCEPTED' : 'DECLINED';
+    await this.prisma.counselingRequest.update({
+      where: { id: requestId },
+      data: { status, responseNote: message, respondedById: userId, respondedAt: new Date() },
+    });
+
+    const church = membership.church.name;
+    const title = input.accept
+      ? `${church} aceptó acompañarlos`
+      : `Sobre la consejería con ${church}`;
+    const body =
+      message ??
+      (input.accept ? `${church} aceptó acompañarlos.` : `${church} no puede tomarla ahora.`);
+    const data = request.match.conversation
+      ? { conversationId: request.match.conversation.id }
+      : undefined;
+    await Promise.all(
+      [request.match.userAId, request.match.userBId].map((memberId) =>
+        this.notifications.notify(memberId, 'RELATIONSHIP', title, body, data),
+      ),
+    );
+    return { id: requestId, status };
+  }
 }

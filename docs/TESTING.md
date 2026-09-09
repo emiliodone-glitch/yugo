@@ -181,6 +181,27 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
    apagó «Resumen semanal y plan de domingo por correo» no recibe nada; sin
    evento, devocional ni conexión callada tampoco.
 
+### Ruta de pareja después del sí (RF-REL-05)
+
+1. En una conexión en «Amistad intencional» la tarjeta «Su ruta» dice cuándo
+   se abre. Propón «Noviazgo» y acéptalo desde la otra cuenta: aparecen los
+   pasos del noviazgo; los de compromiso se listan como «se abre en
+   Comprometidos». `PUT /v1/connections/:matchId/journey/milestones/pastor`
+   con `{ "done": true, "doneAt": "2026-08-30" }` lo marca; la otra persona
+   ve «Mariel lo marcó el 30 de agosto» y recibe aviso. Un paso de una etapa
+   posterior responde `milestone_locked`.
+2. «Para prepararse» muestra los recursos generales y, si alguno de los dos
+   tiene denominación católica, adventista o pentecostal en el perfil, los de
+   esa tradición.
+3. Consejería: «Pedir consejería» solo ofrece las iglesias de los dos
+   perfiles. Tras pedirla, `GET /v1/church-portal/counseling` con una cuenta
+   del portal de esa iglesia **no la lista** todavía. Confirma desde la otra
+   cuenta («Confirmo, que la iglesia lo vea»): ahora el portal la lista con
+   nombres y correos, y los usuarios del portal reciben «Una pareja pide
+   consejería». En `/iglesias/consejeria`, «Aceptar y responder» con un
+   mensaje: a los dos les llega la notificación con ese mensaje y la tarjeta
+   muestra «La iglesia les dice».
+
 ### Descubrir y regla mutua de edad (RF-DES-01/05/11/12)
 1. Con `demo1@yugo.do`: `GET /v1/discover` → lista ≤ 30 ordenada por afinidad con desglose.
 2. Cambia tu rango a uno que excluya la edad de un perfil sugerido → desaparece de la lista

@@ -88,6 +88,10 @@ export function routeFromNotification(data: Record<string, unknown> | undefined)
       // Una presentación por padrino se responde arriba de Conexiones.
       router.push('/(tabs)/conexiones');
       return;
+    case 'church-counseling':
+      // El portal de iglesias es web; en la app queda el aviso.
+      router.push('/perfil/notificaciones');
+      return;
     default:
       router.push('/perfil/notificaciones');
   }

@@ -17,6 +17,8 @@ import {
   demoAdminKpis,
   demoAttentionItems,
   demoChurch,
+  demoCounselingRequests,
+  type PortalCounselingRequest,
   demoDiscover,
   demoEvents,
   demoGroups,
@@ -1105,5 +1107,47 @@ export function useRemoveChurchUser() {
     mutationFn: async (churchUserId: string) =>
       isDemoMode() ? { removed: true } : api().church.removeUser(churchUserId),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['church', 'users'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Consejería prematrimonial pedida por parejas (RF-REL-05)
+// ---------------------------------------------------------------------------
+
+let counselingDemo: PortalCounselingRequest[] = demoCounselingRequests.map((row) => ({ ...row }));
+
+export function useCounselingRequests() {
+  return useQuery<PortalCounselingRequest[]>({
+    queryKey: ['church', 'counseling'],
+    queryFn: () =>
+      isDemoMode() ? counselingDemo.map((row) => ({ ...row })) : api().church.counselingRequests(),
+  });
+}
+
+export function useRespondCounselingRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; accept: boolean; message?: string }) => {
+      if (isDemoMode()) {
+        counselingDemo = counselingDemo.map((row) =>
+          row.id === input.id
+            ? {
+                ...row,
+                status: input.accept ? 'ACCEPTED' : 'DECLINED',
+                respondedAt: new Date().toISOString(),
+                responseNote: input.message?.trim() || null,
+              }
+            : row,
+        );
+        return { id: input.id, status: input.accept ? 'ACCEPTED' : 'DECLINED' };
+      }
+      return api().church.respondCounseling(input.id, {
+        accept: input.accept,
+        message: input.message,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['church', 'counseling'] });
+    },
   });
 }

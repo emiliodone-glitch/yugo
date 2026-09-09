@@ -4,6 +4,7 @@
  * live in `i18n/es-DO.ts`.
  */
 import type { RelationshipStage } from '../relationship/stages';
+import type { CounselingStatus, ResourcesForCouple } from '../relationship/journey';
 
 export type UserRole =
   'MEMBER' | 'MODERATOR' | 'COMMUNITY_MANAGER' | 'SUPPORT' | 'FINANCE' | 'SUPERADMIN';
@@ -297,4 +298,56 @@ export interface ModerationResult {
   categories: string[];
   /** Derived decision from thresholds. */
   decision: 'APPROVE' | 'HOLD' | 'REJECT';
+}
+
+// ---------------------------------------------------------------------------
+// Ruta de pareja después del sí (RF-REL-05)
+// ---------------------------------------------------------------------------
+
+export interface CoupleMilestoneState {
+  key: string;
+  stage: RelationshipStage;
+  title: string;
+  why: string;
+  /** Cuándo lo marcaron; null si todavía no. */
+  doneAt: string | null;
+  doneByMe: boolean;
+  doneByName: string | null;
+}
+
+export interface CoupleCounseling {
+  id: string;
+  status: CounselingStatus;
+  churchName: string;
+  note: string;
+  requestedByMe: boolean;
+  createdAt: string;
+  responseNote: string | null;
+  respondedAt: string | null;
+}
+
+/** Todo lo que la tarjeta de la ruta necesita, en una petición. */
+export interface CoupleJourney {
+  stage: RelationshipStage;
+  /** Falso antes del noviazgo: la tarjeta dice cuándo se abre. */
+  unlocked: boolean;
+  opensAt: RelationshipStage;
+  milestones: CoupleMilestoneState[];
+  resources: ResourcesForCouple;
+  counseling: CoupleCounseling | null;
+  /** Las iglesias de los dos, para elegir a cuál pedir consejería. */
+  churches: Array<{ id: string; name: string }>;
+}
+
+/** Lo que ve el portal de la iglesia: solo peticiones que los dos firmaron. */
+export interface PortalCounselingRequest {
+  id: string;
+  status: CounselingStatus;
+  names: [string, string];
+  emails: [string | null, string | null];
+  stage: RelationshipStage;
+  note: string;
+  createdAt: string;
+  respondedAt: string | null;
+  responseNote: string | null;
 }

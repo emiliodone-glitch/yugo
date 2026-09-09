@@ -100,6 +100,26 @@ por separado; esta entrada crece con cada una.
 - Pruebas del plan (cuatro reglas: nada vacío, la conexión más callada,
   mensajes recientes no cuentan, apagado respetado).
 
+### Ruta de pareja después del sí (RF-REL-05)
+- **Su ruta.** Desde el noviazgo, la conversación muestra los pasos que una
+  pareja cristiana suele dar antes de casarse (familias, pastor, matrimonio
+  que acompañe, la conversación de dinero; al comprometerse: consejería,
+  fecha, vivienda, presupuesto, papeles; al casarse: su historia). Cada paso
+  se marca con fecha y se ve quién lo marcó. Sin porcentaje ni reclamo:
+  es un mapa, no una lista de tareas. Antes del noviazgo la tarjeta dice
+  cuándo se abre. Modelo `CoupleMilestone`.
+- **Para prepararse.** Recursos prematrimoniales en dos bloques: los que
+  sirven a cualquier pareja y los de la tradición de alguno de los dos
+  (evangélica/bautista, católica, adventista, pentecostal). Orden por tipo,
+  nunca por denominación. Sin enlaces a tiendas.
+- **Consejería con la iglesia.** Uno la pide a una de las dos iglesias
+  (solo esas), la otra persona confirma, y solo entonces el portal la ve
+  con los dos nombres, correos y la nota. `PENDING_PARTNER` no aparece en
+  el portal por consulta. La iglesia acepta o no con un mensaje que les
+  llega a los dos. Nueva página «Consejería» en el portal.
+- Migración `0018_ruta_de_pareja`. Pruebas del catálogo (siete reglas), del
+  servicio (siete) y E2E `ruta-de-pareja`.
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

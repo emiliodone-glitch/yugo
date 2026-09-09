@@ -41,6 +41,7 @@ import {
 } from '../../components/relationship';
 import { theme } from '../../lib/theme';
 import { ChatSkeleton } from '../../components/skeleton';
+import { CoupleJourneyCard } from '../../components/couple-journey';
 
 const { colors, fonts } = theme;
 
@@ -262,6 +263,10 @@ export default function ChatScreen() {
             otherName={connection.otherUser.displayName}
           />
           <StageQuestionsCard matchId={connection.matchId} />
+          <CoupleJourneyCard
+            matchId={connection.matchId}
+            otherName={connection.otherUser.displayName}
+          />
           <AccompanimentCard matchId={connection.matchId} />
           <OurStoryCard matchId={connection.matchId} />
           <MeetingPlanCard matchId={connection.matchId} />

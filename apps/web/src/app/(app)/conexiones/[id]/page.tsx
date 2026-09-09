@@ -25,6 +25,7 @@ import {
   RelationshipStageCard,
   StageQuestionsCard,
 } from '@/components/relationship';
+import { CoupleJourneyCard } from '@/components/couple-journey';
 import { CheckIcon, ChevronLeft } from '@/components/icons';
 
 export default function ChatPage({ params }: { params: { id: string } }) {
@@ -207,6 +208,10 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           otherName={connection.otherUser.displayName}
         />
         <StageQuestionsCard matchId={connection.matchId} />
+        <CoupleJourneyCard
+          matchId={connection.matchId}
+          otherName={connection.otherUser.displayName}
+        />
         <AccompanimentCard matchId={connection.matchId} />
         <OurStoryCard matchId={connection.matchId} />
         <MeetingPlanCard matchId={connection.matchId} />

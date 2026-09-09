@@ -33,6 +33,12 @@ import {
   type IntroductionForMentor,
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
+  COUPLE_MILESTONES,
+  JOURNEY_FROM,
+  journeyUnlocked,
+  resourcesFor,
+  type CoupleCounseling,
+  type CoupleJourney,
   isExclusive,
   nextStage,
   rankPrayerRequests,
@@ -2437,5 +2443,134 @@ export function useRemoveDevotional() {
       return api().admin.removeDevotional(id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-devotionals'] }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ruta de pareja después del sí (RF-REL-05)
+// ---------------------------------------------------------------------------
+
+/**
+ * Estado de la demo, en memoria: lo que la pareja marcó y la petición de
+ * consejería. Se abre con la etapa del vínculo de la demo, con la misma regla
+ * que la API, para que la demo no enseñe una ruta que el producto negaría.
+ */
+const journeyDemo: Record<
+  string,
+  {
+    milestones: Record<string, { doneAt: string; byMe: boolean }>;
+    counseling: CoupleCounseling | null;
+  }
+> = {};
+
+const DEMO_CHURCHES = [
+  { id: 'c-demo-emanuel', name: 'Iglesia Bíblica Emanuel' },
+  { id: 'c-demo-getsemani', name: 'Iglesia de Dios Getsemaní' },
+];
+
+function demoJourneyFor(
+  matchId: string,
+  stage: RelationshipStage,
+  otherName: string,
+): CoupleJourney {
+  const memory = (journeyDemo[matchId] ??= { milestones: {}, counseling: null });
+  const unlocked = journeyUnlocked(stage);
+  return {
+    stage,
+    unlocked,
+    opensAt: JOURNEY_FROM,
+    milestones: unlocked
+      ? COUPLE_MILESTONES.map((def) => {
+          const mark = memory.milestones[def.key];
+          return {
+            ...def,
+            doneAt: mark?.doneAt ?? null,
+            doneByMe: mark?.byMe ?? false,
+            doneByName: mark && !mark.byMe ? otherName : null,
+          };
+        })
+      : [],
+    resources: resourcesFor(['Bautista', 'Pentecostal']),
+    counseling: memory.counseling,
+    churches: DEMO_CHURCHES,
+  };
+}
+
+export function useCoupleJourney(matchId: string, otherName = 'tu conexión') {
+  const stage = useDemoStore((s) => s.relationships[matchId]?.stage ?? 'KNOWING');
+  return useQuery<CoupleJourney>({
+    queryKey: ['journey', matchId, isDemoMode() ? stage : 'live'],
+    enabled: !!matchId,
+    queryFn: () =>
+      isDemoMode() ? demoJourneyFor(matchId, stage, otherName) : api().connections.journey(matchId),
+  });
+}
+
+export function useSetMilestone(matchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { key: string; done: boolean; doneAt?: string }) => {
+      if (isDemoMode()) {
+        const memory = (journeyDemo[matchId] ??= { milestones: {}, counseling: null });
+        if (input.done) {
+          memory.milestones[input.key] = {
+            doneAt: input.doneAt ?? new Date().toISOString(),
+            byMe: true,
+          };
+        } else {
+          delete memory.milestones[input.key];
+        }
+        return { key: input.key, doneAt: memory.milestones[input.key]?.doneAt ?? null };
+      }
+      return api().connections.setMilestone(matchId, input.key, input.done, input.doneAt);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journey', matchId] }),
+  });
+}
+
+export function useRequestCounseling(matchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { churchId: string; note: string }) => {
+      if (isDemoMode()) {
+        const memory = (journeyDemo[matchId] ??= { milestones: {}, counseling: null });
+        const church = DEMO_CHURCHES.find((c) => c.id === input.churchId) ?? DEMO_CHURCHES[0];
+        memory.counseling = {
+          id: `cr-demo-${Date.now()}`,
+          status: 'PENDING_PARTNER',
+          churchName: church.name,
+          note: input.note,
+          requestedByMe: true,
+          createdAt: new Date().toISOString(),
+          responseNote: null,
+          respondedAt: null,
+        };
+        return { id: memory.counseling.id, status: 'PENDING_PARTNER' };
+      }
+      return api().connections.requestCounseling(matchId, input);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journey', matchId] }),
+  });
+}
+
+/** Confirmar o posponer la petición que hizo la otra persona. */
+export function useRespondCounseling(matchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (accept: boolean) => {
+      if (isDemoMode()) {
+        const memory = journeyDemo[matchId];
+        if (memory?.counseling) {
+          memory.counseling = {
+            ...memory.counseling,
+            status: accept ? 'REQUESTED' : 'DECLINED',
+            respondedAt: accept ? null : new Date().toISOString(),
+          };
+        }
+        return { id: memory?.counseling?.id ?? 'demo', status: accept ? 'REQUESTED' : 'DECLINED' };
+      }
+      return api().connections.respondCounseling(matchId, accept);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journey', matchId] }),
   });
 }

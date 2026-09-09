@@ -9,6 +9,7 @@ import { MeetingPlanService } from './meeting-plan.service';
 import { StageQuestionsService } from './stage-questions.service';
 import { VideoCallsService } from './video-calls.service';
 import { IntroductionsService } from './introductions.service';
+import { JourneyService } from './journey.service';
 import { AccompanimentController } from './accompaniment.controller';
 import { ModerationModule } from '../moderation/moderation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -28,6 +29,7 @@ import { MediaModule } from '../media/media.module';
     StageQuestionsService,
     VideoCallsService,
     IntroductionsService,
+    JourneyService,
   ],
   exports: [ChatService],
 })

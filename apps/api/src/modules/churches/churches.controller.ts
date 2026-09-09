@@ -20,6 +20,10 @@ const revokeSchema = z.object({
   memberUserId: z.string().min(1),
   reason: z.string().min(3).max(300),
 });
+const counselingResponseSchema = z.object({
+  accept: z.boolean(),
+  message: z.string().trim().max(600).optional(),
+});
 const createEventBody = createEventSchema.extend({ submit: z.boolean().default(false) });
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -155,5 +159,21 @@ export class ChurchesController {
   @Get('singles-ministry')
   singlesMinistry(@CurrentUser() user: AuthUser) {
     return this.churches.singlesMinistry(user.id);
+  }
+
+  // Consejería prematrimonial pedida por parejas (RF-REL-05). Solo llegan
+  // las que firmaron los dos; el servicio lo garantiza por consulta.
+  @Get('counseling')
+  counseling(@CurrentUser() user: AuthUser) {
+    return this.churches.counselingRequests(user.id);
+  }
+
+  @Put('counseling/:id')
+  respondCounseling(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body(new ZodPipe(counselingResponseSchema)) body: { accept: boolean; message?: string },
+  ) {
+    return this.churches.respondCounseling(user.id, id, body);
   }
 }

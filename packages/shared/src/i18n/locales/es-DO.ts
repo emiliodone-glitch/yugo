@@ -272,6 +272,54 @@ export const es = {
     demoRespondForThem: 'Demo: responder como la otra persona',
   },
 
+  journey: {
+    title: 'Su ruta',
+    intro:
+      'Lo que una pareja suele hacer entre el noviazgo y la boda. Sin orden obligatorio y sin porcentaje: márquenlo cuando pase, para acordarse de cuándo.',
+    locked: (stage: string) => `Se abre cuando declaren «${stage}».`,
+    markDone: 'Ya lo hicimos',
+    undo: 'Desmarcar',
+    doneOn: (date: string) => `El ${date}`,
+    doneBy: (name: string, date: string) => `${name} lo marcó el ${date}`,
+    doneByYou: (date: string) => `Lo marcaste el ${date}`,
+    whyThis: 'Por qué',
+    opensLater: (stage: string) => `Se abre en «${stage}»`,
+    resourcesTitle: 'Para prepararse',
+    resourcesIntro:
+      'Recursos prematrimoniales. Los generales sirven a cualquier pareja; los otros aparecen porque alguno de los dos es de esa tradición.',
+    forYou: 'De su tradición',
+    general: 'Para toda pareja',
+    kinds: {
+      course: 'Curso',
+      book: 'Libro',
+      guide: 'Guía',
+      talk: 'Charla',
+    } as Record<string, string>,
+    counselingTitle: 'Consejería con la iglesia',
+    counselingIntro:
+      'Pídanle a su iglesia consejería prematrimonial desde aquí. Uno la pide, el otro la confirma, y solo entonces la iglesia la ve.',
+    counselingChurchLabel: '¿A cuál iglesia?',
+    counselingNoteLabel: 'Cuéntenle algo a la iglesia',
+    counselingNotePlaceholder: 'Nos gustaría empezar antes de fijar la fecha; podemos los sábados.',
+    counselingVisibility:
+      'Cuando los dos confirmen, la iglesia verá sus dos nombres, sus correos y esta nota. Nada del chat.',
+    counselingNoChurch:
+      'Ninguno de los dos tiene una iglesia en su perfil. Pónganla en Perfil → Editar y vuelvan aquí.',
+    request: 'Pedir consejería',
+    requestedByYou: (church: string) =>
+      `Le pediste consejería a ${church}. Falta que la otra persona confirme.`,
+    requestedByThem: (name: string, church: string) =>
+      `${name} quiere pedirle consejería a ${church}. Si confirmas, la iglesia lo verá.`,
+    confirm: 'Confirmo, que la iglesia lo vea',
+    notNow: 'Ahora no',
+    waitingChurch: (church: string) => `${church} ya recibió la petición. Les avisaremos cuando responda.`,
+    accepted: (church: string) => `${church} aceptó acompañarlos.`,
+    declinedByChurch: (church: string) => `${church} no puede tomarla ahora.`,
+    declinedByPartner: 'La otra persona prefirió esperar. Pueden volver a pedirla cuando quieran.',
+    churchSaid: 'La iglesia les dice:',
+    askAgain: 'Pedir de nuevo',
+  },
+
   meetingPlan: {
     title: 'Plan del primer encuentro',
     intro:
@@ -958,6 +1006,22 @@ export const es = {
     endorsementCodes: 'Códigos de respaldo',
     metrics: 'Métricas',
     portalUsers: 'Usuarios del portal',
+    counseling: 'Consejería',
+    counselingIntro:
+      'Parejas de su congregación que pidieron consejería prematrimonial desde Yugo. Aquí solo llegan las que firmaron los dos; la iglesia nunca ve su conversación.',
+    counselingEmpty: 'Ninguna pareja ha pedido consejería todavía.',
+    counselingAccept: 'Aceptar y responder',
+    counselingDecline: 'No podemos ahora',
+    counselingResponseLabel: 'Mensaje para la pareja',
+    counselingResponsePlaceholder: 'Los esperamos el sábado 10 a las 4 pm en la oficina pastoral.',
+    counselingRequestedOn: (date: string) => `Pedida el ${date}`,
+    counselingRespondedOn: (date: string) => `Respondida el ${date}`,
+    counselingStatuses: {
+      REQUESTED: 'Esperando respuesta',
+      ACCEPTED: 'Aceptada',
+      DECLINED: 'No tomada',
+      CLOSED: 'Cerrada',
+    } as Record<string, string>,
     approved: 'Aprobada ✓',
     newEvent: 'Nuevo evento',
     saveDraft: 'Guardar borrador',
@@ -1149,6 +1213,7 @@ export const es = {
     underage: 'Debes tener al menos 18 años para usar Yugo.',
     ageRangeSpan: 'El rango debe tener al menos 3 años de amplitud.',
     dailyInterestsUsed: 'Usaste tus intereses de hoy.',
+    noteRejected: 'La nota no pasó la moderación. Revísala y vuelve a intentar.',
   },
 } as const;
 

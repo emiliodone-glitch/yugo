@@ -16,6 +16,8 @@ import type {
   ProfileCard,
   SubscriptionPlan,
   SubscriptionTier,
+  CoupleJourney,
+  PortalCounselingRequest,
 } from '../types/domain';
 import type { RelationshipStage } from '../relationship/stages';
 import type { QuestionTopic } from '../relationship/questions';
@@ -1071,6 +1073,23 @@ export class YugoApiClient {
       this.http.post<{ blocked: boolean }>('/connections/block', { userId }),
 
     // Etapas del vínculo: uno propone, el otro acepta, nadie avanza solo.
+    // Ruta de pareja después del sí (RF-REL-05).
+    journey: (matchId: string) => this.http.get<CoupleJourney>(`/connections/${matchId}/journey`),
+    setMilestone: (matchId: string, key: string, done: boolean, doneAt?: string) =>
+      this.http.put<{ key: string; doneAt: string | null }>(
+        `/connections/${matchId}/journey/milestones/${key}`,
+        { done, doneAt },
+      ),
+    requestCounseling: (matchId: string, input: { churchId: string; note: string }) =>
+      this.http.post<{ id: string; status: string }>(
+        `/connections/${matchId}/journey/counseling`,
+        input,
+      ),
+    respondCounseling: (matchId: string, accept: boolean) =>
+      this.http.post<{ id: string; status: string }>(
+        `/connections/${matchId}/journey/counseling/respond`,
+        { accept },
+      ),
     stage: (matchId: string) => this.http.get<RelationshipState>(`/connections/${matchId}/stage`),
     proposeStage: (matchId: string, stage: RelationshipStage) =>
       this.http.post<{ proposed: RelationshipStage }>(`/connections/${matchId}/stage/propose`, {
@@ -1443,6 +1462,11 @@ export class YugoApiClient {
       ),
     /** Ministerio de solteros: totales, nunca nombres. */
     singlesMinistry: () => this.http.get<SinglesMinistry>('/church-portal/singles-ministry'),
+    // Consejería prematrimonial pedida por parejas (RF-REL-05).
+    counselingRequests: () =>
+      this.http.get<PortalCounselingRequest[]>('/church-portal/counseling'),
+    respondCounseling: (id: string, input: { accept: boolean; message?: string }) =>
+      this.http.put<{ id: string; status: string }>(`/church-portal/counseling/${id}`, input),
   };
 
   // ---- Admin panel (RF-ADM-01..12) ----------------------------------------

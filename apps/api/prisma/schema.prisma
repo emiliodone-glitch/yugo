@@ -379,6 +379,54 @@ model Introduction {
   @@index([proposerId, createdAt])
 }
 
+/// Ruta de pareja después del sí (RF-REL-05): un paso que la pareja marcó,
+/// con fecha. No hay puntaje: el catálogo vive en @yugo/shared y aquí solo
+/// queda cuándo y quién lo marcó.
+model CoupleMilestone {
+  id       String   @id @default(cuid())
+  matchId  String
+  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  key      String
+  doneAt   DateTime
+  doneById String
+  createdAt DateTime @default(now())
+
+  @@unique([matchId, key])
+}
+
+enum CounselingStatus {
+  /// Uno la pidió; la iglesia no la ve hasta que el otro confirme.
+  PENDING_PARTNER
+  /// Los dos firmaron: ahora sí la ve el portal de la iglesia.
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  CLOSED
+}
+
+/// Consejería prematrimonial pedida desde la app. La invariante: la iglesia
+/// solo lee filas en REQUESTED o posteriores, y llegar ahí exige el sí de los
+/// dos miembros de la pareja.
+model CounselingRequest {
+  id            String           @id @default(cuid())
+  matchId       String
+  match         Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  churchId      String
+  church        Church           @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  requestedById String
+  note          String
+  status        CounselingStatus @default(PENDING_PARTNER)
+  partnerConsentAt DateTime?
+  responseNote  String?
+  respondedById String?
+  respondedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([churchId, status])
+  @@index([matchId, createdAt])
+}
+
 /// Append-only record of every agreed stage change (RF-ADM-11 in spirit):
 /// the couple, their accompaniment and support can all see how a bond moved.
 model RelationshipStageChange {
@@ -856,6 +904,7 @@ model Church {
   verifications     Verification[]
   profiles          Profile[]
   prayerRequests    PrayerRequest[]
+  counselingRequests CounselingRequest[]
 }
 
 model ChurchUser {
@@ -1004,6 +1053,8 @@ model Match {
   meetingPlans    MeetingPlan[]
   questionAnswers StageQuestionAnswer[]
   videoCalls      VideoCall[]
+  milestones      CoupleMilestone[]
+  counselingRequests CounselingRequest[]
   /// Cierre digno (RF-CON-11): lo que dijo quien cerró, si dijo algo. Se mide
   /// cuántas conexiones terminan con una palabra y cuántas en silencio.
   closingTemplate String?
