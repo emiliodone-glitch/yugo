@@ -41,6 +41,15 @@ const SURFACES = [
 for (const surface of SURFACES) {
   test(`${surface.name} no tiene violaciones WCAG 2.1 AA (RNF-05)`, async ({ page }) => {
     await page.goto(surface.path);
+    // Se audita la pantalla asentada: con los datos cargados y sin transiciones
+    // a medias (un botón que pasa de deshabilitado a habilitado anima su
+    // opacidad y, a mitad de camino, axe mediría un contraste que no existe).
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() =>
+      Promise.all(
+        document.getAnimations().map((animation) => animation.finished.catch(() => null)),
+      ),
+    );
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

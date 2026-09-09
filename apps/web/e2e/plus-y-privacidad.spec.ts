@@ -27,9 +27,13 @@ test.describe('Yugo Plus y Oro', () => {
 
   test('elegir Plus cambia el botón de continuar', async ({ page }) => {
     await page.goto('/plus');
-    await expect(page.getByRole('button', { name: 'Continuar con Oro' })).toBeVisible();
+    // La cuenta de demostración ya es Oro: con su propio nivel seleccionado no
+    // se le vende nada, se le manda a gestionar la suscripción (RF-PLU-05).
+    await expect(page.getByRole('link', { name: 'Gestionar mi suscripción' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continuar con Oro' })).toHaveCount(0);
     await page.getByText('Intereses ilimitados').click();
     await expect(page.getByRole('button', { name: 'Continuar con Plus' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ver recibos o cancelar' })).toBeVisible();
   });
 });
 

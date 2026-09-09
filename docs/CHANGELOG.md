@@ -3,6 +3,113 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
+
+Respuesta completa a la revisión honesta de experiencia. Cada punto señalado
+tiene su entrega; ninguno quedó fuera.
+
+### La primera semana con pocos usuarios
+- **Arranque por iglesia.** Portal → «Arranque»: cinco pasos con datos reales
+  (aprobación, lote de códigos, tarjetas impresas, equipo del portal, primer
+  evento) y el mensaje listo para el grupo de la congregación. Tarjeta en el
+  inicio del portal mientras haya menos de 10 respaldados.
+- **Lista de espera por ciudad.** Descubrir dice cuándo la lista sale corta
+  por densidad (`cityCount`, `lowDensity`) y ofrece «Avísame cuando haya más
+  gente»; aviso único los lunes al pasar de 25 perfiles completos.
+- **Inicio con valor sin citas** ya existía (devocional, oración, eventos);
+  ahora, además, la tarjeta «Tu perfil está al N %» lleva a lo que falta.
+
+### Avisos y tiempo real
+- Push conectado a los momentos que faltaban: eventos, iglesias y grupos
+  aprobados o devueltos, reporte revisado (a quien reportó, sin revelar la
+  sanción), ruta de acompañamiento y toque en frío en la app; `pushedAt`
+  real y limpieza de tokens muertos.
+- Correo por categoría según la preferencia, plantilla `NOTIFICATION`.
+- **Resumen semanal por correo** (lunes 9:00): interés recibido, conexiones,
+  mensajes sin leer, oraciones recibidas, eventos cerca y el devocional. Sin
+  rachas; no se envía si la semana estuvo vacía; se apaga con un toque.
+- El chat ya era en tiempo real (Socket.IO); ahora también lo son las
+  notificaciones: sala por usuario, `notification:new`, globo en vivo en el
+  riel web y en Perfil móvil, «marcar todas como leídas».
+- Corregido: RELATIONSHIP y ACCOMPANIMENT devolvían 400 al guardar
+  preferencias.
+
+### Registro corto y «Completa tu perfil»
+- Cuatro pasos (cuenta, edad, pacto, lo esencial). El paso de fotos que no
+  subía nada desaparece; denominación opcional con la señal de alcance.
+- Pantalla final con lo que más ayuda ahora; página `/perfil/editar` (web y
+  móvil) con todo lo diferido; tarjeta de completitud en Inicio y Perfil.
+
+### Fotos
+- Guía de composición, plazo honesto de moderación (menos de 24 h), motivo
+  visible al rechazar y «Subir otra».
+- Panel `/admin/fotos`: una a la vez, grande, las demás fotos de la persona,
+  atajos A/R y flechas. Dos fallos corregidos: las rechazadas en automático
+  y las que el clasificador no pudo procesar quedaban invisibles.
+- Aprobar una foto recalcula la completitud.
+
+### Sensación de velocidad
+- Esqueletos en todas las pantallas principales (web y móvil).
+- Actualizaciones optimistas: interés y pasar quitan la tarjeta al instante
+  (con vuelta atrás), Amén/Orando suben al momento, «Asistiré» se refleja
+  ya; guardar por fin invalida «Guardados».
+
+### Enlaces profundos y check-in
+- Universal links (AASA, assetlinks, `associatedDomains`, `intentFilters`),
+  ruta `/e/[id]` en la app, «Abrir en la app» en la página pública del
+  evento, manifest e icono para instalar la web.
+- **Check-in con QR real.** El QR se imprime desde el portal (`qrcode`),
+  codifica la URL pública con el token de entrada; la app lo lee con
+  `expo-camera` («Registrar mi asistencia») y la web lo registra con sesión.
+  Antes ambos clientes dibujaban una matriz que ningún lector entendía.
+
+### Portal de iglesias
+- Invitación por enlace (7 días) a quien aún no tiene cuenta; el registro
+  acepta el token; lista de pendientes con copiar y anular.
+- «Imprimir lote (PDF)»: tarjetas recortables con el código y cómo usarlo.
+
+### Pagos
+- `quote()` + `activate()` idempotente; `POST /subscriptions/checkout`
+  (stub en local, Stripe Checkout en producción); webhook con firma
+  verificada sobre el cuerpo crudo; `GET /subscriptions/payments`.
+- Web: «Continuar» en `/plus` funciona; `/plus/gracias` espera la
+  confirmación y muestra el recibo; `/perfil/suscripcion` con recibos,
+  cambio de nivel y cancelación clara. Móvil: pantalla equivalente.
+
+### Accesibilidad
+- Móvil: la letra sigue el tamaño del sistema (tope 1.6×); «reducir
+  movimiento» apaga los pulsos.
+- Web: Escape y foco en el chat; el menú anuncia su estado.
+
+### Medir sin vigilar
+- `ProductEvent` + `POST /analytics/events` (id anónimo por instalación,
+  hash irreversible del usuario, sin PII); `track()` en app-core con cola.
+- Reportes «Activación (eventos anónimos)» y «Eventos de producto».
+
+### Migración y configuración
+- Migración `0014`: `weeklyDigestOptOutAt`, `CityWaitlist`,
+  `ChurchInvitation`, `ProductEvent`.
+- Variables nuevas: `STRIPE_WEBHOOK_SECRET` (ya listada), `ANALYTICS_SALT`;
+  `WEB_URL` pasa a ser necesaria para recibos, QR e invitaciones.
+- Nuevas dependencias: `qrcode` (web), `expo-camera` (móvil; requiere un
+  build nuevo de la app).
+
+### Corregido en el recorrido real
+- Guardar un perfil que ya existía devolvía 500: el upsert omitía el rango de
+  edad en la rama `create` y Prisma la valida aunque la fila exista. Ahora
+  siempre viaja; prueba unitaria que lo cubre.
+- El enlace de invitación al portal caía en la puerta del portal (sin cuenta
+  no había forma de verlo). Va fuera de la puerta y del menú.
+- Las puertas de sesión (miembro, portal, panel) conservan la query al mandar
+  a entrar: `?ci=` del QR o `?token=` de la invitación sobreviven al login.
+
+### Pruebas
+- E2E actualizadas al comportamiento nuevo: el paywall con el propio nivel
+  seleccionado lleva a «Gestionar mi suscripción»; el detalle de evento
+  explica el QR de la entrada y `?ci=` registra la asistencia.
+- Las auditorías axe esperan a que la pantalla se asiente (datos cargados y
+  sin transiciones a medias) antes de medir contraste.
+
 ## v0.10.0 — Panel admin y portal de iglesias con datos reales
 
 ### Lo que pasaba

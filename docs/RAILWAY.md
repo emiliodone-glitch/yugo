@@ -102,11 +102,27 @@ Variables:
 | `IMAGE_MODERATION_PROVIDER` | `stub` o `external` | |
 | `FACE_MATCH_URL`, `FACE_MATCH_API_KEY` | vacías hasta contratar el proveedor | Vacías → toda selfie va a revisión humana |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | del bucket (R2 o S3) | Fotos y selfies |
-| `PAYMENT_PROVIDER` | `stub` hasta integrar Azul/Stripe | |
+| `PAYMENT_PROVIDER` | `stub` en local; vacío en producción | Con `stub` la web activa Plus/Oro sin cobrar (nunca en producción) |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | del panel de Stripe | La web manda a Stripe Checkout; el webhook `POST /v1/subscriptions/webhooks/stripe` (evento `checkout.session.completed`) activa el período |
+| `ANALYTICS_SALT` | 32+ caracteres al azar | Hash irreversible del usuario en los eventos de producto |
+| `WEB_URL` | la URL pública de la web | Enlaces de recibos, QR de entrada e invitaciones al portal |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | del proveedor de correo | |
 | `EXPO_ACCESS_TOKEN` | token de Expo | Notificaciones push |
 
 No pongas `PORT`: Railway lo inyecta y la API lo lee.
+
+**Colas y resumen semanal:** con `REDIS_URL` las notificaciones push, los
+correos y la moderación de imágenes van por BullMQ; sin ella se ejecutan en
+línea (y el horario silencioso no puede retrasar el push). El resumen
+semanal por correo sale los lunes 9:00 y el aviso de «tu ciudad ya se está
+llenando» a las 9:30, hora de Santo Domingo.
+
+**Enlaces universales (app):** la web sirve
+`/.well-known/apple-app-site-association` y `/.well-known/assetlinks.json`.
+Antes de publicar la app, sustituye `TEAM_ID` (Apple) y la huella SHA-256 del
+certificado de firma (Android) en `apps/web/public/.well-known/`, y el
+dominio en `apps/mobile/app.json` (`associatedDomains`, `intentFilters`) si
+la web no vive en `yugoweb-production.up.railway.app`.
 
 **Dominio:** Settings → Networking → Generate Domain (o el tuyo). Anota la URL:
 la web y la app la necesitan.

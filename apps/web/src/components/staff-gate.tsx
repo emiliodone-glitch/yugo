@@ -28,7 +28,8 @@ export function StaffGate({ children }: { children: React.ReactNode }) {
     if (DEMO_MODE) return;
     const stored = hasStoredSession();
     setHasTokens(stored);
-    if (!stored) router.replace(`/entrar?next=${encodeURIComponent(pathname)}`);
+    if (!stored)
+      router.replace(`/entrar?next=${encodeURIComponent(pathname + window.location.search)}`);
   }, [pathname, router]);
 
   if (DEMO_MODE) return <>{children}</>;

@@ -37,7 +37,9 @@ test.describe('Verificación en tres niveles (RF-VER-01/02/03)', () => {
     await page.getByPlaceholder('pastor@iglesia.do').fill('pastor@montedesion.do');
     await expect(request).toBeEnabled();
     await request.click();
-    await expect(page.getByText('Enviamos la solicitud a tu líder', { exact: false })).toBeVisible();
+    await expect(
+      page.getByText('Enviamos la solicitud a tu líder', { exact: false }),
+    ).toBeVisible();
   });
 });
 
@@ -101,10 +103,16 @@ test.describe('Detalle de evento (RF-EVE-04/06/08)', () => {
     await expect(page.getByRole('button', { name: 'Agregar al calendario' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Compartir' })).toBeVisible();
 
-    // El QR solo aparece cuando confirmaste asistencia.
-    await expect(page.getByRole('button', { name: 'Check-in con QR' })).toBeVisible();
-    await page.getByRole('button', { name: 'Check-in con QR' }).click();
-    await expect(page.getByRole('img', { name: 'Código QR de check-in' })).toBeVisible();
+    // El QR está en la entrada del evento, no en el teléfono: la tarjeta de
+    // check-in solo aparece cuando confirmaste asistencia y explica cómo escanearlo.
+    await expect(page.getByText('escanea el QR de la entrada', { exact: false })).toBeVisible();
+    await expect(page.getByText('nunca tu nombre', { exact: false })).toBeVisible();
+
+    // Llegar con el token del QR (cámara del teléfono → web con sesión) registra
+    // la asistencia sin tocar nada.
+    await page.goto('/eventos/ev-vigilia?ci=token-de-prueba');
+    await expect(page.getByText('¡Asistencia registrada!', { exact: false })).toBeVisible();
+    await expect(page.getByText('ya quedó registrada', { exact: false })).toBeVisible();
   });
 
   test('muestra las conexiones que asisten (RF-EVE-05)', async ({ page }) => {

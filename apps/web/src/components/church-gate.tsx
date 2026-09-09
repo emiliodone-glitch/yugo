@@ -25,12 +25,14 @@ export function ChurchGate({ children }: { children: React.ReactNode }) {
     if (DEMO_MODE) return;
     const stored = hasStoredSession();
     setHasTokens(stored);
-    if (!stored) router.replace(`/entrar?next=${encodeURIComponent(pathname)}`);
+    if (!stored)
+      router.replace(`/entrar?next=${encodeURIComponent(pathname + window.location.search)}`);
   }, [pathname, router]);
 
   if (DEMO_MODE) return <>{children}</>;
   if (hasTokens === null || hasTokens === false) return null;
-  if (me.isLoading) return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
+  if (me.isLoading)
+    return <div className="p-8 text-center text-sm text-muted">{es.common.loading}</div>;
 
   if (me.isError) {
     const error = me.error;
@@ -67,7 +69,13 @@ export function ChurchGate({ children }: { children: React.ReactNode }) {
 
 function RegisterChurch() {
   const register = useRegisterChurch();
-  const [form, setForm] = useState({ name: '', city: '', address: '', contactName: '', contactEmail: '' });
+  const [form, setForm] = useState({
+    name: '',
+    city: '',
+    address: '',
+    contactName: '',
+    contactEmail: '',
+  });
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -97,11 +105,39 @@ function RegisterChurch() {
           });
         }}
       >
-        <input className="field" placeholder={es.gate.churchName} value={form.name} onChange={set('name')} required minLength={3} />
-        <input className="field" placeholder={es.gate.churchCity} value={form.city} onChange={set('city')} />
-        <input className="field" placeholder={es.gate.churchAddress} value={form.address} onChange={set('address')} />
-        <input className="field" placeholder={es.gate.contactName} value={form.contactName} onChange={set('contactName')} />
-        <input className="field" type="email" placeholder={es.gate.contactEmail} value={form.contactEmail} onChange={set('contactEmail')} />
+        <input
+          className="field"
+          placeholder={es.gate.churchName}
+          value={form.name}
+          onChange={set('name')}
+          required
+          minLength={3}
+        />
+        <input
+          className="field"
+          placeholder={es.gate.churchCity}
+          value={form.city}
+          onChange={set('city')}
+        />
+        <input
+          className="field"
+          placeholder={es.gate.churchAddress}
+          value={form.address}
+          onChange={set('address')}
+        />
+        <input
+          className="field"
+          placeholder={es.gate.contactName}
+          value={form.contactName}
+          onChange={set('contactName')}
+        />
+        <input
+          className="field"
+          type="email"
+          placeholder={es.gate.contactEmail}
+          value={form.contactEmail}
+          onChange={set('contactEmail')}
+        />
         {register.isError ? (
           <p role="alert" className="text-sm text-wine">
             {errorMessage(register.error)}

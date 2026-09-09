@@ -33,25 +33,23 @@ export class ProfilesService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException();
 
-    const existing = await this.prisma.profile.findUnique({ where: { userId } });
-
     const { practiceSlugs, ...fields } = input;
 
-    // Default mandatory age range from own age (RF-PER-08).
+    // Default mandatory age range from own age (RF-PER-08). The defaults are
+    // always part of the `create` branch: Prisma validates that branch even
+    // when the row exists, so leaving them out made every later edit fail.
     const age = ageFromBirthDate(user.birthDate);
     const limits = await this.settings.getLimits();
-    const defaults = existing
-      ? {}
-      : {
-          displayName: fields.displayName ?? 'Miembro',
-          ageMin: Math.max(LIMITS.ADULT_AGE, age + limits.ageRangeDefaultOffsets[0]),
-          ageMax: age + limits.ageRangeDefaultOffsets[1],
-        };
-
     await this.prisma.profile.upsert({
       where: { userId },
       update: fields,
-      create: { userId, ...defaults, ...fields } as never,
+      create: {
+        ...fields,
+        userId,
+        displayName: fields.displayName ?? 'Miembro',
+        ageMin: Math.max(LIMITS.ADULT_AGE, age + limits.ageRangeDefaultOffsets[0]),
+        ageMax: age + limits.ageRangeDefaultOffsets[1],
+      } as never,
     });
 
     if (practiceSlugs) {

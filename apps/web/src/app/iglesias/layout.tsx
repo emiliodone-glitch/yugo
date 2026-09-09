@@ -42,6 +42,10 @@ export default function ChurchLayout({ children }: { children: React.ReactNode }
   const isActive = (href: string) =>
     href === '/iglesias' ? pathname === '/iglesias' : pathname.startsWith(href);
 
+  // El enlace de invitación lo abre alguien que todavía no tiene cuenta ni rol
+  // de iglesia: va sin la puerta del portal y sin su menú.
+  if (pathname.startsWith('/iglesias/invitacion')) return <>{children}</>;
+
   return (
     <div className="flex min-h-dvh bg-linen">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[210px] flex-col gap-0.5 bg-olive px-3.5 py-4 text-[#F7F5E4] lg:flex">

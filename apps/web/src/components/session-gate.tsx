@@ -23,7 +23,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (DEMO_MODE) return;
     if (!hasStoredSession()) {
-      router.replace(`/entrar?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/entrar?next=${encodeURIComponent(pathname + window.location.search)}`);
       return;
     }
     setReady(true);

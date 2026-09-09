@@ -145,11 +145,52 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
    `/admin/suscripciones` (reembolso 1 de 2 / 2 de 2), `/admin/auditoria` (equipo
    real y bitácora filtrable) y `/admin/reportes` (crecimiento semanal real).
 
-### Suscripciones (RF-PLU-02/07/08)
-1. `POST /v1/subscriptions/purchase` (`PAYMENT_PROVIDER=stub`) → Plus u Oro activos.
-2. Compra Plus y luego Oro → el monto se prorratea; compra Oro y baja a Plus → queda
+### Notificaciones en vivo, resumen semanal y aviso a quien reporta
+1. Con dos sesiones abiertas (por ejemplo `prueba@yugo.do` en la web y `demo3@yugo.do`
+   en otra ventana), manda un mensaje: el globo de Notificaciones del riel sube sin
+   recargar (socket `notification:new`).
+2. Perfil › Notificaciones › Preferencias: el interruptor «Resumen semanal por correo»
+   guarda en `PUT /v1/notifications/digest`. Para forzar un envío en local:
+   `DigestService.run()` desde una consola de Nest o esperar al lunes 9:00.
+3. Como admin, decide un reporte en `/admin/moderacion`: quien lo envió recibe
+   «Revisamos tu reporte» sin conocer la sanción.
+
+### Check-in con QR (RF-EVE-06)
+1. Como `iglesia@yugo.do`, en `/iglesias/eventos` → «QR de entrada» de un evento
+   publicado: se imprime un QR real con la URL `…/e/<id>?ci=<token>`.
+2. Como miembro con sesión en la web, abre esa URL: «¡Asistencia registrada!».
+   En la app: Eventos › detalle › «Registrar mi asistencia» abre la cámara.
+3. `GET /v1/church-portal/metrics` sube «Check-ins con QR».
+
+### Invitaciones al portal y lote impreso (RF-IGL-02/05)
+1. `/iglesias/usuarios` → invitar un correo sin cuenta: llega un enlace
+   (`/iglesias/invitacion?token=…`, 7 días) y aparece en «Invitaciones pendientes».
+2. Abrir el enlace sin sesión → «Crear mi cuenta» lleva al registro con el token; al
+   terminar, la cuenta ya es usuaria del portal. Con sesión y el mismo correo, acepta
+   al instante; con otro correo, lo dice.
+3. `/iglesias/codigos/imprimir` → «Imprimir o guardar en PDF» produce las tarjetas.
+
+### Arranque por iglesia y lista de espera por ciudad
+1. `/iglesias/arranque` marca los cinco pasos con datos reales de la iglesia.
+2. Con un perfil en una ciudad con menos de 8 perfiles completos, Descubrir explica la
+   densidad y ofrece «Avísame cuando haya más gente» (`POST /v1/discover/city-waitlist`).
+
+### Embudo con eventos anónimos (RF-ADM-12)
+1. Navega bienvenida → registro: `POST /v1/analytics/events` recibe `welcome_view`,
+   `register_start`, `register_account`, `register_done` con un `anonymousId` sin PII.
+2. `/admin/reportes` → «Activación (eventos anónimos)» y «Eventos de producto».
+
+### Suscripciones (RF-PLU-02/05/07/08)
+1. Web `/plus` → «Continuar»: con `PAYMENT_PROVIDER=stub` activa al instante y lleva a
+   `/plus/gracias` con el recibo; con Stripe redirige al Checkout y el webhook activa.
+   `/perfil/suscripcion` muestra nivel, recibos y «Cancelar suscripción» (acceso hasta
+   el fin del período). Para probar el webhook en local: `stripe listen --forward-to
+   localhost:4000/v1/subscriptions/webhooks/stripe`.
+2. API directa:
+   - `POST /v1/subscriptions/purchase` (`PAYMENT_PROVIDER=stub`) → Plus u Oro activos.
+   - Compra Plus y luego Oro → el monto se prorratea; compra Oro y baja a Plus → queda
    programado para fin de período (`downgradeToTier`).
-3. `PUT /v1/subscriptions/invisible-mode` sin Oro → **403 oro_required** (RF-PLU-09).
+   - `PUT /v1/subscriptions/invisible-mode` sin Oro → **403 oro_required** (RF-PLU-09).
 
 ## App móvil
 
