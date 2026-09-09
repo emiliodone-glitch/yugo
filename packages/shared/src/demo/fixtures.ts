@@ -98,6 +98,23 @@ const discoverBase: ProfileCard[] = [
     testimony:
       '"Sirvo en el ministerio de niños desde hace 4 años. Me gusta cocinar para mucha gente y estoy leyendo Rut por tercera vez."',
     verse: 'Rut 1:16',
+    // RF-PER-09: en sus palabras. Es lo que distingue a Mariel de otra
+    // contadora evangélica de Santo Domingo.
+    answers: [
+      {
+        question: 'Un versículo que me sostuvo y por qué…',
+        answer:
+          'Rut 1:16. Cuando mi papá enfermó aprendí que quedarse también es una forma de amar.',
+      },
+      {
+        question: 'Cómo sirvo en mi iglesia…',
+        answer: 'Ministerio de niños los domingos y la cocina cuando hay retiro.',
+      },
+      {
+        question: 'Mi domingo típico es…',
+        answer: 'Culto de 9, almuerzo en casa de mi abuela y una siesta que nunca llega.',
+      },
+    ],
     practices: ['Estudio bíblico', 'Servicio social', 'Niños'],
     affinity: affinity(86, 80, 100, 85, 88, 100, {
       denomination: 'Evangélica y Bautista: denominaciones afines',
@@ -432,7 +449,7 @@ export const demoEvents: EventSummary[] = [
     interestedCount: 212,
     connectionsGoing: [],
     lat: 19.4517,
-    lng: -70.6970,
+    lng: -70.697,
     // Un encuentro convocado por el ministerio de solteros, ya lleno: es el
     // caso que la demo tiene que enseñar, porque es donde la promesa de "el
     // cupo es el que cabe en el salón" se pone a prueba.
@@ -487,8 +504,8 @@ export const demoEvents: EventSummary[] = [
     goingCount: 154,
     interestedCount: 89,
     connectionsGoing: [{ userId: 'u-mariel', displayName: 'Mariel' }],
-    lat: 18.4720,
-    lng: -69.9120,
+    lat: 18.472,
+    lng: -69.912,
   },
 ];
 
@@ -724,7 +741,10 @@ export const demoAccompaniedBonds = [
     stageChangedAt: '2026-07-14T18:00:00-04:00',
     since: '2026-05-02T10:00:00-04:00',
     names: ['Rebeca', 'Josué'] as [string, string],
-    churches: ['Iglesia Bíblica Emanuel', 'Iglesia Monte de Sion'] as [string | null, string | null],
+    churches: ['Iglesia Bíblica Emanuel', 'Iglesia Monte de Sion'] as [
+      string | null,
+      string | null,
+    ],
     bothConsented: true,
   },
   {
@@ -749,11 +769,14 @@ export const demoAccompaniedBonds = [
  * and revenue is its own report. The demo has to show that framing, because
  * what the panel puts last is what the team will optimise.
  */
-export const demoReports: Record<string, { title: string; rows: Array<Record<string, string | number>> }> = {
+export const demoReports: Record<
+  string,
+  { title: string; rows: Array<Record<string, string | number>> }
+> = {
   growth: {
     title: 'Crecimiento semanal',
     rows: [40, 52, 48, 63, 70, 66, 82, 90].map((registrations, index) => ({
-      Semana: `2026-0${index < 4 ? 7 : 8}-${String(((index % 4) * 7 + 1)).padStart(2, '0')}`,
+      Semana: `2026-0${index < 4 ? 7 : 8}-${String((index % 4) * 7 + 1).padStart(2, '0')}`,
       Registros: registrations,
       Conexiones: Math.round(registrations * 0.42),
       Suscripciones: [6, 8, 7, 10, 14, 12, 18, 22][index],
@@ -1071,11 +1094,71 @@ export const demoDevotionalSchedule: DevotionalSchedule = {
   today: demoDay(0),
   runwayDays: 4,
   items: [
-    { id: 'dv-m2', publishOn: demoDay(-2), reference: 'Rut 1:16', title: 'Donde tú vayas', body: 'Rut no eligió un país: eligió una lealtad. Antes de que existiera un futuro claro, hubo alguien dispuesto a quedarse.', question: '¿Con quién te has quedado cuando no era conveniente?', reads: 231, isPast: true, isToday: false },
-    { id: 'dv-m1', publishOn: demoDay(-1), reference: '1 Corintios 13:4', title: 'El amor es paciente', body: 'La paciencia es la única virtud que no se puede demostrar rápido. Es la prueba de que lo demás es cierto.', question: '¿En qué se te nota a ti la prisa?', reads: 264, isPast: true, isToday: false },
-    { id: 'dv-0', publishOn: demoDay(0), reference: 'Proverbios 4:23', title: 'Guarda tu corazón', body: 'Sobre toda cosa guardada, guarda tu corazón, porque de él mana la vida. Guardar no es cerrar: es saber a quién le abres, y en qué orden.', question: '¿A quién le has abierto el corazón esta semana, y por qué a esa persona?', reads: 312, isPast: false, isToday: true },
-    { id: 'dv-1', publishOn: demoDay(1), reference: 'Eclesiastés 4:9', title: 'Mejores son dos', body: 'Mejores son dos que uno, porque tienen mejor paga de su trabajo. No dice que sea más fácil: dice que rinde más.', question: '¿Qué cosa estás cargando solo que no tendrías que cargar solo?', reads: 0, isPast: false, isToday: false },
-    { id: 'dv-2', publishOn: demoDay(2), reference: 'Salmo 37:4', title: 'Deléitate', body: 'Los deseos del corazón cambian cuando cambia de qué se deleita el corazón. Ese es el orden, y casi siempre lo invertimos.', question: '¿Qué deseo tuyo ha cambiado en el último año?', reads: 0, isPast: false, isToday: false },
-    { id: 'dv-3', publishOn: demoDay(3), reference: 'Filipenses 2:3', title: 'Estimando al otro', body: 'Nada por contienda ni por vanagloria. En una relación, la vanagloria se ve en quién cuenta la historia y cómo queda cada quien en ella.', question: '¿Cómo cuentas tú la última discusión que tuviste?', reads: 0, isPast: false, isToday: false },
+    {
+      id: 'dv-m2',
+      publishOn: demoDay(-2),
+      reference: 'Rut 1:16',
+      title: 'Donde tú vayas',
+      body: 'Rut no eligió un país: eligió una lealtad. Antes de que existiera un futuro claro, hubo alguien dispuesto a quedarse.',
+      question: '¿Con quién te has quedado cuando no era conveniente?',
+      reads: 231,
+      isPast: true,
+      isToday: false,
+    },
+    {
+      id: 'dv-m1',
+      publishOn: demoDay(-1),
+      reference: '1 Corintios 13:4',
+      title: 'El amor es paciente',
+      body: 'La paciencia es la única virtud que no se puede demostrar rápido. Es la prueba de que lo demás es cierto.',
+      question: '¿En qué se te nota a ti la prisa?',
+      reads: 264,
+      isPast: true,
+      isToday: false,
+    },
+    {
+      id: 'dv-0',
+      publishOn: demoDay(0),
+      reference: 'Proverbios 4:23',
+      title: 'Guarda tu corazón',
+      body: 'Sobre toda cosa guardada, guarda tu corazón, porque de él mana la vida. Guardar no es cerrar: es saber a quién le abres, y en qué orden.',
+      question: '¿A quién le has abierto el corazón esta semana, y por qué a esa persona?',
+      reads: 312,
+      isPast: false,
+      isToday: true,
+    },
+    {
+      id: 'dv-1',
+      publishOn: demoDay(1),
+      reference: 'Eclesiastés 4:9',
+      title: 'Mejores son dos',
+      body: 'Mejores son dos que uno, porque tienen mejor paga de su trabajo. No dice que sea más fácil: dice que rinde más.',
+      question: '¿Qué cosa estás cargando solo que no tendrías que cargar solo?',
+      reads: 0,
+      isPast: false,
+      isToday: false,
+    },
+    {
+      id: 'dv-2',
+      publishOn: demoDay(2),
+      reference: 'Salmo 37:4',
+      title: 'Deléitate',
+      body: 'Los deseos del corazón cambian cuando cambia de qué se deleita el corazón. Ese es el orden, y casi siempre lo invertimos.',
+      question: '¿Qué deseo tuyo ha cambiado en el último año?',
+      reads: 0,
+      isPast: false,
+      isToday: false,
+    },
+    {
+      id: 'dv-3',
+      publishOn: demoDay(3),
+      reference: 'Filipenses 2:3',
+      title: 'Estimando al otro',
+      body: 'Nada por contienda ni por vanagloria. En una relación, la vanagloria se ve en quién cuenta la historia y cómo queda cada quien en ella.',
+      question: '¿Cómo cuentas tú la última discusión que tuviste?',
+      reads: 0,
+      isPast: false,
+      isToday: false,
+    },
   ],
 };

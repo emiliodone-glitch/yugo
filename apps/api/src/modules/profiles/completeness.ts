@@ -19,6 +19,8 @@ export interface CompletenessInput {
   verse?: string | null;
   practiceCount: number;
   answersCount: number;
+  /** Testimonio en la propia voz aprobado por moderación (RF-PER-12). */
+  voiceApproved?: boolean;
 }
 
 interface Rule {
@@ -28,8 +30,13 @@ interface Rule {
   suggestionKey: string;
 }
 
+/**
+ * Suma 100. Las últimas tres reglas son «la voz propia» (RF-PER-09/12): sin
+ * tres respuestas y el audio, el perfil se queda en 85 como máximo. Es lo que
+ * separa una ficha de una persona, así que pesa.
+ */
 const RULES: Rule[] = [
-  { points: 10, done: (p) => !!p.displayName, suggestionKey: 'displayName' },
+  { points: 5, done: (p) => !!p.displayName, suggestionKey: 'displayName' },
   { points: 5, done: (p) => !!p.city, suggestionKey: 'city' },
   { points: 5, done: (p) => !!p.occupation, suggestionKey: 'occupation' },
   { points: 15, done: (p) => p.photosApproved >= 2, suggestionKey: 'photos' },
@@ -39,10 +46,15 @@ const RULES: Rule[] = [
   { points: 5, done: (p) => !!p.attendance, suggestionKey: 'attendance' },
   { points: 10, done: (p) => !!p.intention, suggestionKey: 'intention' },
   { points: 5, done: (p) => !!p.openness, suggestionKey: 'openness' },
-  { points: 10, done: (p) => !!p.testimony && p.testimony.length >= 40, suggestionKey: 'testimony' },
-  { points: 5, done: (p) => !!p.verse, suggestionKey: 'verse' },
+  {
+    points: 10,
+    done: (p) => !!p.testimony && p.testimony.length >= 40,
+    suggestionKey: 'testimony',
+  },
   { points: 5, done: (p) => p.practiceCount >= 2, suggestionKey: 'practices' },
   { points: 5, done: (p) => p.answersCount >= 1, suggestionKey: 'answers' },
+  { points: 5, done: (p) => p.answersCount >= 3, suggestionKey: 'answersThree' },
+  { points: 5, done: (p) => !!p.voiceApproved, suggestionKey: 'voice' },
 ];
 
 export function computeCompleteness(input: CompletenessInput): {

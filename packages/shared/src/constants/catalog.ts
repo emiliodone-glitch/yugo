@@ -142,16 +142,38 @@ export const COVENANT_V1 = {
  * Conversation questions (RF-PER-09): short answers that give context for the
  * icebreakers. Administrable from the panel like the rest of the catalogs.
  */
-export const CONVERSATION_QUESTIONS: Array<{ key: string; question: string; maxLength: number }> = [
+export interface ProfileQuestion {
+  key: string;
+  question: string;
+  maxLength: number;
+}
+
+export const CONVERSATION_QUESTIONS: ProfileQuestion[] = [
+  { key: 'verse_sustained', question: 'Un versículo que me sostuvo y por qué…', maxLength: 240 },
+  { key: 'serving', question: 'Cómo sirvo en mi iglesia…', maxLength: 200 },
+  { key: 'home', question: 'Lo que significa «hogar» para mí…', maxLength: 240 },
+  { key: 'sunday', question: 'Mi domingo típico es…', maxLength: 200 },
   { key: 'gratitude', question: 'Lo que más agradezco a Dios este año…', maxLength: 200 },
-  { key: 'sunday', question: 'Un domingo perfecto para mí es…', maxLength: 200 },
-  { key: 'serving', question: 'Sirvo en mi iglesia porque…', maxLength: 200 },
   { key: 'growth', question: 'En lo que Dios está trabajando en mí ahora…', maxLength: 200 },
   { key: 'family', question: 'La familia que quiero construir…', maxLength: 200 },
   { key: 'worship', question: 'La canción que no falta en mi adoración…', maxLength: 120 },
   { key: 'book', question: 'El libro de la Biblia al que siempre vuelvo…', maxLength: 120 },
   { key: 'weekend', question: 'Mi plan favorito para un sábado libre…', maxLength: 200 },
 ];
+
+/** Respuestas que hacen que el perfil pase del 90 % (RF-PER-09/10). */
+export const PROFILE_ANSWERS_TARGET = 3;
+
+/** Audio de testimonio (RF-PER-12): corto a propósito, para que se escuche entero. */
+export const VOICE_NOTE_MAX_SECONDS = 20;
+export const VOICE_NOTE_CONTENT_TYPES = [
+  'audio/webm',
+  'audio/mp4',
+  'audio/m4a',
+  'audio/mpeg',
+  'audio/aac',
+  'audio/x-m4a',
+] as const;
 
 /**
  * Safety tips shown when a first connection is created and before a first

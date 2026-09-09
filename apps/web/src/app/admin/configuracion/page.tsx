@@ -7,8 +7,10 @@ import {
   useAdminSettings,
   useDenominationMatrix,
   useUpdateMatrixCell,
+  useUpdateProfileQuestions,
   useUpdateWeights,
 } from '@/lib/hooks';
+import type { ProfileQuestion } from '@yugo/shared';
 import { BarTop, Panel, WeightSlider, DataTable, Td } from '@/components/admin';
 import { QueryError } from '@/components/query-error';
 
@@ -211,8 +213,138 @@ export default function AlgorithmSettingsPage() {
             ) : null}
           </div>
         </div>
+
+        {settings.data ? (
+          <div className="mt-4">
+            <ProfileQuestionsEditor initial={settings.data.profileQuestions} />
+          </div>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Catálogo de preguntas de perfil (RF-PER-09). Se guarda entero: es una lista
+ * corta y así la persona ve exactamente lo que va a quedar. Una clave que ya
+ * tiene respuestas no se puede cambiar (las respuestas cuelgan de ella), pero
+ * sí retirar: las respuestas se conservan ocultas por si vuelve.
+ */
+function ProfileQuestionsEditor({ initial }: { initial: ProfileQuestion[] }) {
+  const update = useUpdateProfileQuestions();
+  const [rows, setRows] = useState<ProfileQuestion[]>(initial);
+  const [dirty, setDirty] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!dirty) setRows(initial);
+  }, [initial, dirty]);
+
+  const patch = (index: number, partial: Partial<ProfileQuestion>) => {
+    setDirty(true);
+    setNotice(null);
+    setRows((current) => current.map((row, i) => (i === index ? { ...row, ...partial } : row)));
+  };
+  const slug = (text: string) =>
+    text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40);
+  const valid =
+    rows.length >= 3 &&
+    rows.every((row) => row.question.trim().length >= 5 && /^[a-z0-9_]{2,40}$/.test(row.key)) &&
+    new Set(rows.map((row) => row.key)).size === rows.length;
+
+  const save = async () => {
+    try {
+      await update.mutateAsync(rows.map((row) => ({ ...row, question: row.question.trim() })));
+      setDirty(false);
+      setNotice('Catálogo guardado. Las pantallas lo recogen en un minuto.');
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  };
+
+  return (
+    <Panel title="Preguntas de perfil («Tu voz»)">
+      <p className="mb-2 text-[11.5px] text-muted">
+        Las personas responden tres de estas en sus palabras y las respuestas salen en su ficha.
+        Mínimo tres preguntas; el largo máximo va de 60 a 400 caracteres.
+      </p>
+      {notice ? (
+        <p role="status" className="mb-2 text-[12px] text-olive-text">
+          {notice}
+        </p>
+      ) : null}
+      <div className="space-y-2">
+        {rows.map((row, index) => (
+          <div key={`${row.key}-${index}`} className="flex flex-wrap items-center gap-2">
+            <input
+              className="field min-w-[260px] flex-1"
+              value={row.question}
+              aria-label={`Pregunta ${index + 1}`}
+              onChange={(event) => {
+                const question = event.target.value;
+                const isNew = !initial.some((item) => item.key === row.key);
+                patch(index, { question, ...(isNew ? { key: slug(question) || row.key } : {}) });
+              }}
+            />
+            <input
+              className="field w-[84px]"
+              type="number"
+              min={60}
+              max={400}
+              step={20}
+              value={row.maxLength}
+              aria-label={`Largo máximo de la pregunta ${index + 1}`}
+              onChange={(event) => patch(index, { maxLength: Number(event.target.value) || 200 })}
+            />
+            <code className="text-[10.5px] text-muted">{row.key}</code>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm w-auto px-2"
+              onClick={() => {
+                setDirty(true);
+                setRows((current) => current.filter((_, i) => i !== index));
+              }}
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm w-auto px-3"
+          onClick={() => {
+            setDirty(true);
+            setRows((current) => [
+              ...current,
+              { key: `pregunta_${current.length + 1}`, question: '', maxLength: 200 },
+            ]);
+          }}
+        >
+          + Añadir pregunta
+        </button>
+        <button
+          type="button"
+          className="btn btn-olive btn-sm w-auto px-4"
+          disabled={!dirty || !valid || update.isPending}
+          onClick={() => void save()}
+        >
+          Guardar catálogo
+        </button>
+        {!valid && dirty ? (
+          <span className="text-[11px] text-wine">
+            Revisa: mínimo tres preguntas, con texto y claves distintas.
+          </span>
+        ) : null}
+      </div>
+    </Panel>
   );
 }
 

@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
   AffinityWeights,
+  CONVERSATION_QUESTIONS,
   DEFAULT_AFFINITY_WEIGHTS,
   DEFAULT_PRICES,
   LIMITS,
   PriceTable,
+  ProfileQuestion,
   SETTING_KEYS,
 } from '@yugo/shared';
 import { Prisma } from '@prisma/client';
@@ -104,6 +106,31 @@ export class SettingsService {
 
   async getPrices(): Promise<PriceTable> {
     return this.read<PriceTable>(SETTING_KEYS.PRICES, DEFAULT_PRICES);
+  }
+
+  /**
+   * Profile questions catalog (RF-PER-09). Editable from the panel; a broken
+   * override (not an array, entries without key/question) falls back to the
+   * compiled list so a typo in the admin never empties the screen.
+   */
+  async getProfileQuestions(): Promise<ProfileQuestion[]> {
+    const stored = await this.read<unknown>(SETTING_KEYS.PROFILE_QUESTIONS, null);
+    if (!Array.isArray(stored)) return CONVERSATION_QUESTIONS;
+    const valid = stored.filter(
+      (q): q is ProfileQuestion =>
+        !!q &&
+        typeof q === 'object' &&
+        typeof (q as ProfileQuestion).key === 'string' &&
+        /^[a-z0-9_]{2,40}$/.test((q as ProfileQuestion).key) &&
+        typeof (q as ProfileQuestion).question === 'string' &&
+        (q as ProfileQuestion).question.trim().length >= 5,
+    );
+    if (valid.length < 3) return CONVERSATION_QUESTIONS;
+    return valid.map((q) => ({
+      key: q.key,
+      question: q.question.trim(),
+      maxLength: Math.min(400, Math.max(60, Number(q.maxLength) || 200)),
+    }));
   }
 
   async update(key: string, value: unknown, actorId: string): Promise<void> {

@@ -3,6 +3,34 @@
 Registro por hito. Cada entrada indica los RF cubiertos y cómo verificarla
 (ver `docs/TESTING.md` para el paso a paso).
 
+## v0.12.0 — La mejor app de citas cristiana: voz propia, razones, confianza y lo que pasa después del sí
+
+Respuesta a la revisión profunda de producto. Cada tanda se verificó y subió
+por separado; esta entrada crece con cada una.
+
+### Perfil con voz propia (RF-PER-09/12)
+- **Tres preguntas en sus palabras.** Catálogo administrable desde
+  Configuración del panel (`SETTING_KEYS.PROFILE_QUESTIONS`, mínimo tres, con
+  validación y vuelta al catálogo compilado si el ajuste está roto). Pantalla
+  «Tu voz» en web (`/perfil/voz`) y móvil (`perfil/voz`): responder, cambiar,
+  quitar, elegir otra pregunta; cada respuesta pasa por moderación de texto.
+- **Testimonio en audio de 20 segundos.** Modelo `VoiceNote` (uno por
+  persona, almacenamiento privado con URL firmada bajo `voice/`), grabación
+  con MediaRecorder en web y `expo-av` en móvil, tope de tiempo, escucha
+  previa y subida directa firmada. No hay clasificador de voz: cada audio abre
+  un caso en la cola de retenidos del panel con reproductor; solo lo aprobado
+  sale del perfil propio. Reemplazar o quitar el audio cierra el caso viejo.
+- **La ficha de la otra persona lo muestra.** «En su voz» y «En sus
+  palabras» en la ficha de afinidad web y en la tarjeta móvil; Descubrir
+  resuelve las respuestas contra el catálogo vigente para no mostrar claves
+  huérfanas.
+- **Completitud reequilibrada** (suma 100): una respuesta 5, tres respuestas
+  +5, audio aprobado 5; el nombre baja de 10 a 5 y el versículo deja de
+  puntuar. Sin voz propia el perfil se queda en 85 como máximo, y la tarjeta
+  «Tu perfil está al N %» pide justo eso.
+- Semilla: respuestas para los 40 perfiles de demostración; fixtures con las
+  respuestas de Mariel. Migración `0015_voz_propia`.
+
 ## v0.11.0 — Ronda de experiencia: la primera semana, lo que hace volver y lo que faltaba de verdad
 
 Respuesta completa a la revisión honesta de experiencia. Cada punto señalado

@@ -331,6 +331,45 @@ async function main() {
   }
   console.log(`Members: ${memberIds.length} (demo1@yugo.do … demo40@yugo.do / Yugo.demo1)`);
 
+  // --- Respuestas de perfil (RF-PER-09): «en sus palabras» ----------------------
+  // Se añaden aparte del upsert para que una base ya sembrada también las
+  // reciba. Solo a quien no tiene ninguna: nunca se pisa lo que alguien escribió.
+  const ANSWER_POOL: Record<string, readonly string[]> = {
+    verse_sustained: [
+      'Salmo 37:5. Encomendar el camino fue aprender a soltar el control en un año que no entendía.',
+      'Isaías 41:10. Lo leí cada mañana durante la enfermedad de mi mamá.',
+      'Filipenses 4:6. Me recuerda que la ansiedad no tiene la última palabra.',
+    ],
+    serving: [
+      'Ministerio de jóvenes los viernes y sonido los domingos.',
+      'Enseño en la escuela dominical de niños de 6 a 8 años.',
+      'Coordino las visitas a los hermanos mayores que ya no pueden salir.',
+    ],
+    home: [
+      'Una mesa larga, gente que no tenía dónde pasar la Navidad y nadie mirando el reloj.',
+      'El lugar donde se puede llorar sin explicar y reír sin permiso.',
+      'Donde se ora antes de comer aunque haya prisa.',
+    ],
+    sunday: [
+      'Culto de 9, almuerzo en familia y una siesta que casi nunca llega.',
+      'Ensayo temprano, dos servicios y por la tarde fútbol con los del grupo.',
+      'Iglesia, visita a mi abuela y una caminata por el malecón.',
+    ],
+  };
+  const answerKeys = Object.keys(ANSWER_POOL);
+  let seededAnswers = 0;
+  for (const id of memberIds) {
+    const existing = await prisma.profileAnswer.count({ where: { profileId: id } });
+    if (existing > 0) continue;
+    const keys = pickMany(answerKeys, 2 + Math.floor(rand() * 2));
+    await prisma.profileAnswer.createMany({
+      data: keys.map((key) => ({ profileId: id, question: key, answer: pick(ANSWER_POOL[key]) })),
+      skipDuplicates: true,
+    });
+    seededAnswers += keys.length;
+  }
+  if (seededAnswers > 0) console.log(`Profile answers: ${seededAnswers}`);
+
   // --- Groups -------------------------------------------------------------------
   const groupsData = [
     { name: 'Jóvenes adultos SDE', cat: 'jovenes-adultos', type: 'OFFICIAL' as const, church: churchIds[0], city: 'Santo Domingo Este' },

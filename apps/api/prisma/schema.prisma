@@ -622,6 +622,7 @@ model User {
 
   cityWaitlist       CityWaitlist?
   churchInvitationsSent ChurchInvitation[] @relation("ChurchInvitedBy")
+  voiceNote          VoiceNote?
 
   @@index([status, lastActiveAt])
 }
@@ -689,6 +690,20 @@ model ProfileAnswer {
   answer    String
 
   @@unique([profileId, question])
+}
+
+/// Testimonio en la propia voz (RF-PER-12): 20 segundos como máximo, uno por
+/// persona, publicado solo cuando moderación lo aprueba. Se guarda como las
+/// fotos, en almacenamiento privado con URL firmada.
+model VoiceNote {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storageKey       String
+  contentType      String
+  durationMs       Int
+  moderationStatus ModerationStatus @default(PENDING)
+  createdAt        DateTime         @default(now())
 }
 
 model Photo {
@@ -1221,6 +1236,9 @@ model ModerationCase {
   /// compuesta, así que hacen falta las dos partes.
   reflectionDevotionalId String?
   reflectionUserId       String?
+  /// Audio de testimonio retenido: siempre lo escucha una persona antes de
+  /// publicarse; no hay clasificador automático de voz.
+  voiceNoteId String?
   subjectUserId String?
   assigneeId  String?
   assignee    User?                @relation("Assignee", fields: [assigneeId], references: [id])

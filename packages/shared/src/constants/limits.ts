@@ -97,4 +97,6 @@ export const SETTING_KEYS = {
   MODERATION_THRESHOLDS: 'moderation.thresholds',
   COVENANT_VERSION: 'covenant.version',
   PRICES: 'subscription.prices',
+  /** Catálogo de preguntas de perfil editable desde el panel (RF-PER-09). */
+  PROFILE_QUESTIONS: 'profile.questions',
 } as const;

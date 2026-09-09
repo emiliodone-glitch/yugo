@@ -18,10 +18,12 @@ const full: CompletenessInput = {
   attendance: 'WEEKLY',
   intention: 'MARRIAGE',
   openness: 'AFFINE',
-  testimony: 'Sirvo en mi iglesia desde adolescente y creo que la fidelidad de Dios se ve en lo pequeño.',
+  testimony:
+    'Sirvo en mi iglesia desde adolescente y creo que la fidelidad de Dios se ve en lo pequeño.',
   verse: 'Salmos 37:4',
   practiceCount: 3,
-  answersCount: 2,
+  answersCount: 3,
+  voiceApproved: true,
 };
 
 describe('computeCompleteness (RF-PER-10)', () => {
@@ -38,10 +40,19 @@ describe('computeCompleteness (RF-PER-10)', () => {
   });
 
   it('suggestion targets current score plus the missing rule points', () => {
-    const withoutVerse = { ...full, verse: null };
-    const result = computeCompleteness(withoutVerse);
+    const withoutVoice = { ...full, voiceApproved: false };
+    const result = computeCompleteness(withoutVoice);
     expect(result.completeness).toBe(95);
-    expect(result.nextSuggestion).toEqual({ key: 'verse', targetPct: 100 });
+    expect(result.nextSuggestion).toEqual({ key: 'voice', targetPct: 100 });
+  });
+
+  it('the voice of the profile is what gets it past 85 (RF-PER-09/12)', () => {
+    const silent = { ...full, answersCount: 0, voiceApproved: false };
+    expect(computeCompleteness(silent).completeness).toBe(85);
+    const oneAnswer = { ...full, answersCount: 1, voiceApproved: false };
+    const result = computeCompleteness(oneAnswer);
+    expect(result.completeness).toBe(90);
+    expect(result.nextSuggestion).toEqual({ key: 'answersThree', targetPct: 95 });
   });
 
   it('short testimony does not count', () => {

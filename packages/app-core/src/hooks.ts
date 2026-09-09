@@ -20,8 +20,11 @@ import {
   demoMentorProfile,
   demoSinglesMinistry,
   demoStories,
+  CONVERSATION_QUESTIONS,
   DEFAULT_PRICES,
   LIMITS,
+  type ProfileQuestion,
+  type VoiceNoteState,
   NOTIFICATION_CATEGORIES,
   SAFETY_TIPS_V1,
   isExclusive,
@@ -1186,6 +1189,142 @@ export function useMyPhotos() {
  * storage, then registers it so it enters the moderation queue. The bytes
  * never travel through the API.
  */
+// ---- Voz propia (RF-PER-09/12): tres respuestas y un audio de testimonio ----
+
+const demoAnswers = new Map<string, string>([
+  [
+    'verse_sustained',
+    'Salmo 37:5. Lo repetí un año entero cuando no sabía qué venía; encomendar el camino fue aprender a soltar el control.',
+  ],
+]);
+let demoVoice: VoiceNoteState | null = null;
+
+export function useProfileQuestions() {
+  return useQuery({
+    queryKey: ['profile-questions'],
+    queryFn: async (): Promise<ProfileQuestion[]> =>
+      isDemoMode() ? CONVERSATION_QUESTIONS : api().profiles.questions(),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useMyAnswers() {
+  return useQuery({
+    queryKey: ['my-answers'],
+    queryFn: async () => {
+      if (isDemoMode()) {
+        return [...demoAnswers].map(([question, answer]) => ({ question, answer }));
+      }
+      return api().profiles.answers();
+    },
+  });
+}
+
+export function useSaveAnswer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, answer }: { key: string; answer: string }) => {
+      if (isDemoMode()) {
+        demoAnswers.set(key, answer);
+        return { question: key, answer };
+      }
+      return api().profiles.saveAnswer(key, answer);
+    },
+    onSuccess: () => {
+      track('profile_answer_saved');
+      queryClient.invalidateQueries({ queryKey: ['my-answers'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
+export function useRemoveAnswer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (key: string) => {
+      if (isDemoMode()) {
+        demoAnswers.delete(key);
+        return { removed: true };
+      }
+      return api().profiles.removeAnswer(key);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-answers'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
+export function useMyVoiceNote() {
+  return useQuery({
+    queryKey: ['my-voice'],
+    queryFn: async (): Promise<VoiceNoteState | null> => {
+      if (isDemoMode()) return demoVoice;
+      return (await api().profiles.mine())?.voiceNote ?? null;
+    },
+  });
+}
+
+/**
+ * Sube el audio igual que una foto: URL firmada, PUT directo, confirmación.
+ * `blob` en web sale del MediaRecorder; en móvil, de `fetch(uri).blob()`.
+ */
+export function useUploadVoiceNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      blob,
+      contentType,
+      durationMs,
+    }: {
+      blob: Blob;
+      contentType: string;
+      durationMs: number;
+    }): Promise<VoiceNoteState> => {
+      if (isDemoMode()) {
+        demoVoice = {
+          id: 'demo-voice',
+          status: 'PENDING',
+          durationMs,
+          url: '',
+          createdAt: new Date().toISOString(),
+        };
+        return demoVoice;
+      }
+      const { key, uploadUrl } = await api().profiles.voiceSignUpload(contentType);
+      const upload = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': contentType },
+        body: blob,
+      });
+      if (!upload.ok) throw new Error('upload_failed');
+      return api().profiles.voiceConfirm(key, durationMs, contentType);
+    },
+    onSuccess: () => {
+      track('voice_uploaded');
+      queryClient.invalidateQueries({ queryKey: ['my-voice'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
+export function useRemoveVoiceNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (isDemoMode()) {
+        demoVoice = null;
+        return { removed: true };
+      }
+      return api().profiles.voiceRemove();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-voice'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+    },
+  });
+}
+
 export function useUploadPhoto() {
   const queryClient = useQueryClient();
   return useMutation({

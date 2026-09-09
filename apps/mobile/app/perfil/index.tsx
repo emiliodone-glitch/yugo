@@ -231,6 +231,11 @@ export default function ProfileScreen() {
           onPress={() => router.push('/perfil/acompanar')}
         />
         <ListRow
+          label={es.profile.voiceLink}
+          hint={es.profile.voiceLinkHint}
+          onPress={() => router.push('/perfil/voz')}
+        />
+        <ListRow
           label="Mi suscripción"
           hint="Nivel, recibos y cancelación"
           onPress={() => router.push('/perfil/suscripcion')}

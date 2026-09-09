@@ -17,6 +17,7 @@ import { errorMessage } from '../../lib/api';
 import { scaled, useFontScale } from '../../lib/a11y';
 import { theme } from '../../lib/theme';
 import { ProfileCardSkeleton } from '../../components/skeleton';
+import { VoicePlayer } from '../../components/voice-player';
 
 const { colors, fonts } = theme;
 
@@ -116,6 +117,38 @@ export default function DiscoverScreen() {
           {profile.affinityReason ? (
             <View style={styles.reason}>
               <Text style={styles.reasonText}>✦ {profile.affinityReason}</Text>
+            </View>
+          ) : null}
+          {profile.voiceUrl ? (
+            <View style={{ marginTop: 10 }}>
+              <VoicePlayer url={profile.voiceUrl} durationMs={profile.voiceDurationMs} />
+            </View>
+          ) : null}
+          {profile.answers && profile.answers.length > 0 ? (
+            <View style={{ marginTop: 10, gap: 8 }}>
+              {profile.answers.map((item) => (
+                <View key={item.question}>
+                  <Text
+                    style={{
+                      fontFamily: fonts.bodySemiBold,
+                      fontSize: 11.5,
+                      color: colors.oliveText,
+                    }}
+                  >
+                    {item.question}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: fonts.body,
+                      fontSize: 12.5,
+                      lineHeight: 18,
+                      color: colors.text,
+                    }}
+                  >
+                    {item.answer}
+                  </Text>
+                </View>
+              ))}
             </View>
           ) : null}
           {profile.testimony ? <Text style={styles.testimony}>{profile.testimony}</Text> : null}

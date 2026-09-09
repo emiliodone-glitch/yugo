@@ -99,7 +99,12 @@ export class ProfilesService {
       include: {
         serviceAreas: true,
         answers: true,
-        user: { select: { photos: { where: { moderationStatus: 'APPROVED' } } } },
+        user: {
+          select: {
+            photos: { where: { moderationStatus: 'APPROVED' } },
+            voiceNote: { select: { moderationStatus: true } },
+          },
+        },
       },
     });
     if (!profile) return;
@@ -108,6 +113,7 @@ export class ProfilesService {
       photosApproved: profile.user.photos.length,
       practiceCount: profile.serviceAreas.length,
       answersCount: profile.answers.length,
+      voiceApproved: profile.user.voiceNote?.moderationStatus === 'APPROVED',
     });
     await this.prisma.profile.update({ where: { userId }, data: { completeness } });
   }

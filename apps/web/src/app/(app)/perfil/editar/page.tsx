@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   ATTENDANCE_OPTIONS,
@@ -140,6 +141,20 @@ export default function EditProfilePage() {
   return (
     <div className="pb-8">
       <PageHeader title={es.profile.editTitle} backHref="/perfil" />
+      <div className="px-4">
+        <Link
+          href="/perfil/voz"
+          className="card flex items-center justify-between gap-3 border-olive/30 bg-olive-soft hover:bg-olive-soft/80"
+        >
+          <span>
+            <b className="block text-[13px] text-olive-text">{es.profile.voiceLink}</b>
+            <span className="text-[12px] text-olive-text/80">{es.profile.voiceLinkHint}</span>
+          </span>
+          <span aria-hidden className="text-olive-text">
+            ›
+          </span>
+        </Link>
+      </div>
       <div className="px-4">
         <p className="mb-3 text-[12.5px] text-muted">{es.profile.editSub}</p>
 

@@ -54,6 +54,15 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   AndroidImportance: { DEFAULT: 3 },
 }));
+jest.mock('expo-av', () => ({
+  Audio: {
+    requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+    setAudioModeAsync: jest.fn(async () => undefined),
+    Sound: { createAsync: jest.fn(async () => ({ sound: { playAsync: jest.fn(), pauseAsync: jest.fn(), unloadAsync: jest.fn(), setPositionAsync: jest.fn() } })) },
+    Recording: { createAsync: jest.fn(async () => ({ recording: { stopAndUnloadAsync: jest.fn(), getStatusAsync: jest.fn(async () => ({ durationMillis: 5000 })), getURI: () => 'file:///demo.m4a' } })) },
+    RecordingOptionsPresets: { HIGH_QUALITY: {} },
+  },
+}));
 jest.mock('expo-camera', () => ({
   CameraView: () => null,
   useCameraPermissions: () => [{ granted: false, canAskAgain: true }, jest.fn()],

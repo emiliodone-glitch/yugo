@@ -6,20 +6,10 @@
 import type { RelationshipStage } from '../relationship/stages';
 
 export type UserRole =
-  | 'MEMBER'
-  | 'MODERATOR'
-  | 'COMMUNITY_MANAGER'
-  | 'SUPPORT'
-  | 'FINANCE'
-  | 'SUPERADMIN';
+  'MEMBER' | 'MODERATOR' | 'COMMUNITY_MANAGER' | 'SUPPORT' | 'FINANCE' | 'SUPERADMIN';
 
 export type UserStatus =
-  | 'ACTIVE'
-  | 'PAUSED'
-  | 'SUSPENDED'
-  | 'BANNED'
-  | 'DELETION_PENDING'
-  | 'DELETED';
+  'ACTIVE' | 'PAUSED' | 'SUSPENDED' | 'BANNED' | 'DELETION_PENDING' | 'DELETED';
 
 export type Gender = 'MALE' | 'FEMALE';
 
@@ -64,12 +54,7 @@ export type EventAttendanceStatus = 'GOING' | 'INTERESTED' | 'WAITLIST';
 export type EventAudience = 'CONGREGATION' | 'SINGLES';
 
 export type ReportCategory =
-  | 'INAPPROPRIATE'
-  | 'SCAM'
-  | 'FAKE_IDENTITY'
-  | 'HARASSMENT'
-  | 'MISLEADING'
-  | 'UNDERAGE';
+  'INAPPROPRIATE' | 'SCAM' | 'FAKE_IDENTITY' | 'HARASSMENT' | 'MISLEADING' | 'UNDERAGE';
 
 export type ModerationPriority = 'CRITICAL' | 'HIGH' | 'NORMAL';
 
@@ -130,6 +115,11 @@ export interface ProfileCard {
   intention: Intention;
   testimony?: string;
   verse?: string;
+  /** Respuestas cortas a las preguntas de perfil (RF-PER-09), hasta tres. */
+  answers?: Array<{ question: string; answer: string }>;
+  /** Testimonio en su propia voz, solo si moderación lo aprobó (RF-PER-12). */
+  voiceUrl?: string;
+  voiceDurationMs?: number;
   practices: string[];
   photoUrl?: string;
   affinity: AffinityBreakdown;

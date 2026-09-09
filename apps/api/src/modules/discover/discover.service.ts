@@ -418,6 +418,7 @@ export class DiscoverService {
             denomination: true,
             church: true,
             serviceAreas: { include: { serviceArea: true } },
+            answers: { take: 6 },
           },
         },
         photos: { where: { moderationStatus: 'APPROVED' }, orderBy: { position: 'asc' }, take: 1 },
@@ -425,8 +426,15 @@ export class DiscoverService {
         subscriptions: {
           where: { status: { in: ['ACTIVE', 'TRIAL'] }, endsAt: { gt: new Date() } },
         },
+        voiceNote: { select: { storageKey: true, durationMs: true, moderationStatus: true } },
       },
     });
+
+    // RF-PER-09: answers travel with the card, resolved against the current
+    // catalog so a retired question never shows up as a bare key.
+    const questionText = new Map(
+      (await this.settings.getProfileQuestions()).map((q) => [q.key, q.question]),
+    );
 
     const viewerScorable = this.toScorable(
       viewer.user.id,
@@ -502,6 +510,22 @@ export class DiscoverService {
           intention: candidate.profile.intention,
           testimony: candidate.profile.testimony ?? undefined,
           verse: candidate.profile.verse ?? undefined,
+          answers: candidate.profile.answers
+            .filter((row) => questionText.has(row.question))
+            .slice(0, 3)
+            .map((row) => ({
+              question: questionText.get(row.question) as string,
+              answer: row.answer,
+            })),
+          // RF-PER-12: only an approved recording leaves the person's own screen.
+          voiceUrl:
+            candidate.voiceNote?.moderationStatus === 'APPROVED'
+              ? await this.storage.signDownload(candidate.voiceNote.storageKey)
+              : undefined,
+          voiceDurationMs:
+            candidate.voiceNote?.moderationStatus === 'APPROVED'
+              ? candidate.voiceNote.durationMs
+              : undefined,
           practices: candidate.profile.serviceAreas.map((sa) => sa.serviceArea.name),
           photoUrl: candidate.photos[0]
             ? await this.storage.signDownload(candidate.photos[0].storageKey)

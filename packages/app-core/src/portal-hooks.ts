@@ -10,6 +10,9 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  CONVERSATION_QUESTIONS,
+  SETTING_KEYS,
+  type ProfileQuestion,
   DEFAULT_AFFINITY_WEIGHTS,
   demoAdminKpis,
   demoAttentionItems,
@@ -660,7 +663,11 @@ export interface AdminSettingsData {
   limits: Record<string, unknown>;
   thresholds: Record<string, number>;
   covenantVersion: string;
+  /** Catálogo de preguntas de perfil vigente (RF-PER-09). */
+  profileQuestions: ProfileQuestion[];
 }
+
+let demoProfileQuestions: ProfileQuestion[] = [...CONVERSATION_QUESTIONS];
 
 export function useAdminSettings() {
   return useQuery<AdminSettingsData>({
@@ -672,6 +679,7 @@ export function useAdminSettings() {
           limits: {},
           thresholds: { holdAbove: 0.7, rejectAbove: 0.92 },
           covenantVersion: '1.0',
+          profileQuestions: demoProfileQuestions,
         };
       }
       const data = await api().admin.settings();
@@ -680,7 +688,26 @@ export function useAdminSettings() {
         limits: data.limits,
         thresholds: data.thresholds,
         covenantVersion: data.covenantVersion,
+        profileQuestions: data.profileQuestions ?? [...CONVERSATION_QUESTIONS],
       };
+    },
+  });
+}
+
+/** Guarda el catálogo completo de preguntas de perfil (RF-PER-09, RF-ADM-08). */
+export function useUpdateProfileQuestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (questions: ProfileQuestion[]) => {
+      if (isDemoMode()) {
+        demoProfileQuestions = questions;
+        return { saved: true };
+      }
+      return api().admin.updateSetting(SETTING_KEYS.PROFILE_QUESTIONS, questions);
+    },
+    onSuccess: () => {
+      invalidateAdmin(queryClient, 'settings');
+      queryClient.invalidateQueries({ queryKey: ['profile-questions'] });
     },
   });
 }

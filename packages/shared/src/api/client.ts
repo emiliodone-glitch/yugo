@@ -25,6 +25,7 @@ import type { DiscoverFilters } from '../validators/discover';
 import type { CreateEventInput, CreateGroupInput, ReportInput } from '../validators/community';
 import type { ProfileUpdateInput, SearchPreferencesInput } from '../validators/profile';
 import type { PriceTable } from '../constants/pricing';
+import type { ProfileQuestion } from '../constants/catalog';
 
 // ---------------------------------------------------------------------------
 // Response shapes that only the client needs to name
@@ -376,7 +377,7 @@ export interface DevotionalReadResult {
  * traducir el enum en cada pantalla.
  */
 export type HeldContentKind =
-  'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
+  'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection' | 'voice';
 
 export interface HeldContentItem {
   caseId: string;
@@ -397,6 +398,9 @@ export interface HeldContentItem {
   memberPhotos?: string[];
   /** Fotos: desde cuándo es miembro (ISO). */
   memberSince?: string;
+  /** Audio de testimonio retenido: URL firmada para escucharlo y su duración. */
+  audioUrl?: string;
+  audioDurationMs?: number;
 }
 
 /** Lo que se escribe para un día. */
@@ -596,6 +600,17 @@ export interface MyProfile {
   church?: { id: string; name: string } | null;
   serviceAreas?: Array<{ serviceArea: { id: string; slug: string; name: string } }>;
   answers?: Array<{ question: string; answer: string }>;
+  /** Testimonio en la propia voz y en qué estado está (RF-PER-12). */
+  voiceNote?: VoiceNoteState | null;
+}
+
+export interface VoiceNoteState {
+  id: string;
+  status: 'PENDING' | 'APPROVED' | 'HELD' | 'REJECTED';
+  durationMs: number;
+  /** Firmada y de vida corta; la persona siempre puede oír la suya. */
+  url: string;
+  createdAt: string;
 }
 
 export interface DiscoverResponse {
@@ -843,15 +858,21 @@ export class YugoApiClient {
         };
       }>('/profiles/me/preview'),
     // RF-PER-09
-    questions: () =>
-      this.http.get<Array<{ key: string; question: string; maxLength: number }>>(
-        '/profiles/questions',
-        {
-          anonymous: true,
-        },
-      ),
+    questions: () => this.http.get<ProfileQuestion[]>('/profiles/questions', { anonymous: true }),
     answers: () =>
       this.http.get<Array<{ question: string; answer: string }>>('/profiles/me/answers'),
+    /** Testimonio en la propia voz (RF-PER-12): subida directa firmada, como las fotos. */
+    voiceSignUpload: (contentType: string) =>
+      this.http.post<{ key: string; uploadUrl: string }>('/profiles/me/voice/sign-upload', {
+        contentType,
+      }),
+    voiceConfirm: (key: string, durationMs: number, contentType: string) =>
+      this.http.post<VoiceNoteState>('/profiles/me/voice/confirm', {
+        key,
+        durationMs,
+        contentType,
+      }),
+    voiceRemove: () => this.http.delete<{ removed: boolean }>('/profiles/me/voice'),
     saveAnswer: (key: string, answer: string) =>
       this.http.put<{ question: string; answer: string }>('/profiles/me/answers', { key, answer }),
     removeAnswer: (key: string) =>
@@ -1436,6 +1457,7 @@ export class YugoApiClient {
     settings: () =>
       this.http.get<{
         weights: Record<string, number>;
+        profileQuestions?: ProfileQuestion[];
         limits: Record<string, unknown>;
         thresholds: Record<string, number>;
         covenantVersion: string;

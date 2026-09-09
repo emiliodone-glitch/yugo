@@ -21,6 +21,7 @@ const SURFACES = [
   { name: 'detalle de evento', path: '/eventos/ev-vigilia' },
   { name: 'perfil', path: '/perfil' },
   { name: 'preferencias', path: '/perfil/preferencias' },
+  { name: 'tu voz', path: '/perfil/voz' },
   { name: 'acompañar', path: '/perfil/acompanar' },
   { name: 'notificaciones', path: '/perfil/notificaciones' },
   { name: 'reportes admin', path: '/admin/reportes' },

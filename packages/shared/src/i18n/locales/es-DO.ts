@@ -87,7 +87,8 @@ export const es = {
     otpTitle: 'Ingresa el código',
     otpSub: (dest: string) => `Enviamos un código de 6 dígitos a ${dest}.`,
     birthTitle: '¿Cuándo naciste?',
-    birthSub: 'Yugo es solo para mayores de 18 años. Tu edad se muestra; tu fecha de nacimiento no.',
+    birthSub:
+      'Yugo es solo para mayores de 18 años. Tu edad se muestra; tu fecha de nacimiento no.',
     birthUnderage: 'Debes tener al menos 18 años para usar Yugo.',
     genderTitle: '¿Cómo te identificas?',
     male: 'Hombre',
@@ -167,10 +168,12 @@ export const es = {
     title: 'Descubrir',
     interestsLeft: (n: number) => `${n} intereses`,
     interestsUnlimited: 'Intereses ilimitados',
-    interestedNone: 'Todavía nadie ha marcado interés en ti. Un perfil completo con fotos cambia eso.',
+    interestedNone:
+      'Todavía nadie ha marcado interés en ti. Un perfil completo con fotos cambia eso.',
     interestedSub: 'Personas que marcaron interés en ti',
     interestedUnlockTitle: 'Descubre quiénes son con Yugo Plus',
-    interestedUnlockBody: 'La cuenta gratuita ve la cantidad; Plus y Oro ven los perfiles completos.',
+    interestedUnlockBody:
+      'La cuenta gratuita ve la cantidad; Plus y Oro ven los perfiles completos.',
     pass: 'Pasar',
     interested: 'Me interesa',
     interestSent: 'Interés enviado ✓',
@@ -179,8 +182,7 @@ export const es = {
     listProgress: (shown: number, total: number) =>
       `Lista de hoy: ${shown} de ${total} · ordenada por afinidad`,
     purposeBadge: 'Perfil con propósito',
-    purposeBadgeHelp:
-      'Se gana conversando de verdad y avanzando con alguien. No se compra.',
+    purposeBadgeHelp: 'Se gana conversando de verdad y avanzando con alguien. No se compra.',
     endorsedBadge: 'Respaldada por su iglesia',
     endorsedBadgeM: 'Respaldado por su iglesia',
     purposeMarriage: 'Propósito de matrimonio',
@@ -207,6 +209,9 @@ export const es = {
     age: 'Edad',
     inCommon: 'En común',
     testimony: 'Su testimonio',
+    answers: 'En sus palabras',
+    voice: 'En su voz',
+    voiceSeconds: (seconds: number) => `${seconds} s`,
     noteAffine: (a: string, b: string) => `${a} y ${b}: denominaciones afines`,
     noteSameDenomination: 'Comparten la misma denominación',
     noteIntentionBoth: 'Ambos buscan relación con propósito de matrimonio',
@@ -231,8 +236,7 @@ export const es = {
     },
     propose: (stage: string) => `Proponer «${stage}»`,
     proposedByYou: (stage: string) => `Propusiste «${stage}». Falta que la otra persona acepte.`,
-    proposedByThem: (name: string, stage: string) =>
-      `${name} propone que pasen a «${stage}».`,
+    proposedByThem: (name: string, stage: string) => `${name} propone que pasen a «${stage}».`,
     accept: 'Estoy de acuerdo',
     decline: 'Todavía no',
     declined: 'Dijiste que todavía no. Pueden volver a hablarlo cuando quieran.',
@@ -400,7 +404,8 @@ export const es = {
     safetyBody:
       'Reúnanse en un lugar público, avisa a alguien de confianza y no compartas datos financieros.',
     icebreakers: 'ROMPEHIELOS SUGERIDOS',
-    chatRules: 'Sin fotos ni archivos en el chat. Los mensajes se revisan para mantener el respeto.',
+    chatRules:
+      'Sin fotos ni archivos en el chat. Los mensajes se revisan para mantener el respeto.',
     writeMessage: 'Escribe un mensaje…',
     messageHeld: 'Tu mensaje está en revisión.',
     messageRejected:
@@ -541,11 +546,9 @@ export const es = {
     joinWaitlist: 'Anotarme en la lista de espera',
     onWaitlist: (position: number) => `Estás en la lista de espera, lugar ${position}.`,
     waitlistCount: (n: number) => `${n} en lista de espera`,
-    waitlistExplained:
-      'Si alguien cancela, el primero de la lista entra y recibe un aviso.',
+    waitlistExplained: 'Si alguien cancela, el primero de la lista entra y recibe un aviso.',
     seatFreed: 'Se liberó un cupo',
-    capacityHonest:
-      'El cupo es el que cabe en el salón. Ningún plan lo agranda.',
+    capacityHonest: 'El cupo es el que cabe en el salón. Ningún plan lo agranda.',
   },
 
   singlesMinistry: {
@@ -604,7 +607,8 @@ export const es = {
     editFaith: 'Tu dimensión de fe',
     editStory: 'Tu historia',
     completeCardTitle: (pct: number) => `Tu perfil está al ${pct} %`,
-    completeCardHidden: 'Todavía no apareces en Descubrir: llega al 60 % para que otras personas te encuentren.',
+    completeCardHidden:
+      'Todavía no apareces en Descubrir: llega al 60 % para que otras personas te encuentren.',
     completeCardVisible: 'Ya apareces en Descubrir. Un perfil más completo recibe más respuestas.',
     completeCardCta: 'Completar perfil',
     signOut: 'Cerrar sesión',
@@ -623,7 +627,43 @@ export const es = {
       testimony: 'tu testimonio',
       verse: 'tu versículo favorito',
       practices: 'dos prácticas de fe',
-      answers: 'una respuesta a las preguntas de fe',
+      answers: 'una respuesta a las preguntas de perfil',
+      answersThree: 'tres respuestas a las preguntas de perfil',
+      voice: 'tu testimonio en tu propia voz',
+    } as Record<string, string>,
+    /** Tu voz (RF-PER-09/12): lo que hace que dos perfiles iguales dejen de serlo. */
+    voiceTitle: 'Tu voz',
+    voiceSub:
+      'Tres respuestas cortas y, si quieres, veinte segundos con tu voz. Es lo que hace que alguien te escriba a ti y no a un perfil parecido.',
+    voiceLink: 'Tus respuestas y tu voz',
+    voiceLinkHint: 'Tres preguntas y un audio de 20 segundos',
+    answersTitle: 'Tres preguntas, en tus palabras',
+    answersHint: (n: number, target: number) =>
+      n >= target
+        ? `${n} respondidas. Puedes cambiar o añadir más.`
+        : `${n} de ${target} respondidas.`,
+    answerPlaceholder: 'Escribe tu respuesta…',
+    answerSave: 'Guardar respuesta',
+    answerRemove: 'Quitar',
+    answerSaved: 'Respuesta guardada',
+    answerRejected: 'Esa respuesta no pasó la moderación. Prueba a decirlo de otra forma.',
+    answerPick: 'Elige otra pregunta',
+    audioTitle: 'Tu testimonio en tu voz',
+    audioHint: (seconds: number) =>
+      `Hasta ${seconds} segundos. Cuéntanos quién eres o qué hizo Dios en ti. Lo escucha una persona del equipo antes de publicarse.`,
+    audioRecord: 'Grabar',
+    audioStop: 'Detener',
+    audioRerecord: 'Grabar de nuevo',
+    audioUpload: 'Publicar audio',
+    audioUploading: 'Subiendo…',
+    audioRemove: 'Quitar audio',
+    audioListen: 'Escuchar',
+    audioNoMic: 'No pudimos acceder al micrófono. Revisa el permiso en tu navegador o teléfono.',
+    audioStatus: {
+      PENDING: 'En revisión: se publica en menos de 24 horas.',
+      HELD: 'En revisión: se publica en menos de 24 horas.',
+      APPROVED: 'Publicado. Quien vea tu perfil puede escucharlo.',
+      REJECTED: 'No se aprobó. Puedes grabar otro; evita datos de contacto y nombres de terceros.',
     } as Record<string, string>,
   },
 
@@ -738,7 +778,8 @@ export const es = {
     decisionRemove: 'Retirar contenido',
     decisionRevoke: 'Revocar verificación',
     decisionEscalate: 'Escalar a superadmin',
-    verificationCase: (i: number, total: number) => `Verificación de identidad · caso ${i} de ${total}`,
+    verificationCase: (i: number, total: number) =>
+      `Verificación de identidad · caso ${i} de ${total}`,
     selfieLive: 'SELFIE EN VIVO',
     mainPhoto: 'FOTO PRINCIPAL DEL PERFIL',
     similarity: 'Similitud automática',
@@ -784,7 +825,8 @@ export const es = {
     runwayNone: 'Hoy la gente está viendo el de ayer. Escribe el de hoy ahora.',
     writeFor: (date: string) => `Escribir el del ${date}`,
     nextFree: 'Siguiente día sin devocional',
-    pickOrWrite: 'Elige un día de la lista para verlo o corregirlo, o escribe el siguiente que falta.',
+    pickOrWrite:
+      'Elige un día de la lista para verlo o corregirlo, o escribe el siguiente que falta.',
     fieldDate: 'Fecha',
     fieldReference: 'Referencia bíblica',
     fieldTitle: 'Título',
@@ -819,6 +861,7 @@ export const es = {
       prayer: 'Petición de oración',
       prayer_note: 'Testimonio',
       reflection: 'Reflexión',
+      voice: 'Audio de testimonio',
     },
     aiThresholds: 'Umbrales de moderación IA',
     holdIf: 'Retener mensaje si riesgo ≥',
@@ -851,7 +894,8 @@ export const es = {
     inReview: 'En revisión',
     published: 'Publicado',
     finished: 'Finalizado',
-    reviewNote: 'Los eventos se publican tras la revisión del equipo de Yugo (normalmente en menos de 24 h).',
+    reviewNote:
+      'Los eventos se publican tras la revisión del equipo de Yugo (normalmente en menos de 24 h).',
     checkInTitle: 'Check-in',
     checkInNote: 'Al publicarse, recibirás un código QR para registrar asistencia en la entrada.',
     generateCodes: (n: number) => `Generar ${n} códigos`,
@@ -865,9 +909,13 @@ export const es = {
     goingCount: (n: number) => (n === 1 ? '1 asistirá' : `${n} asistirán`),
     rejected: 'No aprobado',
     cancelled: 'Cancelado',
-    noEventsYet: 'Tu iglesia todavía no tiene eventos. El primero puede ser un culto especial o una vigilia: se publica cuando el equipo de Yugo lo revisa.',
+    noEventsYet:
+      'Tu iglesia todavía no tiene eventos. El primero puede ser un culto especial o una vigilia: se publica cuando el equipo de Yugo lo revisa.',
     fieldCity: 'Ciudad',
-    saved: (status: string) => (status === 'IN_REVIEW' ? 'Enviado a revisión. Te avisaremos cuando se publique.' : 'Borrador guardado. Lo puedes enviar a revisión desde Eventos.'),
+    saved: (status: string) =>
+      status === 'IN_REVIEW'
+        ? 'Enviado a revisión. Te avisaremos cuando se publique.'
+        : 'Borrador guardado. Lo puedes enviar a revisión desde Eventos.',
     costHint: 'Deja 0 si es gratis',
     endorsementRequests: 'Solicitudes de respaldo',
     confirmEndorsement: 'Confirmar',
@@ -907,18 +955,32 @@ export const es = {
     devotionalToday: 'Devocional de hoy',
     readBy: (n: number) => (n === 1 ? '1 persona lo leyó hoy' : `${n} personas lo leyeron hoy`),
     noDevotional: 'Hoy todavía no hay devocional publicado.',
-    devotionalHint: 'Cada día uno, el mismo para todos. Con cuenta puedes marcarlo como leído, dejar una reflexión y ver cuántos de tu iglesia lo leyeron.',
+    devotionalHint:
+      'Cada día uno, el mismo para todos. Con cuenta puedes marcarlo como leído, dejar una reflexión y ver cuántos de tu iglesia lo leyeron.',
     events: 'Próximos encuentros',
-    eventsHint: 'Los convocan las iglesias y se publican después de una revisión. Con cuenta ves quién de tus conexiones irá y puedes apuntarte.',
+    eventsHint:
+      'Los convocan las iglesias y se publican después de una revisión. Con cuenta ves quién de tus conexiones irá y puedes apuntarte.',
     noEvents: 'Todavía no hay eventos publicados. Las iglesias los van convocando semana a semana.',
     interested: (n: number) => (n === 1 ? '1 persona interesada' : `${n} personas interesadas`),
     seeEvent: 'Ver detalle',
     how: 'Cómo funciona Descubrir',
     howSteps: [
-      { title: 'Una lista corta, no un carrusel infinito', body: 'Cada día recibes hasta 30 personas ordenadas por afinidad de fe. Se acaba, y mañana hay otra. Ocho intereses al día para que cada uno pese.' },
-      { title: 'Afinidad de fe, explicada', body: 'Denominación, intención, prácticas, cercanía. Se te dice por qué alguien aparece, no solo que aparece.' },
-      { title: 'Verificación e iglesias que respaldan', body: 'Identidad verificada y, si tu congregación participa, un respaldo que se ve en tu perfil. Solo mayores de 18, sin excepción.' },
-      { title: 'Etapas que declaran los dos', body: 'Conociéndonos, amistad intencional, noviazgo. Uno propone, el otro acepta, y al declarar noviazgo ambos salen de Descubrir.' },
+      {
+        title: 'Una lista corta, no un carrusel infinito',
+        body: 'Cada día recibes hasta 30 personas ordenadas por afinidad de fe. Se acaba, y mañana hay otra. Ocho intereses al día para que cada uno pese.',
+      },
+      {
+        title: 'Afinidad de fe, explicada',
+        body: 'Denominación, intención, prácticas, cercanía. Se te dice por qué alguien aparece, no solo que aparece.',
+      },
+      {
+        title: 'Verificación e iglesias que respaldan',
+        body: 'Identidad verificada y, si tu congregación participa, un respaldo que se ve en tu perfil. Solo mayores de 18, sin excepción.',
+      },
+      {
+        title: 'Etapas que declaran los dos',
+        body: 'Conociéndonos, amistad intencional, noviazgo. Uno propone, el otro acepta, y al declarar noviazgo ambos salen de Descubrir.',
+      },
     ],
     exampleLabel: 'Ejemplo ilustrativo · no es una persona real',
     exampleName: 'Así se ve una tarjeta',
@@ -928,10 +990,12 @@ export const es = {
     storiesHint: 'Parejas que se conocieron en Yugo y se casaron, con su iglesia presente.',
     seeStories: 'Leer historias',
     community: 'Una comunidad que existe',
-    communityHint: 'Grupos y ministerios activos. Para entrar y leer lo que publican hace falta una cuenta.',
+    communityHint:
+      'Grupos y ministerios activos. Para entrar y leer lo que publican hace falta una cuenta.',
     membersCount: (n: number) => (n === 1 ? '1 miembro' : `${n} miembros`),
     footerTitle: '¿Te hace sentido?',
-    footerBody: 'Crear el perfil toma unos minutos. Empiezas con el Pacto de conducta, porque aquí se entra sabiendo a qué.',
+    footerBody:
+      'Crear el perfil toma unos minutos. Empiezas con el Pacto de conducta, porque aquí se entra sabiendo a qué.',
     eventNotFound: 'Este evento ya no está disponible.',
     eventCta: 'Para apuntarte y ver quién de tus conexiones irá, crea tu perfil.',
     backToExplore: 'Volver a explorar',
@@ -944,16 +1008,20 @@ export const es = {
     apiUrl: 'API configurada',
     apiUrlSource: 'De dónde sale',
     sources: {
-      runtime: 'API_URL del servicio web (se lee al servir la página; cambiarla no exige reconstruir)',
+      runtime:
+        'API_URL del servicio web (se lee al servir la página; cambiarla no exige reconstruir)',
       build: 'NEXT_PUBLIC_API_URL horneada al construir (cambiarla exige reconstruir la web)',
-      default: 'Ninguna válida: la web usa localhost. En un despliegue esto siempre es un error de configuración.',
+      default:
+        'Ninguna válida: la web usa localhost. En un despliegue esto siempre es un error de configuración.',
     },
     demoMode: 'Modo demo',
     probe: 'Prueba en vivo',
     ok: (ms: number) => `La API responde (${ms} ms).`,
-    okNext: 'Si aun así no puedes entrar, el problema es de credenciales o de la propia cuenta, no de conexión.',
+    okNext:
+      'Si aun así no puedes entrar, el problema es de credenciales o de la propia cuenta, no de conexión.',
     http: (status: number) => `La API respondió con error ${status}.`,
-    httpHint: 'La dirección es correcta pero el servicio no está sano. Revisa los Deploy Logs de la API en Railway.',
+    httpHint:
+      'La dirección es correcta pero el servicio no está sano. Revisa los Deploy Logs de la API en Railway.',
     unreachable: 'El navegador no pudo conectar con la API.',
     fixUrl:
       'La web no sabe dónde está la API. En Railway, servicio web → Variables → añade API_URL con la URL pública literal de la API (https://…up.railway.app, sin /v1; se copia de servicio api → Settings → Networking). No hace falta reconstruir: recarga esta página cuando el servicio web se reinicie.',
@@ -961,12 +1029,13 @@ export const es = {
     ifHealthWorks:
       'Si ahí ves {"status":"ok"…}, la API está bien. Vuelve aquí y recarga: si sigue en rojo, la dirección de arriba no es la misma que abriste (revisa API_URL).',
     ifHealthFails:
-      'Si ahí tampoco carga, la API está caída o la dirección es otra: revisa Deployments (Deploy Logs) y Networking del servicio api. Un «Crashed» con «P1001 Can\'t reach database» significa que el servicio Postgres no está en línea.',
+      "Si ahí tampoco carga, la API está caída o la dirección es otra: revisa Deployments (Deploy Logs) y Networking del servicio api. Un «Crashed» con «P1001 Can't reach database» significa que el servicio Postgres no está en línea.",
     backToSignIn: '← Volver a entrar',
   },
   gate: {
     staffOnly: 'Esta área es del equipo de Yugo.',
-    staffOnlyBody: 'Tu cuenta es de miembro. Si formas parte del equipo, pide a un superadministrador que te asigne el rol.',
+    staffOnlyBody:
+      'Tu cuenta es de miembro. Si formas parte del equipo, pide a un superadministrador que te asigne el rol.',
     backHome: 'Volver a la app',
     churchOnlyTitle: 'Este portal es para iglesias',
     churchOnlyBody:

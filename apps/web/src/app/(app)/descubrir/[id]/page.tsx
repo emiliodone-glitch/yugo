@@ -90,6 +90,42 @@ export default function AffinityDetailPage({ params }: { params: { id: string } 
             </>
           ) : null}
 
+          {profile.voiceUrl ? (
+            <div className="card mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                {es.affinity.voice}
+                {profile.voiceDurationMs
+                  ? ` · ${es.affinity.voiceSeconds(Math.round(profile.voiceDurationMs / 1000))}`
+                  : ''}
+              </div>
+              <audio
+                controls
+                preload="none"
+                src={profile.voiceUrl}
+                className="mt-2 w-full"
+                aria-label={`${es.affinity.voice}: ${profile.displayName}`}
+              >
+                Tu navegador no reproduce audio.
+              </audio>
+            </div>
+          ) : null}
+
+          {profile.answers && profile.answers.length > 0 ? (
+            <div className="card mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                {es.affinity.answers}
+              </div>
+              <dl className="mt-1 space-y-2.5">
+                {profile.answers.map((item) => (
+                  <div key={item.question}>
+                    <dt className="text-[12px] font-semibold text-olive-text">{item.question}</dt>
+                    <dd className="text-[13px] leading-relaxed">{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
           {profile.testimony ? (
             <div className="card mt-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">

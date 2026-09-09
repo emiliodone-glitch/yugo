@@ -379,7 +379,21 @@ function HeldCard({
         </div>
       </div>
 
-      {item.kind === 'photo' ? (
+      {item.kind === 'voice' ? (
+        item.audioUrl ? (
+          <div className="rounded-field bg-linen px-3 py-2">
+            <audio controls preload="none" src={item.audioUrl} className="w-full">
+              Tu navegador no reproduce audio.
+            </audio>
+            <p className="mt-1 text-[11px] text-muted">
+              Escúchalo entero antes de decidir: sin datos de contacto, sin nombres de terceros, sin
+              nada que no diría en su iglesia.
+            </p>
+          </div>
+        ) : (
+          <p className="text-[12px] text-muted">No se pudo cargar el audio.</p>
+        )
+      ) : item.kind === 'photo' ? (
         item.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

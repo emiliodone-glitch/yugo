@@ -610,6 +610,7 @@ export class AdminService {
     prayerAnsweredNoteId: string | null;
     reflectionDevotionalId: string | null;
     reflectionUserId: string | null;
+    voiceNoteId?: string | null;
   }): Promise<HeldContentItem | null> {
     const base = {
       caseId: c.id,
@@ -624,6 +625,24 @@ export class AdminService {
       });
       return profile?.displayName ?? 'Miembro';
     };
+    if (c.voiceNoteId) {
+      // Audio de testimonio (RF-PER-12): no hay clasificador, lo escucha una
+      // persona. Se muestra con reproductor y la duración.
+      const note = await this.prisma.voiceNote.findUnique({ where: { id: c.voiceNoteId } });
+      if (!note || note.moderationStatus === 'APPROVED') return null;
+      return {
+        ...base,
+        kind: 'voice',
+        text: null,
+        audioUrl: await this.storage.signDownload(note.storageKey),
+        audioDurationMs: note.durationMs,
+        authorId: note.userId,
+        authorName: await nameOf(note.userId),
+        context: `Testimonio en audio · ${Math.round(note.durationMs / 1000)} s`,
+        risk: null,
+        autoDecision: note.moderationStatus === 'REJECTED' ? 'REJECTED' : 'PENDING',
+      };
+    }
 
     if (c.messageId) {
       const message = await this.prisma.message.findUnique({ where: { id: c.messageId } });
@@ -795,6 +814,15 @@ export class AdminService {
       // Las fotos aprobadas valen 15 puntos de completitud (RF-PER-10): sin
       // esto la persona veía «publicada» y la barra no se movía.
       await this.profiles.recomputeCompleteness(photo.userId).catch(() => undefined);
+    } else if (c.voiceNoteId) {
+      const note = await this.prisma.voiceNote.update({
+        where: { id: c.voiceNoteId },
+        data: { moderationStatus: status },
+      });
+      authorId = note.userId;
+      what = 'audio de testimonio';
+      // El audio aprobado vale 5 puntos de completitud (RF-PER-12).
+      await this.profiles.recomputeCompleteness(note.userId).catch(() => undefined);
     } else if (c.prayerRequestId) {
       const prayer = await this.prisma.prayerRequest.update({
         where: { id: c.prayerRequestId },
@@ -1056,14 +1084,16 @@ export class AdminService {
   }
 
   async getSettings() {
-    const [weights, limits, thresholds, covenantVersion, prices] = await Promise.all([
-      this.settings.getAffinityWeights(),
-      this.settings.getLimits(),
-      this.settings.getModerationThresholds(),
-      this.settings.getCovenantVersion(),
-      this.settings.getPrices(),
-    ]);
-    return { weights, limits, thresholds, covenantVersion, prices };
+    const [weights, limits, thresholds, covenantVersion, prices, profileQuestions] =
+      await Promise.all([
+        this.settings.getAffinityWeights(),
+        this.settings.getLimits(),
+        this.settings.getModerationThresholds(),
+        this.settings.getCovenantVersion(),
+        this.settings.getPrices(),
+        this.settings.getProfileQuestions(),
+      ]);
+    return { weights, limits, thresholds, covenantVersion, prices, profileQuestions };
   }
 
   /** Denomination affinity matrix editor (RF-ADM-07). */
@@ -1278,10 +1308,13 @@ export class AdminService {
 /** Un contenido retenido, tal como lo ve quien modera. */
 export interface HeldContentItem {
   caseId: string;
-  kind: 'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection';
+  kind: 'message' | 'post' | 'photo' | 'prayer' | 'prayer_note' | 'reflection' | 'voice';
   text: string | null;
   photoKey?: string;
   photoUrl?: string;
+  /** Audio de testimonio retenido (RF-PER-12): firmado y con duración. */
+  audioUrl?: string;
+  audioDurationMs?: number;
   authorId: string | null;
   authorName: string;
   context: string;

@@ -99,6 +99,24 @@ k6 run -e BASE_URL=http://localhost:4000/v1 -e TOKEN=<jwt> -e CONVERSATION_ID=<i
    (amplitud mínima 3). Con `ageMin: 17` → **400** (nunca menores).
 2. Completa testimonio/versículo/prácticas y observa `completeness` subir en `GET /v1/profiles/me`.
 
+### Tu voz: respuestas y audio de testimonio (RF-PER-09/12)
+
+1. Con `prueba@yugo.do`, Perfil → Completa tu perfil → «Tus respuestas y tu
+   voz» (`/perfil/voz`). Responde tres preguntas: el contador pasa a «3 de 3»
+   y la completitud del perfil sube en Inicio. Una respuesta con un teléfono o
+   un insulto vuelve rechazada por moderación.
+2. Graba un audio (el navegador pide el micrófono; en móvil, `expo-av`). Se
+   corta solo a los 20 s. «Publicar audio» lo sube firmado (hace falta S3/R2
+   configurado, como las fotos) y queda «En revisión».
+3. Con `admin@yugo.do`, Moderación → retenidos: el audio aparece con
+   reproductor. Aprobar lo publica y suma 5 puntos de completitud; rechazar
+   avisa a la persona. En ambos casos le llega una notificación.
+4. Con otra cuenta, abre la ficha de esa persona en Descubrir: «En su voz» y
+   «En sus palabras» aparecen solo si el audio está aprobado y hay respuestas.
+5. Con `admin@yugo.do`, Configuración → «Preguntas de perfil»: añade una
+   pregunta y guarda; `/perfil/voz` la ofrece en menos de un minuto. Con
+   menos de tres preguntas válidas la API vuelve al catálogo compilado.
+
 ### Descubrir y regla mutua de edad (RF-DES-01/05/11/12)
 1. Con `demo1@yugo.do`: `GET /v1/discover` → lista ≤ 30 ordenada por afinidad con desglose.
 2. Cambia tu rango a uno que excluya la edad de un perfil sugerido → desaparece de la lista
