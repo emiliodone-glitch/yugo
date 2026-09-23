@@ -251,10 +251,19 @@ que Descubrir trae perfiles. Si trae la demo en vez de datos reales,
 En `apps/mobile`, el APK se construye con `EXPO_PUBLIC_API_URL` apuntando a la
 API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 
+**La app no es un servicio de Railway.** Al importar el repositorio desde
+GitHub, Railway detecta cada paquete del monorepo y puede proponer servicios
+como `@yugo/mobile`, `@yugo/shared` o `@yugo/app-core`. No los aceptes (o
+bórralos: servicio → Settings → Danger → Delete service). La app se entrega
+como APK/IPA con EAS y los paquetes compartidos se compilan dentro de las
+imágenes de `api` y `web`. En Railway solo viven `postgres`, `redis`, `api` y
+`web`.
+
 ## Cuando algo falla
 
 | Síntoma | Causa probable | Qué hacer |
 | --- | --- | --- |
+| Un servicio `@yugo/mobile` (u otro `@yugo/…` que no sea la API ni la web) sale «Failed» en «Build › Build image» | Railway lo creó solo al importar el monorepo. La app es Expo: no tiene nada que servir, así que su imagen no se puede construir | Borrar el servicio (Settings → Danger → Delete service). No afecta a la API ni a la web; la app se construye con EAS (paso 7) |
 | La API reinicia en bucle y los logs dicen `postgis` | El Postgres no tiene PostGIS | Usar la imagen `postgis/postgis:16-3.4` (paso 2) |
 | `P1001 Can't reach database` repetido hasta «Crashed» | El servicio Postgres no está en línea: acaba de redesplegarse (imagen nueva, volumen borrado) y tarda, o no arrancó (la imagen `postgis` exige `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`; sin ellas se apaga con «superuser password is not specified») | La API espera hasta 2 minutos a la base antes de rendirse (`DB_WAIT_SECONDS`). Si aun así cae, abre el servicio Postgres → Deployments → Deploy Logs y corrige lo que diga; luego Redeploy en la API |
 | Postgres «Online» pero en sus Deploy Logs se repite `unrecognized configuration parameter "autovacuum_worker_slots"` y `FATAL: configuration file … contains errors` (o `database files are incompatible with server`) | El volumen guarda datos escritos por **otra versión mayor** de PostgreSQL (la plantilla de Railway crea la base con la versión más nueva; `postgis/postgis:16-3.4` no puede leerla) y el servidor reinicia en bucle sin llegar a escuchar. La API ve `P1001` aunque el host sea correcto | Volumen del servicio Postgres → ⋯ → **Wipe Volume**, y Redeploy: se inicializa limpio con `POSTGRES_*`. Los datos de prueba vuelven solos con `SEED_ON_BOOT=always`. Alternativa si hubiera datos reales: usar la imagen PostGIS de la misma versión mayor que los datos (`postgis/postgis:18-3.6` para PostgreSQL 18) |
