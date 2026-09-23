@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint delegated to typecheck for mobile MVP'",
     "test": "jest --ci",
-    "test:web": "node scripts/web-smoke.mjs"
+    "test:web": "node scripts/web-smoke.mjs",
+    "eas-build-post-install": "pnpm --filter @yugo/ui-tokens build && pnpm --filter @yugo/shared build && pnpm --filter @yugo/app-core build"
   },
   "dependencies": {
     "@babel/runtime": "^7.29.7",

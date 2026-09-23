@@ -1,4 +1,4 @@
-# Contexto de construcción para apps/api/Dockerfile y apps/web/Dockerfile.
+# Contexto de construcción para los Dockerfiles de apps/api, apps/web y apps/mobile.
 # Los Dockerfiles se construyen desde la raíz del monorepo (necesitan el
 # lockfile y packages/), así que sin este archivo el contexto arrastraría
 # node_modules —más de un gigabyte— y cualquier .env local. Lo primero hace
@@ -29,7 +29,7 @@ gitleaks-report.json
 docs
 infra
 scripts
-apps/mobile
+# apps/mobile entra: la imagen de apps/mobile/Dockerfile la necesita (pesa <1 MB).
 **/*.md
 **/*.spec.ts
 **/*.test.ts

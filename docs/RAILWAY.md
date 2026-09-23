@@ -11,6 +11,7 @@ puertos, las rutas de salud, las variables y el orden importan.
 | `redis` | Plugin Redis de Railway (opcional, recomendado) | 6379 | — |
 | `api` | Este repo, `apps/api/Dockerfile` | `PORT` (Railway) | `GET /v1/health` |
 | `web` | Este repo, `apps/web/Dockerfile` | 3000 | `GET /` |
+| `@yugo/mobile` | Este repo, `apps/mobile/Dockerfile` | — (consola para lanzar builds en EAS) | — |
 
 **PostGIS no es opcional.** La primera migración ejecuta
 `CREATE EXTENSION IF NOT EXISTS postgis` y Descubrir calcula distancias con
@@ -251,19 +252,54 @@ que Descubrir trae perfiles. Si trae la demo en vez de datos reales,
 En `apps/mobile`, el APK se construye con `EXPO_PUBLIC_API_URL` apuntando a la
 API de Railway. Ver `docs/STORE_RELEASE.md`, sección «APK con EAS».
 
-**La app no es un servicio de Railway.** Al importar el repositorio desde
-GitHub, Railway detecta cada paquete del monorepo y puede proponer servicios
-como `@yugo/mobile`, `@yugo/shared` o `@yugo/app-core`. No los aceptes (o
-bórralos: servicio → Settings → Danger → Delete service). La app se entrega
-como APK/IPA con EAS y los paquetes compartidos se compilan dentro de las
-imágenes de `api` y `web`. En Railway solo viven `postgres`, `redis`, `api` y
-`web`.
+### La app móvil desde la consola de Railway
+
+El servicio `@yugo/mobile` no sirve nada: es una consola con el monorepo,
+las dependencias y `eas-cli` listos, desde la que se pide el build a la nube
+de Expo. El APK no se compila en Railway, sino en EAS.
+
+Configuración del servicio (una sola vez):
+
+- **Settings → Source → Root Directory:** vacío (la raíz del monorepo).
+- **Settings → Config-as-code:** `apps/mobile/railway.json` (usa
+  `apps/mobile/Dockerfile`). Si no aparece la opción, la variable
+  `RAILWAY_DOCKERFILE_PATH=apps/mobile/Dockerfile` hace lo mismo.
+- **Settings → Build:** sin Build Command ni Start Command personalizados.
+- **Networking:** nada; no se expone.
+
+Variables del servicio:
+
+| Variable | Valor |
+| --- | --- |
+| `EXPO_TOKEN` | expo.dev → Account settings → Access tokens |
+| `EXPO_PUBLIC_API_URL` | la URL pública de la API, sin `/v1` (no hace falta en `preview-demo`) |
+| `EAS_PROJECT_ID` | opcional: el ID del proyecto en expo.dev. Si falta, `eas init` enlaza o crea el proyecto `yugo` en la cuenta del token |
+| `EAS_BUILD_PROFILE` | opcional: perfil por defecto (`preview`) |
+| `EAS_BUILD_ON_DEPLOY` | opcional: `true` lanza un build en cada despliegue (gasta cuota de EAS) |
+
+Para construir: servicio `@yugo/mobile` → **Console** y
+
+```bash
+yugo-apk                 # APK contra la API real (perfil preview)
+yugo-apk preview-demo    # APK con datos de demo, sin servidor
+yugo-apk production      # AAB para Google Play
+```
+
+El comando imprime el enlace de expo.dev donde se sigue el build y se
+descarga el archivo. El build en la nube no ve las variables de Railway, así
+que `yugo-apk` escribe la URL de la API y el `projectId` en `app.json` antes
+de subir el proyecto.
+
+Los demás paquetes del monorepo (`@yugo/shared`, `@yugo/app-core`,
+`@yugo/ui-tokens`) no son servicios: si Railway los propone al importar el
+repositorio, bórralos (Settings → Danger → Delete service).
 
 ## Cuando algo falla
 
 | Síntoma | Causa probable | Qué hacer |
 | --- | --- | --- |
-| Un servicio `@yugo/mobile` (u otro `@yugo/…` que no sea la API ni la web) sale «Failed» en «Build › Build image» | Railway lo creó solo al importar el monorepo. La app es Expo: no tiene nada que servir, así que su imagen no se puede construir | Borrar el servicio (Settings → Danger → Delete service). No afecta a la API ni a la web; la app se construye con EAS (paso 7) |
+| `@yugo/mobile` sale «Failed» en «Build › Build image» | El servicio no usa `apps/mobile/Dockerfile` (Railway intentó construir la app Expo como un servidor) o su Root Directory es `apps/mobile` y no ve el lockfile | Root Directory vacío y Config-as-code `apps/mobile/railway.json` (paso 7) |
+| `yugo-apk` dice `Forbidden` o `GraphQL request failed` | `EXPO_TOKEN` inválido, caducado o de otra cuenta | Crear otro token en expo.dev y actualizar la variable |
 | La API reinicia en bucle y los logs dicen `postgis` | El Postgres no tiene PostGIS | Usar la imagen `postgis/postgis:16-3.4` (paso 2) |
 | `P1001 Can't reach database` repetido hasta «Crashed» | El servicio Postgres no está en línea: acaba de redesplegarse (imagen nueva, volumen borrado) y tarda, o no arrancó (la imagen `postgis` exige `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`; sin ellas se apaga con «superuser password is not specified») | La API espera hasta 2 minutos a la base antes de rendirse (`DB_WAIT_SECONDS`). Si aun así cae, abre el servicio Postgres → Deployments → Deploy Logs y corrige lo que diga; luego Redeploy en la API |
 | Postgres «Online» pero en sus Deploy Logs se repite `unrecognized configuration parameter "autovacuum_worker_slots"` y `FATAL: configuration file … contains errors` (o `database files are incompatible with server`) | El volumen guarda datos escritos por **otra versión mayor** de PostgreSQL (la plantilla de Railway crea la base con la versión más nueva; `postgis/postgis:16-3.4` no puede leerla) y el servidor reinicia en bucle sin llegar a escuchar. La API ve `P1001` aunque el host sea correcto | Volumen del servicio Postgres → ⋯ → **Wipe Volume**, y Redeploy: se inicializa limpio con `POSTGRES_*`. Los datos de prueba vuelven solos con `SEED_ON_BOOT=always`. Alternativa si hubiera datos reales: usar la imagen PostGIS de la misma versión mayor que los datos (`postgis/postgis:18-3.6` para PostgreSQL 18) |
